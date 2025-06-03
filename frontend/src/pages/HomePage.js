@@ -72,9 +72,12 @@ function HomePage() {
         };
         
         const data = await getProjects(params);
-        setProjects(data.data);
-        setTotalPages(data.totalPages);
-        setTotalCount(data.total);
+        // Das Backend gibt ein Objekt mit einem Feld 'projects' zurück, nicht 'data'
+        setProjects(data.projects || []);
+        // Berechne totalPages basierend auf total und limit
+        const calculatedTotalPages = Math.ceil(data.total / params.limit);
+        setTotalPages(calculatedTotalPages || 1);
+        setTotalCount(data.total || 0);
         
         // Set new project IDs if available
         if (data.newProjectIds) {
