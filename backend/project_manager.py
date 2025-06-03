@@ -176,17 +176,28 @@ class ProjectManager:
         
         for project in unique_projects:
             # Prüfen, ob das Projekt in den letzten 24 Stunden aktualisiert wurde
-            updated_str = project.get("updated_at") or project.get("created_at")
+            # GULP-Projekte verwenden originalPublicationDate für das Datum
+            updated_str = project.get("originalPublicationDate") or project.get("updated_at") or project.get("created_at")
             if updated_str:
                 try:
-                    updated_at = datetime.fromisoformat(updated_str)
+                    # Versuchen, das Datum zu parsen
+                    try:
+                        updated_at = datetime.fromisoformat(updated_str)
+                    except ValueError:
+                        # Fallback für andere Datumsformate
+                        updated_at = datetime.strptime(updated_str, "%Y-%m-%dT%H:%M:%S.%f")
+                    
                     time_diff = current_time - updated_at
+                    print(f"Projekt {project.get('id')}: Datum {updated_str}, Differenz: {time_diff.total_seconds()/3600:.2f} Stunden")
                     if time_diff.total_seconds() < 24 * 60 * 60:  # 24 Stunden in Sekunden
                         recent_projects.append(project)
                         continue
-                except (ValueError, TypeError):
-                    pass  # Wenn das Datum nicht geparst werden kann, behandeln wir es als alt
-            
+                except (ValueError, TypeError) as e:
+                    print(f"Fehler beim Parsen des Datums für Projekt {project.get('id')}: {str(e)} (Datum: {updated_str})")
+                    # Wenn das Datum nicht geparst werden kann, behandeln wir es als aktuell, um keine Projekte zu verlieren
+                    recent_projects.append(project)
+                    continue
+                
             # Wenn das Projekt nicht aktuell ist, fügen wir es zum Archiv hinzu
             if project.get("id") not in archive_ids:
                 archive_projects.append(project)
@@ -248,3 +259,73 @@ class ProjectManager:
         end_idx = start_idx + limit
         
         return archive_projects[start_idx:end_idx], len(archive_projects)
+    
+    def get_projects(self, page: int = 1, limit: int = 10, search: str = None, 
+                   location: str = None, remote: bool = None, archived: bool = False,
+                   include_new_only: bool = False) -> Tuple[List[Dict], int]:
+        """Gibt Projekte mit Filterung und Paginierung zurück.
+        
+        Args:
+            page: Seitennummer für die Paginierung
+            limit: Anzahl der Projekte pro Seite
+            search: Suchbegriff für Titel, Beschreibung und Firma
+            location: Suchbegriff für den Standort
+            remote: Filter für Remote-Status
+            archived: Wenn True, werden archivierte Projekte zurückgegeben, sonst aktuelle
+            include_new_only: Wenn True, werden nur neue Projekte zurückgegeben
+            
+        Returns:
+            Tuple mit paginierten Projekten und Gesamtanzahl
+        """
+        try:
+            # Laden der Projekte basierend auf dem archived-Parameter
+            if archived:
+                # Archivierte Projekte laden
+                projects = self._load_archive_projects()
+            else:
+                # Aktuelle Projekte laden
+                if self.recent_projects_file.exists():
+                    projects = json.loads(self.recent_projects_file.read_text(encoding="utf-8"))
+                else:
+                    projects = []
+            
+            # Filterung anwenden
+            filtered_projects = projects
+            
+            # Nur neue Projekte anzeigen, wenn gewünscht
+            if include_new_only and not archived:
+                new_project_ids = {p.get("id") for p in self.get_new_projects()}
+                filtered_projects = [p for p in filtered_projects if p.get("id") in new_project_ids]
+            
+            # Nach Suchbegriff filtern
+            if search and search.strip():
+                search_lower = search.lower()
+                filtered_projects = [p for p in filtered_projects if 
+                                   search_lower in p.get("title", "").lower() or 
+                                   search_lower in p.get("description", "").lower() or
+                                   search_lower in p.get("company", "").lower()]
+            
+            # Nach Standort filtern
+            if location and location.strip():
+                location_lower = location.lower()
+                filtered_projects = [p for p in filtered_projects if 
+                                   location_lower in p.get("location", "").lower()]
+            
+            # Nach Remote-Status filtern
+            if remote is not None:
+                filtered_projects = [p for p in filtered_projects if 
+                                   p.get("remote") == remote]
+            
+            # Gesamtanzahl der gefilterten Projekte speichern
+            total_count = len(filtered_projects)
+            
+            # Paginierung anwenden
+            start_idx = (page - 1) * limit
+            end_idx = start_idx + limit
+            paginated_projects = filtered_projects[start_idx:end_idx]
+            
+            return paginated_projects, total_count
+            
+        except Exception as e:
+            print(f"Fehler beim Abrufen der Projekte: {str(e)}")
+            return [], 0

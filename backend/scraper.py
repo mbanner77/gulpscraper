@@ -466,65 +466,29 @@ async def get_projects(
             )
         
         # Get projects from the project manager
-        if include_new_only:
-            # Get only new projects
-            projects, total = project_manager.get_projects(
-                search=search, 
-                location=location, 
-                remote=remote, 
-                page=page, 
-                limit=limit, 
-                include_new_only=True,
-                archived=False
-            )
-        else:
-            # Get recent projects (last 24h)
-            projects, total = project_manager.get_projects(
-                search=search, 
-                location=location, 
-                remote=remote, 
-                page=page, 
-                limit=limit, 
-                include_new_only=False,
-                archived=False
-            )
-        
-        # Apply filters
-        filtered_projects = projects
-        
-        if search:
-            search_lower = search.lower()
-            filtered_projects = [
-                p for p in filtered_projects if
-                (p.get("title", "").lower().find(search_lower) >= 0 or
-                 p.get("description", "").lower().find(search_lower) >= 0 or
-                 p.get("companyName", "").lower().find(search_lower) >= 0)
-            ]
-            
-        if location:
-            location_lower = location.lower()
-            filtered_projects = [
-                p for p in filtered_projects if
-                p.get("location", "").lower().find(location_lower) >= 0
-            ]
-            
-        if remote is not None:
-            filtered_projects = [
-                p for p in filtered_projects if
-                p.get("isRemoteWorkPossible") == remote
-            ]
-            
-        # Calculate pagination
-        total = len(filtered_projects)
-        total_pages = (total + limit - 1) // limit if limit > 0 else 1
-        start_idx = (page - 1) * limit if limit > 0 else 0
-        end_idx = min(start_idx + limit, total) if limit > 0 else total
+        projects, total = project_manager.get_projects(
+            search=search, 
+            location=location, 
+            remote=remote, 
+            page=page, 
+            limit=limit, 
+            include_new_only=include_new_only,
+            archived=False
+        )
         
         # Hole die neuen Projekte, um sie im Frontend markieren zu können
         new_project_ids = {p.get("id") for p in project_manager.get_new_projects()}
         
+        # Get the last scrape time
+        last_scrape_time = None
+        try:
+            if LAST_SCRAPE_FILE.exists():
+                last_scrape_time = LAST_SCRAPE_FILE.read_text().strip()
+        except Exception as e:
+            print(f"Error reading last scrape time: {str(e)}")
+        
         return {
-            "projects": filtered_projects[start_idx:end_idx],
+            "projects": projects,
             "total": total,
             "page": page,
             "limit": limit,
