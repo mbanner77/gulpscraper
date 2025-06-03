@@ -293,43 +293,77 @@ class SchedulerConfig(BaseModel):
 @app.get("/scheduler-config")
 async def get_scheduler_config():
     """Get the current scheduler configuration."""
-    jobs = []
+    jobs_info = []
     for job in scheduler.get_jobs():
-        jobs.append({
-            "id": job.id,
-            "next_run_time": job.next_run_time.isoformat() if job.next_run_time else None,
-            "trigger": str(job.trigger)
-        })
+        try:
+            next_run = job.next_run_time.isoformat() if job.next_run_time else None
+            jobs_info.append({
+                "id": job.id,
+                "next_run_time": next_run,
+                "trigger": str(job.trigger),
+                "function": job.func.__name__ if hasattr(job.func, "__name__") else str(job.func)
+            })
+        except Exception as e:
+            jobs_info.append({
+                "id": job.id,
+                "error": str(e)
+            })
     
     return {
         "config": scheduler_config,
-        "jobs": jobs,
-        "scheduler_running": scheduler.running
+        "jobs": jobs_info,
+        "scheduler_running": scheduler.running,
+        "scheduler_state": {
+            "running": scheduler.running,
+            "state": scheduler.state if hasattr(scheduler, "state") else "unknown",
+            "job_count": len(scheduler.get_jobs())
+        }
     }
 
 @app.post("/restart-scheduler")
 async def restart_scheduler():
     """Force restart the scheduler to ensure jobs are properly registered."""
+    global scheduler
     try:
         # Stop the scheduler if it's running
         if scheduler.running:
-            scheduler.shutdown()
+            try:
+                scheduler.shutdown(wait=False)
+                print("Scheduler shutdown successfully")
+            except Exception as shutdown_error:
+                print(f"Error shutting down scheduler: {str(shutdown_error)}")
         
         # Configure the scheduler with current settings
         configure_scheduler()
         
         # Start the scheduler
-        scheduler.start()
+        try:
+            scheduler.start()
+            print("Scheduler started successfully")
+        except Exception as start_error:
+            print(f"Error starting scheduler: {str(start_error)}")
+            # Try to create a new scheduler instance if starting fails
+            scheduler = AsyncIOScheduler()
+            configure_scheduler()
+            scheduler.start()
+        
+        # Get current jobs
+        jobs = []
+        for job in scheduler.get_jobs():
+            jobs.append({
+                "id": job.id,
+                "next_run_time": job.next_run_time.isoformat() if job.next_run_time else None,
+                "trigger": str(job.trigger)
+            })
         
         return {
             "message": "Scheduler restarted successfully",
-            "jobs": [{
-                "id": job.id,
-                "next_run_time": job.next_run_time.isoformat() if job.next_run_time else None
-            } for job in scheduler.get_jobs()],
-            "scheduler_running": scheduler.running
+            "jobs": jobs,
+            "scheduler_running": scheduler.running,
+            "config": scheduler_config
         }
     except Exception as e:
+        print(f"Error in restart_scheduler: {str(e)}")
         return JSONResponse(
             status_code=500,
             content={"error": f"Error restarting scheduler: {str(e)}"}
@@ -660,28 +694,41 @@ scheduler_job = None
 def configure_scheduler():
     global scheduler_job
     
+    print("\n--- CONFIGURING SCHEDULER ---")
+    print(f"Current scheduler state: Running={scheduler.running}")
+    print(f"Current jobs before removal: {[job.id for job in scheduler.get_jobs()]}")
+    
     # Remove existing jobs
     for job in scheduler.get_jobs():
-        job.remove()
+        try:
+            job.remove()
+            print(f"Removed job: {job.id}")
+        except Exception as e:
+            print(f"Error removing job {job.id}: {str(e)}")
     
-    # Only add jobs if scheduling is enabled
     if scheduler_config["enabled"]:
-        # Create a new scheduled job for each daily run time
+        print(f"Scheduler is enabled, configuring {len(scheduler_config['daily_runs'])} daily runs")
         for i, run in enumerate(scheduler_config["daily_runs"]):
-            scheduler.add_job(
-                scheduled_scrape,
-                'cron',
-                hour=run["hour"],
-                minute=run["minute"],
-                day=f'*/{scheduler_config["interval_days"]}',  # Run every X days
-                id=f'scraper_job_{i}',
-                replace_existing=True
-            )
-            print(f"Scheduler configured to run at {run['hour']}:{run['minute']} every {scheduler_config['interval_days']} day(s)")
+            try:
+                job = scheduler.add_job(
+                    scheduled_scrape,
+                    'cron',
+                    hour=run["hour"],
+                    minute=run["minute"],
+                    day=f'*/{scheduler_config["interval_days"]}',
+                    id=f'scraper_job_{i}',
+                    replace_existing=True
+                )
+                print(f"Added job {job.id} to run at {run['hour']}:{run['minute']} every {scheduler_config['interval_days']} day(s)")
+                print(f"Next run time: {job.next_run_time}")
+            except Exception as e:
+                print(f"Error adding job for run at {run['hour']}:{run['minute']}: {str(e)}")
         
         print(f"Total scheduled runs: {len(scheduler_config['daily_runs'])}")
+        print(f"Jobs after configuration: {[job.id for job in scheduler.get_jobs()]}")
     else:
         print("Scheduler disabled")
+    print("--- END SCHEDULER CONFIGURATION ---\n")
 
 async def scheduled_scrape():
     """Run the scraper on a schedule."""
@@ -785,7 +832,16 @@ async def startup_event():
     
     # Configure and start the scheduler
     configure_scheduler()
-    scheduler.start()
+    
+    # Make sure the scheduler is not already running before starting it
+    if not scheduler.running:
+        try:
+            scheduler.start()
+            print("Scheduler started successfully")
+        except Exception as e:
+            print(f"Error starting scheduler: {str(e)}")
+    else:
+        print("Scheduler is already running")
     
     # Run the scraper on startup if no data exists
     if not OUTPUT_JSON.exists():

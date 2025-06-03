@@ -233,3 +233,18 @@ class ProjectManager:
         remaining_projects = [p for p in new_projects if p.get("id") not in project_ids]
         
         self._save_new_projects(remaining_projects)
+    
+    def get_archive_count(self) -> int:
+        """Gibt die Anzahl der archivierten Projekte zurück."""
+        archive_projects = self._load_archive_projects()
+        return len(archive_projects)
+    
+    def get_archive_projects(self, page: int = 1, limit: int = 10) -> Tuple[List[Dict], int]:
+        """Gibt die archivierten Projekte mit Paginierung zurück."""
+        archive_projects = self._load_archive_projects()
+        
+        # Berechnen des Paginierungs-Offsets
+        start_idx = (page - 1) * limit
+        end_idx = start_idx + limit
+        
+        return archive_projects[start_idx:end_idx], len(archive_projects)

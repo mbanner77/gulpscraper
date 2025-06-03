@@ -27,20 +27,51 @@ gulp-job-app/
 
 ### Backend
 
+**Scraping-Funktionen:**
 - Automatisches Scraping von GULP-Projektdaten mit Playwright
+- Automatische Erkennung neuer Projekte
+- Manuelles Auslösen des Scrapings über API-Endpunkt
+
+**Scheduler-Funktionen:**
+- Konfigurierbarer Scheduler für automatische Scans
+- Mehrere tägliche Scan-Zeiten einstellbar (Standard: 3 Uhr morgens)
+- Robuste Scheduler-Implementierung mit Selbstheilungsfunktionen
+- API-Endpunkt zum Neustarten des Schedulers bei Problemen
+
+**Datenmanagement:**
 - REST API zum Zugriff auf die gescrapten Daten
 - Filterung und Paginierung der Projektdaten
-- Geplantes tägliches Scraping (3 Uhr morgens)
-- Manuelles Auslösen des Scrapings über API-Endpunkt
+- Projekt-Archivierung (Projekte älter als 24 Stunden)
+- Filterung nach Standort und Remote-Status
+
+**Benachrichtigungen:**
+- E-Mail-Benachrichtigungen bei neuen Projekten
+- Konfigurierbare E-Mail-Einstellungen
 
 ### Frontend
 
+**Benutzeroberfläche:**
 - Moderne Benutzeroberfläche mit Material-UI
+- Responsive Design für Desktop und Mobile
+- Tab-basierte Navigation mit URL-Persistenz
+
+**Projektansicht:**
 - Projektliste mit Paginierung
 - Suche und Filterung nach Titel, Beschreibung, Firma, Standort und Remote-Möglichkeit
 - Detailansicht für jedes Projekt
 - Favoritenfunktion mit lokaler Speicherung
-- Scraper-Steuerung zum manuellen Auslösen des Scrapings
+- Separate Ansicht für aktuelle Projekte (letzte 24 Stunden) und Archiv
+
+**Scheduler-Konfiguration:**
+- Benutzerfreundliche Oberfläche zur Konfiguration des Schedulers
+- Hinzufügen/Entfernen mehrerer täglicher Scan-Zeiten
+- Kartenbasierte Darstellung der konfigurierten Scan-Zeiten
+- Ein/Aus-Schalter für den Scheduler
+
+**Scraper-Steuerung:**
+- Manuelles Auslösen des Scrapings
+- Statusanzeige für laufende Scraping-Prozesse
+- Anzeige des letzten Scan-Zeitpunkts
 
 ## Lokale Entwicklung
 
@@ -174,6 +205,33 @@ Wenn nach dem Deployment auf Render.com die Fehlermeldung "Fehler beim Laden der
 5. **Cache leeren**: Leeren Sie den Browser-Cache oder öffnen Sie die Seite im Inkognito-Modus, um sicherzustellen, dass keine alten Konfigurationen verwendet werden.
 
 6. **Deployment-Logs prüfen**: Überprüfen Sie die Logs beider Services in Ihrem Render-Dashboard auf Fehler oder Warnungen.
+
+### 7. Fehlerbehebung: Scheduler läuft nicht nach dem Deployment
+
+Wenn der Scheduler nach dem Deployment nicht korrekt läuft oder keine Jobs ausführt, können Sie folgende Schritte zur Behebung durchführen:
+
+1. **Scheduler-Status überprüfen**: Rufen Sie den Endpunkt `/scheduler-config` auf, um den aktuellen Status des Schedulers zu sehen:
+   ```bash
+   curl https://gulp-backend.onrender.com/scheduler-config
+   ```
+   Die Antwort sollte `"scheduler_running": true` und mindestens einen Job in der `jobs`-Liste enthalten.
+
+2. **Scheduler neu starten**: Verwenden Sie den speziellen Endpunkt zum Neustarten des Schedulers:
+   ```bash
+   curl -X POST https://gulp-backend.onrender.com/restart-scheduler
+   ```
+   Dies erzwingt einen Neustart des Schedulers und konfiguriert die Jobs neu.
+
+3. **Logs auf Fehler prüfen**: Überprüfen Sie die Backend-Logs im Render-Dashboard auf Fehler im Zusammenhang mit dem Scheduler oder datetime-Modulen.
+
+4. **Zeitzone beachten**: Der Scheduler verwendet die Systemzeit des Servers. Render-Server verwenden UTC, daher wird ein Job, der für 3:00 Uhr konfiguriert ist, um 3:00 Uhr UTC ausgeführt (was je nach Ihrer Zeitzone zu einer anderen lokalen Zeit führt).
+
+5. **Manuellen Scrape auslösen**: Testen Sie, ob der Scraper grundsätzlich funktioniert, indem Sie einen manuellen Scrape auslösen:
+   ```bash
+   curl -X POST https://gulp-backend.onrender.com/scrape
+   ```
+
+6. **Service neu starten**: Als letztes Mittel können Sie den gesamten Backend-Service in Render neu starten, um sicherzustellen, dass der Scheduler korrekt initialisiert wird.
 
 ## API-Endpunkte
 
