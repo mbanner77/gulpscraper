@@ -19,12 +19,14 @@ import {
   Alert,
   Button,
   IconButton,
-  Tooltip
+  Tooltip,
+  Link
 } from '@mui/material';
 import {
   FilterAlt as FilterIcon,
   Clear as ClearIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  Archive as ArchiveIcon
 } from '@mui/icons-material';
 import ProjectCard from '../components/ProjectCard';
 import { getProjects, markProjectsAsSeen } from '../services/api';
@@ -140,11 +142,21 @@ function HomePage() {
     <Container maxWidth="xl">
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          GULP Freiberufler-Projekte
+          GULP Freiberufler-Projekte (Letzte 24 Stunden)
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          Durchsuchen Sie die neuesten Projekte für Freiberufler auf GULP.de
+          Durchsuchen Sie die neuesten Projekte der letzten 24 Stunden für Freiberufler auf GULP.de
         </Typography>
+        <Button 
+          component={Link} 
+          href="/scraper?tab=3" 
+          startIcon={<ArchiveIcon />} 
+          variant="outlined" 
+          size="small" 
+          sx={{ mt: 1 }}
+        >
+          Ältere Projekte im Archiv ansehen
+        </Button>
       </Box>
       
       <Paper sx={{ p: 2, mb: 3 }}>

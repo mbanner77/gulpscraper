@@ -272,10 +272,11 @@ class EmailConfig(BaseModel):
 
 
 class SchedulerConfig(BaseModel):
-    hour: int = 3  # Default: 3 AM
-    minute: int = 0
     enabled: bool = True
     interval_days: int = 1  # Default: run every day
+    daily_runs: List[Dict[str, int]] = [
+        {"hour": 3, "minute": 0}  # Default: run once at 3 AM
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -287,10 +288,9 @@ class SchedulerConfig(BaseModel):
 async def get_scheduler_config():
     """Get the current scheduler configuration."""
     return {
-        "hour": scheduler_config["hour"],
-        "minute": scheduler_config["minute"],
         "enabled": scheduler_config["enabled"],
-        "interval_days": scheduler_config["interval_days"]
+        "interval_days": scheduler_config["interval_days"],
+        "daily_runs": scheduler_config["daily_runs"]
     }
 
 @app.post("/scheduler-config")
@@ -299,30 +299,44 @@ async def set_scheduler_config(config: SchedulerConfig):
     global scheduler_config
     
     try:
-        # Validate hour and minute
-        if config.hour < 0 or config.hour > 23:
-            return JSONResponse(
-                status_code=400,
-                content={"error": "Hour must be between 0 and 23"}
-            )
-            
-        if config.minute < 0 or config.minute > 59:
-            return JSONResponse(
-                status_code=400,
-                content={"error": "Minute must be between 0 and 59"}
-            )
-            
+        # Validate interval days
         if config.interval_days < 1 or config.interval_days > 30:
             return JSONResponse(
                 status_code=400,
                 content={"error": "Interval days must be between 1 and 30"}
             )
         
+        # Validate daily runs
+        if not config.daily_runs:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "At least one daily run must be specified"}
+            )
+        
+        # Validate each run time
+        for run in config.daily_runs:
+            if "hour" not in run or "minute" not in run:
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Each run must specify hour and minute"}
+                )
+            
+            if run["hour"] < 0 or run["hour"] > 23:
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Hour must be between 0 and 23"}
+                )
+                
+            if run["minute"] < 0 or run["minute"] > 59:
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Minute must be between 0 and 59"}
+                )
+        
         # Update configuration
-        scheduler_config["hour"] = config.hour
-        scheduler_config["minute"] = config.minute
         scheduler_config["enabled"] = config.enabled
         scheduler_config["interval_days"] = config.interval_days
+        scheduler_config["daily_runs"] = config.daily_runs
         
         # Reconfigure the scheduler
         configure_scheduler()
@@ -345,7 +359,8 @@ async def root():
         "version": "1.0.0",
         "endpoints": [
             {"path": "/", "method": "GET", "description": "This information"},
-            {"path": "/projects", "method": "GET", "description": "Get all projects with optional filtering"},
+            {"path": "/projects", "method": "GET", "description": "Get recent projects (last 24h) with optional filtering"},
+            {"path": "/projects/archive", "method": "GET", "description": "Get archived projects (older than 24h) with optional filtering"},
             {"path": "/projects/{id}", "method": "GET", "description": "Get a specific project by ID"},
             {"path": "/scrape", "method": "POST", "description": "Trigger a new scrape (admin only)"},
             {"path": "/status", "method": "GET", "description": "Get the scraper status"},
@@ -362,7 +377,7 @@ async def get_projects(
     limit: int = 10,
     include_new_only: bool = False,
 ):
-    """Get all projects with optional filtering and pagination."""
+    """Get recent projects (last 24h) with optional filtering and pagination."""
     try:
         if not OUTPUT_JSON.exists():
             # If no data exists yet, run the scraper
@@ -373,15 +388,30 @@ async def get_projects(
                 status_code=404,
                 content={"error": "No project data available. Try triggering a scrape first."}
             )
-            
-        # Read the projects from the JSON file
-        projects = json.loads(OUTPUT_JSON.read_text(encoding="utf-8"))
         
-        # Wenn nur neue Projekte angezeigt werden sollen
+        # Get projects from the project manager
         if include_new_only:
-            new_projects = project_manager.get_new_projects()
-            new_project_ids = {p.get("id") for p in new_projects}
-            projects = [p for p in projects if p.get("id") in new_project_ids]
+            # Get only new projects
+            projects, total = project_manager.get_projects(
+                search=search, 
+                location=location, 
+                remote=remote, 
+                page=page, 
+                limit=limit, 
+                include_new_only=True,
+                archived=False
+            )
+        else:
+            # Get recent projects (last 24h)
+            projects, total = project_manager.get_projects(
+                search=search, 
+                location=location, 
+                remote=remote, 
+                page=page, 
+                limit=limit, 
+                include_new_only=False,
+                archived=False
+            )
         
         # Apply filters
         filtered_projects = projects
@@ -418,13 +448,52 @@ async def get_projects(
         new_project_ids = {p.get("id") for p in project_manager.get_new_projects()}
         
         return {
+            "projects": filtered_projects[start_idx:end_idx],
             "total": total,
             "page": page,
             "limit": limit,
-            "totalPages": total_pages,
-            "data": filtered_projects[start_idx:end_idx],
+            "type": "recent",
             "lastScrape": last_scrape_time,
             "newProjectIds": list(new_project_ids)
+        }
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Error retrieving projects: {str(e)}"}
+        )
+
+
+@app.get("/projects/archive")
+async def get_archived_projects(
+    search: Optional[str] = None,
+    location: Optional[str] = None,
+    remote: Optional[bool] = None,
+    page: int = 1,
+    limit: int = 10,
+):
+    """Get archived projects (older than 24h) with optional filtering and pagination."""
+    try:
+        # Get archived projects from the project manager
+        projects, total = project_manager.get_projects(
+            search=search, 
+            location=location, 
+            remote=remote, 
+            page=page, 
+            limit=limit, 
+            include_new_only=False,
+            archived=True
+        )
+        
+        # Calculate pagination
+        total_pages = (total + limit - 1) // limit if limit > 0 else 1
+        
+        return {
+            "projects": projects,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "type": "archive",
+            "lastScrape": last_scrape_time
         }
         
     except Exception as e:
@@ -518,10 +587,12 @@ async def get_status():
             "configured": email_service.is_configured if email_service else False
         },
         "scheduler": {
-            "hour": scheduler_config["hour"],
-            "minute": scheduler_config["minute"],
             "enabled": scheduler_config["enabled"],
-            "interval_days": scheduler_config["interval_days"]
+            "interval_days": scheduler_config["interval_days"],
+            "daily_runs": scheduler_config["daily_runs"]
+        },
+        "archive": {
+            "count": project_manager.get_archive_count()
         }
     }
 
@@ -532,10 +603,11 @@ async def get_status():
 
 # Default scheduler configuration
 scheduler_config = {
-    "hour": 3,  # Default: 3 AM
-    "minute": 0,
     "enabled": True,
-    "interval_days": 1  # Default: run every day
+    "interval_days": 1,  # Default: run every day
+    "daily_runs": [
+        {"hour": 3, "minute": 0}  # Default: run once at 3 AM
+    ]
 }
 
 # Set up the scheduler
@@ -546,23 +618,26 @@ scheduler_job = None
 def configure_scheduler():
     global scheduler_job
     
-    # Remove existing job if it exists
-    if scheduler_job and scheduler_job in scheduler.get_jobs():
-        scheduler_job.remove()
+    # Remove existing jobs
+    for job in scheduler.get_jobs():
+        job.remove()
     
-    # Only add the job if scheduling is enabled
+    # Only add jobs if scheduling is enabled
     if scheduler_config["enabled"]:
-        # Create a new scheduled job with the current configuration
-        scheduler_job = scheduler.add_job(
-            scheduled_scrape,
-            'cron',
-            hour=scheduler_config["hour"],
-            minute=scheduler_config["minute"],
-            day=f'*/{scheduler_config["interval_days"]}',  # Run every X days
-            id='scraper_job',
-            replace_existing=True
-        )
-        print(f"Scheduler configured to run at {scheduler_config['hour']}:{scheduler_config['minute']} every {scheduler_config['interval_days']} day(s)")
+        # Create a new scheduled job for each daily run time
+        for i, run in enumerate(scheduler_config["daily_runs"]):
+            scheduler.add_job(
+                scheduled_scrape,
+                'cron',
+                hour=run["hour"],
+                minute=run["minute"],
+                day=f'*/{scheduler_config["interval_days"]}',  # Run every X days
+                id=f'scraper_job_{i}',
+                replace_existing=True
+            )
+            print(f"Scheduler configured to run at {run['hour']}:{run['minute']} every {scheduler_config['interval_days']} day(s)")
+        
+        print(f"Total scheduled runs: {len(scheduler_config['daily_runs'])}")
     else:
         print("Scheduler disabled")
 
@@ -688,4 +763,4 @@ async def shutdown_event():
 
 if __name__ == "__main__":
     # Run the API server
-    uvicorn.run("scraper:app", host="0.0.0.0", port=int(os.environ.get("PORT", 8000)), log_level="info")
+    uvicorn.run("scraper:app", host="0.0.0.0", port=int(os.environ.get("PORT", 8001)), log_level="info")

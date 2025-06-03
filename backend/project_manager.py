@@ -20,6 +20,8 @@ class ProjectManager:
         self.projects_file = data_dir / "gulp_projekte_raw.json"
         self.history_file = data_dir / "project_history.json"
         self.new_projects_file = data_dir / "new_projects.json"
+        self.recent_projects_file = data_dir / "recent_projects.json"
+        self.archive_projects_file = data_dir / "archive_projects.json"
         
         # Stellen Sie sicher, dass das Datenverzeichnis existiert
         self.data_dir.mkdir(exist_ok=True)
@@ -82,9 +84,44 @@ class ProjectManager:
         except Exception as e:
             print(f"Fehler beim Speichern der neuen Projekte: {str(e)}")
     
+    def _load_archive_projects(self) -> List[Dict]:
+        """Lädt die Archiv-Projekte aus der Datei."""
+        if not self.archive_projects_file.exists():
+            return []
+        
+        try:
+            return json.loads(self.archive_projects_file.read_text(encoding="utf-8"))
+        except Exception as e:
+            print(f"Fehler beim Laden der Archiv-Projekte: {str(e)}")
+            return []
+    
+    def _update_archive_projects(self, projects: List[Dict]) -> None:
+        """Aktualisiert die Archiv-Projekte in der Datei."""
+        existing_archive = self._load_archive_projects()
+        updated_archive = existing_archive + projects
+        
+        try:
+            self.archive_projects_file.write_text(
+                json.dumps(updated_archive, indent=2, ensure_ascii=False),
+                encoding="utf-8"
+            )
+        except Exception as e:
+            print(f"Fehler beim Aktualisieren der Archiv-Projekte: {str(e)}")
+    
+    def _save_recent_projects(self, projects: List[Dict]) -> None:
+        """Speichert die aktuellen Projekte in einer separaten Datei."""
+        try:
+            self.recent_projects_file.write_text(
+                json.dumps(projects, indent=2, ensure_ascii=False),
+                encoding="utf-8"
+            )
+        except Exception as e:
+            print(f"Fehler beim Speichern der aktuellen Projekte: {str(e)}")
+    
     def process_projects(self, projects: List[Dict]) -> Tuple[List[Dict], List[Dict]]:
         """
         Verarbeitet die gescrapten Projekte, erkennt Duplikate und identifiziert neue Projekte.
+        Trennt Projekte in aktuelle (letzte 24 Stunden) und Archiv-Projekte.
         
         Returns:
             Tuple[List[Dict], List[Dict]]: (Alle Projekte ohne Duplikate, Nur neue Projekte)
@@ -100,36 +137,75 @@ class ProjectManager:
         for project in projects:
             project_id = project.get("id")
             
-            # Wenn das Projekt keine ID hat, generieren wir eine
+            # Überspringen, wenn keine ID vorhanden ist
             if not project_id:
-                title = project.get("title", "")
-                company = project.get("companyName", "")
-                project_id = f"{title}_{company}".replace(" ", "_").lower()
-                project["id"] = project_id
-            
-            # Duplikate innerhalb des aktuellen Scrape-Durchlaufs überspringen
+                continue
+                
+            # Überspringen, wenn wir dieses Projekt bereits in diesem Durchlauf gesehen haben
             if project_id in seen_ids:
                 continue
-            
+                
+            # Projekt als gesehen markieren
             seen_ids.add(project_id)
+            
+            # Projekt zu den eindeutigen Projekten hinzufügen
             unique_projects.append(project)
             
-            # Prüfen, ob das Projekt neu ist
+            # Prüfen, ob es sich um ein neues Projekt handelt
             if project_id not in known_project_ids:
                 new_projects.append(project)
                 known_project_ids.add(project_id)
         
-        # Historie aktualisieren
-        history["last_scan"] = datetime.now().isoformat()
+        # Projekthistorie aktualisieren
+        current_time = datetime.now()
+        history["last_scan"] = current_time.isoformat()
         history["known_project_ids"] = list(known_project_ids)
         history["total_projects_found"] = len(known_project_ids)
         
-        # Speichern
+        # Speichern der aktualisierten Daten
         self._save_history(history)
+        self._save_new_projects(new_projects)
         
-        # Wenn neue Projekte gefunden wurden, speichern wir sie separat
-        if new_projects:
-            self._save_new_projects(new_projects)
+        # Trennen der Projekte in aktuelle (letzte 24 Stunden) und Archiv-Projekte
+        recent_projects = []
+        archive_projects = []
+        
+        # Laden der bestehenden Archiv-Projekte
+        existing_archive = self._load_archive_projects()
+        archive_ids = {p.get("id") for p in existing_archive if p.get("id")}
+        
+        for project in unique_projects:
+            # Prüfen, ob das Projekt in den letzten 24 Stunden aktualisiert wurde
+            updated_str = project.get("updated_at") or project.get("created_at")
+            if updated_str:
+                try:
+                    updated_at = datetime.fromisoformat(updated_str)
+                    time_diff = current_time - updated_at
+                    if time_diff.total_seconds() < 24 * 60 * 60:  # 24 Stunden in Sekunden
+                        recent_projects.append(project)
+                        continue
+                except (ValueError, TypeError):
+                    pass  # Wenn das Datum nicht geparst werden kann, behandeln wir es als alt
+            
+            # Wenn das Projekt nicht aktuell ist, fügen wir es zum Archiv hinzu
+            if project.get("id") not in archive_ids:
+                archive_projects.append(project)
+        
+        # Aktualisieren des Archivs mit neuen Archiv-Projekten
+        if archive_projects:
+            self._update_archive_projects(archive_projects)
+        
+        # Speichern der aktuellen Projekte
+        self._save_recent_projects(recent_projects)
+        
+        # Speichern der Projekte in der Hauptdatei
+        try:
+            self.projects_file.write_text(
+                json.dumps(unique_projects, indent=2, ensure_ascii=False),
+                encoding="utf-8"
+            )
+        except Exception as e:
+            print(f"Fehler beim Speichern der Projekte: {str(e)}")
         
         return unique_projects, new_projects
     

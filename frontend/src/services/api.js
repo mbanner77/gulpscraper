@@ -11,13 +11,24 @@ const api = axios.create({
   },
 });
 
-// Get all projects with optional filters
+// Get recent projects (last 24h) with optional filters
 export const getProjects = async (params = {}) => {
   try {
     const response = await api.get('/projects', { params });
     return response.data;
   } catch (error) {
-    console.error('Error fetching projects:', error);
+    console.error('Error fetching recent projects:', error);
+    throw error;
+  }
+};
+
+// Get archived projects (older than 24h) with optional filters
+export const getArchivedProjects = async (params = {}) => {
+  try {
+    const response = await api.get('/projects/archive', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching archived projects:', error);
     throw error;
   }
 };

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Box } from '@mui/material';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -19,8 +19,8 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/project/:id" element={<ProjectDetailsPage />} />
           <Route path="/favorites" element={<FavoritesPage />} />
-          <Route path="/scraper" element={<ScraperPage />} />
-          <Route path="/scraper-control" element={<ScraperControlPage />} />
+          <Route path="/scraper" element={<ScraperControlPage />} />
+          <Route path="/scraper-control" element={<Navigate to="/scraper" replace />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Box>
