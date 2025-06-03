@@ -27,7 +27,7 @@ import {
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import ProjectCard from '../components/ProjectCard';
-import { getProjects } from '../services/api';
+import { getProjects, markProjectsAsSeen } from '../services/api';
 
 function HomePage() {
   const location = useLocation();
@@ -46,7 +46,11 @@ function HomePage() {
   const [searchQuery, setSearchQuery] = useState(queryParams.get('search') || '');
   const [location_, setLocation] = useState(queryParams.get('location') || '');
   const [remoteOnly, setRemoteOnly] = useState(queryParams.get('remote') === 'true');
+  const [newOnly, setNewOnly] = useState(queryParams.get('new') === 'true');
   const [showFilters, setShowFilters] = useState(false);
+  
+  // State for new projects
+  const [newProjectIds, setNewProjectIds] = useState([]);
   
   // Load projects on mount and when filters change
   useEffect(() => {
@@ -61,13 +65,19 @@ function HomePage() {
           limit: 12,
           search: searchQuery,
           location: location_,
-          remote: remoteOnly
+          remote: remoteOnly,
+          new: newOnly
         };
         
         const data = await getProjects(params);
         setProjects(data.data);
         setTotalPages(data.totalPages);
         setTotalCount(data.total);
+        
+        // Set new project IDs if available
+        if (data.newProjectIds) {
+          setNewProjectIds(data.newProjectIds);
+        }
       } catch (err) {
         console.error('Error fetching projects:', err);
         setError('Fehler beim Laden der Projekte. Bitte versuchen Sie es später erneut.');
@@ -87,9 +97,10 @@ function HomePage() {
     if (searchQuery) params.set('search', searchQuery);
     if (location_) params.set('location', location_);
     if (remoteOnly) params.set('remote', 'true');
+    if (newOnly) params.set('new', 'true');
     
     navigate({ search: params.toString() }, { replace: true });
-  }, [page, searchQuery, location_, remoteOnly, navigate]);
+  }, [page, searchQuery, location_, remoteOnly, newOnly, navigate]);
   
   const handlePageChange = (event, value) => {
     setPage(value);
@@ -106,12 +117,23 @@ function HomePage() {
     setSearchQuery('');
     setLocation('');
     setRemoteOnly(false);
+    setNewOnly(false);
     setPage(1);
   };
   
   const handleFavoriteToggle = () => {
     // This is just to force a re-render when a favorite is toggled
     setProjects([...projects]);
+  };
+  
+  const handleMarkAsSeen = async (projectIds) => {
+    try {
+      await markProjectsAsSeen(projectIds);
+      // Remove the marked projects from the newProjectIds list
+      setNewProjectIds(newProjectIds.filter(id => !projectIds.includes(id)));
+    } catch (error) {
+      console.error('Error marking projects as seen:', error);
+    }
   };
 
   return (
@@ -186,6 +208,18 @@ function HomePage() {
                   label="Nur Remote-Projekte"
                 />
               </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={newOnly}
+                      onChange={(e) => setNewOnly(e.target.checked)}
+                      color="primary"
+                    />
+                  }
+                  label="Nur neue Projekte"
+                />
+              </Grid>
             </Grid>
           </form>
         )}
@@ -222,6 +256,8 @@ function HomePage() {
                 <ProjectCard 
                   project={project} 
                   onFavoriteToggle={handleFavoriteToggle}
+                  isNew={newProjectIds.includes(project.id)}
+                  onMarkAsSeen={() => handleMarkAsSeen([project.id])}
                 />
               </Grid>
             ))}

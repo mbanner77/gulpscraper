@@ -27,14 +27,17 @@ import {
   Home as HomeIcon,
   Info as InfoIcon,
   Close as CloseIcon,
-  DataUsage as DataUsageIcon
+  DataUsage as DataUsageIcon,
+  Settings as SettingsIcon,
+  Notifications as NotificationsIcon
 } from '@mui/icons-material';
 import { styled, alpha } from '@mui/material/styles';
 
 const navItems = [
   { text: 'Home', path: '/', icon: <HomeIcon /> },
   { text: 'Favorites', path: '/favorites', icon: <FavoriteIcon /> },
-  { text: 'Scraper', path: '/scraper', icon: <DataUsageIcon /> },
+  { text: 'Projekte', path: '/scraper', icon: <DataUsageIcon /> },
+  { text: 'Scraper-Verwaltung', path: '/scraper-control', icon: <SettingsIcon /> },
 ];
 
 // Styled search component
@@ -132,6 +135,18 @@ function Header() {
           </ListItemIcon>
           <ListItemText primary="Favoriten" />
         </ListItem>
+        <ListItem button component={RouterLink} to="/scraper" onClick={handleDrawerToggle}>
+          <ListItemIcon>
+            <DataUsageIcon />
+          </ListItemIcon>
+          <ListItemText primary="Projekte" />
+        </ListItem>
+        <ListItem button component={RouterLink} to="/scraper-control" onClick={handleDrawerToggle}>
+          <ListItemIcon>
+            <SettingsIcon />
+          </ListItemIcon>
+          <ListItemText primary="Scraper-Verwaltung" />
+        </ListItem>
       </List>
       <Divider />
       <Box sx={{ p: 2 }}>
@@ -217,6 +232,12 @@ function Header() {
                 }
               >
                 Favoriten
+              </Button>
+              <Button color="inherit" component={RouterLink} to="/scraper">
+                Projekte
+              </Button>
+              <Button color="inherit" component={RouterLink} to="/scraper-control">
+                Scraper-Verwaltung
               </Button>
             </Box>
           )}

@@ -10,7 +10,8 @@ import {
   Box,
   IconButton,
   Tooltip,
-  CardMedia
+  CardMedia,
+  Badge
 } from '@mui/material';
 import {
   Favorite as FavoriteIcon,
@@ -18,11 +19,12 @@ import {
   LocationOn as LocationIcon,
   CalendarToday as CalendarIcon,
   AccessTime as AccessTimeIcon,
-  Laptop as LaptopIcon
+  Laptop as LaptopIcon,
+  FiberNew as NewIcon
 } from '@mui/icons-material';
 import { favoritesManager } from '../services/api';
 
-function ProjectCard({ project, onFavoriteToggle }) {
+function ProjectCard({ project, onFavoriteToggle, isNew = false, onMarkAsSeen = null }) {
   const navigate = useNavigate();
   const [isFavorite, setIsFavorite] = React.useState(
     favoritesManager.isFavorite(project.id)
@@ -63,6 +65,13 @@ function ProjectCard({ project, onFavoriteToggle }) {
     navigate(`/project/${project.id}`);
   };
 
+  // Wenn die Karte angeklickt wird und es ein neues Projekt ist, markieren wir es als gesehen
+  const handleClick = () => {
+    if (isNew && onMarkAsSeen) {
+      onMarkAsSeen(project.id);
+    }
+  };
+
   return (
     <Card 
       sx={{ 
@@ -73,8 +82,14 @@ function ProjectCard({ project, onFavoriteToggle }) {
         '&:hover': {
           transform: 'translateY(-4px)',
           boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
-        }
+        },
+        ...(isNew && {
+          border: '2px solid',
+          borderColor: 'success.main',
+          boxShadow: '0 0 10px rgba(76, 175, 80, 0.5)'
+        })
       }}
+      onClick={handleClick}
     >
       {project.companyLogoUrl && (
         <CardMedia
@@ -90,7 +105,23 @@ function ProjectCard({ project, onFavoriteToggle }) {
         />
       )}
       
-      <CardContent sx={{ flexGrow: 1 }}>
+      <CardContent sx={{ flexGrow: 1, position: 'relative' }}>
+        {isNew && (
+          <Tooltip title="Neues Projekt">
+            <Chip
+              icon={<NewIcon />}
+              label="Neu"
+              color="success"
+              size="small"
+              sx={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                zIndex: 1
+              }}
+            />
+          </Tooltip>
+        )}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Typography 
             variant="h6" 

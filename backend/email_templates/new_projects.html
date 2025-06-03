@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Neue GULP Projekte gefunden</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            background-color: #4a86e8;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .content {
+            padding: 20px;
+        }
+        .project {
+            margin-bottom: 30px;
+            padding: 15px;
+            border-left: 4px solid #4a86e8;
+            background-color: #f9f9f9;
+        }
+        .project h3 {
+            margin-top: 0;
+            color: #4a86e8;
+        }
+        .project-meta {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.8em;
+            color: #666;
+            border-top: 1px solid #eee;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #4a86e8;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Neue GULP Projekte gefunden</h1>
+        <p>{{ new_projects|length }} neue Projekte seit dem letzten Scan</p>
+    </div>
+    
+    <div class="content">
+        <p>Hallo,</p>
+        
+        <p>der GULP Scraper hat {{ new_projects|length }} neue Projekte gefunden. Hier ist eine Übersicht:</p>
+        
+        {% for project in new_projects %}
+        <div class="project">
+            <h3>{{ project.title }}</h3>
+            <div class="project-meta">
+                <strong>Standort:</strong> {{ project.location or 'Nicht angegeben' }}
+                {% if project.isRemoteWorkPossible %}
+                <span style="color: green;"> • Remote möglich</span>
+                {% endif %}
+                <br>
+                <strong>Firma:</strong> {{ project.companyName or 'Nicht angegeben' }}
+                <br>
+                <strong>Veröffentlicht:</strong> {{ project.publicationDate or 'Nicht angegeben' }}
+            </div>
+            
+            <p>{{ project.description[:200] }}{% if project.description|length > 200 %}...{% endif %}</p>
+            
+            <a href="{{ frontend_url }}/project/{{ project.id }}" class="cta-button">Projekt ansehen</a>
+        </div>
+        {% endfor %}
+        
+        <p>
+            <a href="{{ frontend_url }}" class="cta-button">Alle Projekte ansehen</a>
+        </p>
+    </div>
+    
+    <div class="footer">
+        <p>Diese E-Mail wurde automatisch vom GULP Job Scraper generiert.</p>
+        <p>Scan durchgeführt am {{ scan_time }}</p>
+    </div>
+</body>
+</html>

@@ -22,17 +22,6 @@ export const getProjects = async (params = {}) => {
   }
 };
 
-// Trigger a new scrape
-export const triggerScrape = async (pages = null) => {
-  try {
-    const response = await api.post('/scrape', { pages });
-    return response.data;
-  } catch (error) {
-    console.error('Error triggering scrape:', error);
-    throw error;
-  }
-};
-
 // Get scraper status
 export const getScraperStatus = async () => {
   try {
@@ -40,6 +29,83 @@ export const getScraperStatus = async () => {
     return response.data;
   } catch (error) {
     console.error('Error fetching scraper status:', error);
+    throw error;
+  }
+};
+
+// Trigger a new scrape
+export const triggerScrape = async (options = {}) => {
+  try {
+    const response = await api.post('/scrape', options);
+    return response.data;
+  } catch (error) {
+    console.error('Error triggering scrape:', error);
+    throw error;
+  }
+};
+
+// Get new projects
+export const getNewProjects = async () => {
+  try {
+    const response = await api.get('/new-projects');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching new projects:', error);
+    throw error;
+  }
+};
+
+// Mark projects as seen
+export const markProjectsAsSeen = async (projectIds) => {
+  try {
+    const response = await api.post('/mark-projects-seen', projectIds);
+    return response.data;
+  } catch (error) {
+    console.error('Error marking projects as seen:', error);
+    throw error;
+  }
+};
+
+// Get email configuration
+export const getEmailConfig = async () => {
+  try {
+    const response = await api.get('/email-config');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching email configuration:', error);
+    throw error;
+  }
+};
+
+// Get scheduler configuration
+export const getSchedulerConfig = async () => {
+  try {
+    const response = await api.get('/scheduler-config');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching scheduler configuration:', error);
+    throw error;
+  }
+};
+
+// Set email configuration
+export const setEmailConfig = async (config) => {
+  try {
+    const response = await api.post('/email-config', config);
+    return response.data;
+  } catch (error) {
+    console.error('Error setting email configuration:', error);
+    throw error;
+  }
+};
+
+// Set scheduler configuration
+export const setSchedulerConfig = async (config) => {
+  try {
+    const response = await api.post('/scheduler-config', config);
+    return response.data;
+  } catch (error) {
+    console.error('Error setting scheduler configuration:', error);
     throw error;
   }
 };
@@ -111,5 +177,13 @@ export const favoritesManager = {
 export default {
   getProjects,
   getProjectById,
+  getScraperStatus,
+  triggerScrape,
+  getNewProjects,
+  markProjectsAsSeen,
+  getEmailConfig,
+  setEmailConfig,
+  getSchedulerConfig,
+  setSchedulerConfig,
   favoritesManager
 };

@@ -17,11 +17,15 @@ from pathlib import Path
 from typing import List, Dict, Tuple, Any, Optional
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Form, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+# Importieren der eigenen Module
+from email_service import EmailService
+from project_manager import ProjectManager
 
 # Import Playwright with proper error handling
 try:
@@ -47,6 +51,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Globale Variablen für Dienste
+email_service = None
+project_manager = None
+
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
@@ -66,6 +74,10 @@ DEBUG_DIR = DATA_DIR / "debug"
 DEBUG_DIR.mkdir(exist_ok=True)
 NETWORK_LOG = DEBUG_DIR / "network.log"
 
+# E-Mail-Konfiguration
+DEFAULT_EMAIL_RECIPIENT = os.environ.get("EMAIL_RECIPIENT", "")
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost")
+
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -75,9 +87,11 @@ USER_AGENT = (
 API_RE = re.compile(r"/rest/internal/projects/search", re.I)
 PROJ_KEY_CANDIDATES = {"title", "jobTitle"}
 
-# Global variable to store the last scrape time
+# Global variables for scraper state
 last_scrape_time = None
 is_scraping = False
+email_notification_enabled = False
+email_recipient = DEFAULT_EMAIL_RECIPIENT
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -99,7 +113,7 @@ def find_projects_recursive(data: Any) -> List[Dict]:
 
 async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
     """Run the GULP scraper and return the projects."""
-    global is_scraping
+    global is_scraping, last_scrape_time, project_manager, email_service, email_notification_enabled, email_recipient
     
     if is_scraping:
         print("Scrape already in progress, skipping...")
@@ -190,20 +204,35 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
             await context.close()
             await browser.close()
 
-        # Save the scraped data
+        # Verarbeite die gescrapten Projekte (Duplikaterkennung und neue Projekte identifizieren)
+        unique_projects, new_projects = project_manager.process_projects(all_projects)
+        
+        # Speichere die eindeutigen Projekte
         OUTPUT_JSON.write_text(
-            json.dumps(all_projects, indent=2, ensure_ascii=False), 
+            json.dumps(unique_projects, indent=2, ensure_ascii=False), 
             encoding="utf-8"
         )
         NETWORK_LOG.write_text("\n".join(network_lines), encoding="utf-8")
 
         print(f"✓ Scraping completed at {datetime.now().isoformat()}")
-        print(f"  → {len(all_projects)} projects saved to {OUTPUT_JSON}")
+        print(f"  → {len(unique_projects)} unique projects saved to {OUTPUT_JSON}")
+        print(f"  → {len(new_projects)} new projects found")
         
-        global last_scrape_time
+        # Aktualisiere den Zeitstempel des letzten Scans
         last_scrape_time = datetime.now().isoformat()
         
-        return all_projects
+        # Sende E-Mail-Benachrichtigung, wenn aktiviert und neue Projekte gefunden wurden
+        if email_notification_enabled and email_recipient and new_projects and email_service:
+            try:
+                email_service.send_new_projects_notification(
+                    recipient=email_recipient,
+                    new_projects=new_projects,
+                    scan_time=datetime.now()
+                )
+            except Exception as e:
+                print(f"Error sending email notification: {str(e)}")
+        
+        return unique_projects
     
     except Exception as e:
         print(f"Error during scraping: {str(e)}")
@@ -219,6 +248,7 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
 
 class ScrapeRequest(BaseModel):
     pages: Optional[List[int]] = None
+    send_email: bool = False
 
 
 class ProjectFilter(BaseModel):
@@ -227,11 +257,85 @@ class ProjectFilter(BaseModel):
     remote: Optional[bool] = None
     page: int = 1
     limit: int = 10
+    include_new_only: bool = False
+
+
+class EmailConfig(BaseModel):
+    smtp_host: str
+    smtp_port: int = 587
+    smtp_user: str
+    smtp_password: str
+    sender: Optional[str] = None
+    recipient: EmailStr
+    enabled: bool = True
+    frontend_url: Optional[str] = None
+
+
+class SchedulerConfig(BaseModel):
+    hour: int = 3  # Default: 3 AM
+    minute: int = 0
+    enabled: bool = True
+    interval_days: int = 1  # Default: run every day
 
 
 # ---------------------------------------------------------------------------
 # API Routes
 # ---------------------------------------------------------------------------
+
+# Scheduler configuration endpoints
+@app.get("/scheduler-config")
+async def get_scheduler_config():
+    """Get the current scheduler configuration."""
+    return {
+        "hour": scheduler_config["hour"],
+        "minute": scheduler_config["minute"],
+        "enabled": scheduler_config["enabled"],
+        "interval_days": scheduler_config["interval_days"]
+    }
+
+@app.post("/scheduler-config")
+async def set_scheduler_config(config: SchedulerConfig):
+    """Update the scheduler configuration."""
+    global scheduler_config
+    
+    try:
+        # Validate hour and minute
+        if config.hour < 0 or config.hour > 23:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Hour must be between 0 and 23"}
+            )
+            
+        if config.minute < 0 or config.minute > 59:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Minute must be between 0 and 59"}
+            )
+            
+        if config.interval_days < 1 or config.interval_days > 30:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Interval days must be between 1 and 30"}
+            )
+        
+        # Update configuration
+        scheduler_config["hour"] = config.hour
+        scheduler_config["minute"] = config.minute
+        scheduler_config["enabled"] = config.enabled
+        scheduler_config["interval_days"] = config.interval_days
+        
+        # Reconfigure the scheduler
+        configure_scheduler()
+        
+        return {
+            "message": "Scheduler configuration updated successfully",
+            "config": scheduler_config
+        }
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Error updating scheduler configuration: {str(e)}"}
+        )
 
 @app.get("/")
 async def root():
@@ -256,6 +360,7 @@ async def get_projects(
     remote: Optional[bool] = None,
     page: int = 1,
     limit: int = 10,
+    include_new_only: bool = False,
 ):
     """Get all projects with optional filtering and pagination."""
     try:
@@ -271,6 +376,12 @@ async def get_projects(
             
         # Read the projects from the JSON file
         projects = json.loads(OUTPUT_JSON.read_text(encoding="utf-8"))
+        
+        # Wenn nur neue Projekte angezeigt werden sollen
+        if include_new_only:
+            new_projects = project_manager.get_new_projects()
+            new_project_ids = {p.get("id") for p in new_projects}
+            projects = [p for p in projects if p.get("id") in new_project_ids]
         
         # Apply filters
         filtered_projects = projects
@@ -299,9 +410,12 @@ async def get_projects(
             
         # Calculate pagination
         total = len(filtered_projects)
-        total_pages = (total + limit - 1) // limit
-        start_idx = (page - 1) * limit
-        end_idx = min(start_idx + limit, total)
+        total_pages = (total + limit - 1) // limit if limit > 0 else 1
+        start_idx = (page - 1) * limit if limit > 0 else 0
+        end_idx = min(start_idx + limit, total) if limit > 0 else total
+        
+        # Hole die neuen Projekte, um sie im Frontend markieren zu können
+        new_project_ids = {p.get("id") for p in project_manager.get_new_projects()}
         
         return {
             "total": total,
@@ -309,7 +423,8 @@ async def get_projects(
             "limit": limit,
             "totalPages": total_pages,
             "data": filtered_projects[start_idx:end_idx],
-            "lastScrape": last_scrape_time
+            "lastScrape": last_scrape_time,
+            "newProjectIds": list(new_project_ids)
         }
         
     except Exception as e:
@@ -356,6 +471,8 @@ async def trigger_scrape(
     request: ScrapeRequest = ScrapeRequest()
 ):
     """Trigger a new scrape."""
+    global email_notification_enabled
+    
     if is_scraping:
         return JSONResponse(
             status_code=409,
@@ -366,21 +483,46 @@ async def trigger_scrape(
     pages = PAGE_RANGE
     if request.pages:
         pages = range(min(request.pages), max(request.pages) + 1)
+    
+    # Aktiviere E-Mail-Benachrichtigung für diesen Scrape-Vorgang, wenn angefordert
+    if request.send_email:
+        email_notification_enabled = True
+    else:
+        email_notification_enabled = False
         
     # Run the scrape in the background
     background_tasks.add_task(scrape_gulp, pages)
     
-    return {"message": "Scrape started in the background"}
+    return {
+        "message": "Scrape started in the background",
+        "email_notification": email_notification_enabled and email_recipient != ""
+    }
 
 
 @app.get("/status")
 async def get_status():
     """Get the scraper status."""
+    history = project_manager.get_history()
+    new_projects = project_manager.get_new_projects()
+    
     return {
         "is_scraping": is_scraping,
         "last_scrape": last_scrape_time,
         "data_available": OUTPUT_JSON.exists(),
-        "project_count": len(json.loads(OUTPUT_JSON.read_text(encoding="utf-8"))) if OUTPUT_JSON.exists() else 0
+        "project_count": len(json.loads(OUTPUT_JSON.read_text(encoding="utf-8"))) if OUTPUT_JSON.exists() else 0,
+        "new_project_count": len(new_projects),
+        "total_projects_found": history.get("total_projects_found", 0),
+        "email_notification": {
+            "enabled": email_notification_enabled,
+            "recipient": email_recipient if email_recipient else None,
+            "configured": email_service.is_configured if email_service else False
+        },
+        "scheduler": {
+            "hour": scheduler_config["hour"],
+            "minute": scheduler_config["minute"],
+            "enabled": scheduler_config["enabled"],
+            "interval_days": scheduler_config["interval_days"]
+        }
     }
 
 
@@ -388,10 +530,42 @@ async def get_status():
 # Scheduler
 # ---------------------------------------------------------------------------
 
-# Set up the scheduler to run the scraper once a day
-scheduler = AsyncIOScheduler()
+# Default scheduler configuration
+scheduler_config = {
+    "hour": 3,  # Default: 3 AM
+    "minute": 0,
+    "enabled": True,
+    "interval_days": 1  # Default: run every day
+}
 
-@scheduler.scheduled_job("cron", hour=3)  # Run at 3 AM every day
+# Set up the scheduler
+scheduler = AsyncIOScheduler()
+scheduler_job = None
+
+# Function to configure the scheduler based on settings
+def configure_scheduler():
+    global scheduler_job
+    
+    # Remove existing job if it exists
+    if scheduler_job and scheduler_job in scheduler.get_jobs():
+        scheduler_job.remove()
+    
+    # Only add the job if scheduling is enabled
+    if scheduler_config["enabled"]:
+        # Create a new scheduled job with the current configuration
+        scheduler_job = scheduler.add_job(
+            scheduled_scrape,
+            'cron',
+            hour=scheduler_config["hour"],
+            minute=scheduler_config["minute"],
+            day=f'*/{scheduler_config["interval_days"]}',  # Run every X days
+            id='scraper_job',
+            replace_existing=True
+        )
+        print(f"Scheduler configured to run at {scheduler_config['hour']}:{scheduler_config['minute']} every {scheduler_config['interval_days']} day(s)")
+    else:
+        print("Scheduler disabled")
+
 async def scheduled_scrape():
     """Run the scraper on a schedule."""
     print(f"Running scheduled scrape at {datetime.now().isoformat()}")
@@ -402,10 +576,98 @@ async def scheduled_scrape():
 # Startup and Shutdown Events
 # ---------------------------------------------------------------------------
 
+# Neue API-Endpunkte für E-Mail-Konfiguration und neue Projekte
+
+@app.post("/email-config")
+async def set_email_config(config: EmailConfig):
+    """Konfiguriere den E-Mail-Service."""
+    global email_service, email_notification_enabled, email_recipient
+    
+    try:
+        # E-Mail-Service mit neuer Konfiguration erstellen
+        email_service = EmailService(
+            smtp_host=config.smtp_host,
+            smtp_port=config.smtp_port,
+            smtp_user=config.smtp_user,
+            smtp_password=config.smtp_password,
+            sender=config.sender,
+            frontend_url=config.frontend_url or FRONTEND_URL
+        )
+        
+        # E-Mail-Benachrichtigung aktivieren/deaktivieren
+        email_notification_enabled = config.enabled
+        email_recipient = config.recipient
+        
+        return {
+            "message": "E-Mail-Konfiguration erfolgreich gespeichert",
+            "is_configured": email_service.is_configured
+        }
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Fehler beim Speichern der E-Mail-Konfiguration: {str(e)}"}
+        )
+
+@app.get("/email-config")
+async def get_email_config():
+    """Gibt die aktuelle E-Mail-Konfiguration zurück."""
+    if not email_service:
+        return {
+            "is_configured": False,
+            "enabled": email_notification_enabled,
+            "recipient": email_recipient
+        }
+    
+    config = email_service.get_config_status()
+    config["enabled"] = email_notification_enabled
+    config["recipient"] = email_recipient
+    
+    # Passwort aus Sicherheitsgründen nicht zurückgeben
+    if "smtp_password" in config:
+        config["smtp_password"] = "********"
+    
+    return config
+
+@app.get("/new-projects")
+async def get_new_projects():
+    """Gibt die neuen Projekte zurück."""
+    new_projects = project_manager.get_new_projects()
+    
+    return {
+        "count": len(new_projects),
+        "data": new_projects
+    }
+
+@app.post("/mark-projects-seen")
+async def mark_projects_seen(project_ids: List[str]):
+    """Markiert Projekte als gesehen (nicht mehr neu)."""
+    project_manager.mark_projects_as_seen(project_ids)
+    
+    return {
+        "message": f"{len(project_ids)} Projekte als gesehen markiert",
+        "remaining_new": len(project_manager.get_new_projects())
+    }
+
 @app.on_event("startup")
 async def startup_event():
     """Run when the API starts up."""
-    # Start the scheduler
+    global project_manager, email_service
+    
+    # Initialisiere den Projekt-Manager
+    project_manager = ProjectManager(DATA_DIR)
+    
+    # Initialisiere den E-Mail-Service mit Umgebungsvariablen
+    email_service = EmailService(
+        smtp_host=os.environ.get("SMTP_HOST"),
+        smtp_port=int(os.environ.get("SMTP_PORT", 587)),
+        smtp_user=os.environ.get("SMTP_USER"),
+        smtp_password=os.environ.get("SMTP_PASSWORD"),
+        sender=os.environ.get("EMAIL_SENDER"),
+        frontend_url=FRONTEND_URL
+    )
+    
+    # Configure and start the scheduler
+    configure_scheduler()
     scheduler.start()
     
     # Run the scraper on startup if no data exists
