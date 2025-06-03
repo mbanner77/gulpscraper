@@ -126,7 +126,7 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
         return []
     
     is_scraping = True
-    print(f"Starting GULP scraper at {datetime.now().isoformat()}")
+    print(f"Starting GULP scraper at {datetime.datetime.now().isoformat()}")
     
     all_projects: List[dict] = []
     network_lines: List[str] = []
@@ -220,12 +220,12 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
         )
         NETWORK_LOG.write_text("\n".join(network_lines), encoding="utf-8")
 
-        print(f"✓ Scraping completed at {datetime.now().isoformat()}")
+        print(f"✓ Scraping completed at {datetime.datetime.now().isoformat()}")
         print(f"  → {len(unique_projects)} unique projects saved to {OUTPUT_JSON}")
         print(f"  → {len(new_projects)} new projects found")
         
         # Aktualisiere den Zeitstempel des letzten Scans
-        last_scrape_time = datetime.now().isoformat()
+        last_scrape_time = datetime.datetime.now().isoformat()
         
         # Sende E-Mail-Benachrichtigung, wenn aktiviert und neue Projekte gefunden wurden
         if email_notification_enabled and email_recipient and new_projects and email_service:
@@ -233,7 +233,7 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
                 email_service.send_new_projects_notification(
                     recipient=email_recipient,
                     new_projects=new_projects,
-                    scan_time=datetime.now()
+                    scan_time=datetime.datetime.now()
                 )
             except Exception as e:
                 print(f"Error sending email notification: {str(e)}")
@@ -293,11 +293,47 @@ class SchedulerConfig(BaseModel):
 @app.get("/scheduler-config")
 async def get_scheduler_config():
     """Get the current scheduler configuration."""
+    jobs = []
+    for job in scheduler.get_jobs():
+        jobs.append({
+            "id": job.id,
+            "next_run_time": job.next_run_time.isoformat() if job.next_run_time else None,
+            "trigger": str(job.trigger)
+        })
+    
     return {
-        "enabled": scheduler_config["enabled"],
-        "interval_days": scheduler_config["interval_days"],
-        "daily_runs": scheduler_config["daily_runs"]
+        "config": scheduler_config,
+        "jobs": jobs,
+        "scheduler_running": scheduler.running
     }
+
+@app.post("/restart-scheduler")
+async def restart_scheduler():
+    """Force restart the scheduler to ensure jobs are properly registered."""
+    try:
+        # Stop the scheduler if it's running
+        if scheduler.running:
+            scheduler.shutdown()
+        
+        # Configure the scheduler with current settings
+        configure_scheduler()
+        
+        # Start the scheduler
+        scheduler.start()
+        
+        return {
+            "message": "Scheduler restarted successfully",
+            "jobs": [{
+                "id": job.id,
+                "next_run_time": job.next_run_time.isoformat() if job.next_run_time else None
+            } for job in scheduler.get_jobs()],
+            "scheduler_running": scheduler.running
+        }
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Error restarting scheduler: {str(e)}"}
+        )
 
 @app.post("/scheduler-config")
 async def set_scheduler_config(config: SchedulerConfig):
@@ -649,7 +685,7 @@ def configure_scheduler():
 
 async def scheduled_scrape():
     """Run the scraper on a schedule."""
-    print(f"Running scheduled scrape at {datetime.now().isoformat()}")
+    print(f"Running scheduled scrape at {datetime.datetime.now().isoformat()}")
     await scrape_gulp()
 
 
