@@ -2,6 +2,28 @@
   "totalCount": 530,
   "projects": [
     {
+      "id": "192db6ba3fda11f0ace682a1d637046d",
+      "idInIndex": "192db6ba3fda11f0ace682a1d637046d",
+      "type": "EXTERNAL",
+      "title": "Steel construction designer with experience in overhead line construction / radio mast construction / mast construction (m/f/d)",
+      "location": "Remote",
+      "description": "We are currently looking for several steel construction engineers with experience in overhead line construction / radio mast construction / mast construction (m/f/d) for an exciting customer in the field of communication and network expansion. Workload: 80-100%, preferably 100% Location: 100% remote, flexible for on-site training in DE (not mandatory) Your tasks include:  Creation of technical drawings (overview, detail and execution drawings). Creation of other technical documents such as protocols,...",
+      "companyName": "SOLCOM GmbH",
+      "companyLogoUrl": "https://www.gulp.de/firma/img/big/solcom.png",
+      "url": "https://gulp.de/robi/backend/tracker/url?project_url=https%3A%2F%2Fwww.solcom.de%2Fasp%2Frobots%2Fdetail.aspx%3Fmode%3DGULP%26id%3D100089%26utm_source%3Dgulp.de%26utm_medium%3Dsocial%26utm_campaign%3DJobposting",
+      "applicationDate": null,
+      "originalPublicationDate": "2025-06-02T19:17:00.000",
+      "startDate": "09.06.2025",
+      "favorite": null,
+      "hidden": null,
+      "memoText": null,
+      "duration": null,
+      "skills": [],
+      "active": null,
+      "projectKey": null,
+      "isRemoteWorkPossible": true
+    },
+    {
       "id": "1bae56b03fda11f0ace682a1d637046d",
       "idInIndex": "1bae56b03fda11f0ace682a1d637046d",
       "type": "EXTERNAL",
@@ -450,28 +472,6 @@
       "active": null,
       "projectKey": null,
       "isRemoteWorkPossible": true
-    },
-    {
-      "id": "08c60be43f9711f0ace682a1d637046d",
-      "idInIndex": "08c60be43f9711f0ace682a1d637046d",
-      "type": "EXTERNAL",
-      "title": "Expert Production Analysis Filling Line (m/f/d)",
-      "location": "D3",
-      "description": "We are currently looking for a Production Analysis Expert for an exciting project with one of our clients. 100% workload, 100% on site Your tasks include  Performing production analysis Identification of errors Definition of measures to improve Experience in production analysis Experience with operational processes Technology and logistics affinity Experience with filling lines D3",
-      "companyName": "SOLCOM GmbH",
-      "companyLogoUrl": "https://www.gulp.de/firma/img/big/solcom.png",
-      "url": "https://gulp.de/robi/backend/tracker/url?project_url=https%3A%2F%2Fwww.solcom.de%2Fasp%2Frobots%2Fdetail.aspx%3Fmode%3DGULP%26id%3D100069%26utm_source%3Dgulp.de%26utm_medium%3Dsocial%26utm_campaign%3DJobposting",
-      "applicationDate": null,
-      "originalPublicationDate": "2025-06-02T11:17:00.000",
-      "startDate": "asap",
-      "favorite": null,
-      "hidden": null,
-      "memoText": null,
-      "duration": null,
-      "skills": [],
-      "active": null,
-      "projectKey": null,
-      "isRemoteWorkPossible": false
     }
   ]
 }

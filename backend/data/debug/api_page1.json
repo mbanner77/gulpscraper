@@ -74,6 +74,28 @@
       "isRemoteWorkPossible": true
     },
     {
+      "id": "f8a72fea408111f0ace682a1d637046d",
+      "idInIndex": "f8a72fea408111f0ace682a1d637046d",
+      "type": "EXTERNAL",
+      "title": "Business Analyst Post Merger Integration (SAP, Salesforce) (m/f/d)",
+      "location": "Remote, D2",
+      "description": "For our existing client we are currently looking for an experienced Business Analyst for Post Merger Integration. Workload: 80% Location: Nearly 100% remote, 2-4 days on site/month in D2 Required. Language skills: German (business fluent), English (business fluent) Your task: Creation of Business Blue Prints for process optimization project, end to end processes (logistics) On the edge also the integration in Salesforce Integration in other modules Execution of an actual/target analysis Execution...",
+      "companyName": "SOLCOM GmbH",
+      "companyLogoUrl": "https://www.gulp.de/firma/img/big/solcom.png",
+      "url": "https://gulp.de/robi/backend/tracker/url?project_url=https%3A%2F%2Fwww.solcom.de%2Fasp%2Frobots%2Fdetail.aspx%3Fmode%3DGULP%26id%3D100101%26utm_source%3Dgulp.de%26utm_medium%3Dsocial%26utm_campaign%3DJobposting",
+      "applicationDate": null,
+      "originalPublicationDate": "2025-06-03T15:18:00.000",
+      "startDate": "01.07.2025",
+      "favorite": null,
+      "hidden": null,
+      "memoText": null,
+      "duration": null,
+      "skills": [],
+      "active": null,
+      "projectKey": null,
+      "isRemoteWorkPossible": true
+    },
+    {
       "id": "683eef5a8c300e5fa5cdcf94",
       "idInIndex": "683eef5a8c300e5fa5cdcf94",
       "type": "TALENT_FINDER",
@@ -467,28 +489,6 @@
       "active": null,
       "projectKey": null,
       "isRemoteWorkPossible": false
-    },
-    {
-      "id": "e95ac01a406811f0ace682a1d637046d",
-      "idInIndex": "e95ac01a406811f0ace682a1d637046d",
-      "type": "EXTERNAL",
-      "title": "Test Manager (m/f/d)",
-      "location": "Remote, Dortmund, Hamburg",
-      "description": "We are currently looking for a Test Manager for one of our clients for the introduction of a care service system. Location: Mainly remote, partly on-site in Dortmund and Hamburg Your tasks include  Planning and coordination of integration tests and end-to-end tests in the existing system landscape Structuring of test cases and test execution planning for integration tests and end-to-end tests Coordination of test data provision Organization of execution with testers from the department Ongoing monitoring...",
-      "companyName": "SOLCOM GmbH",
-      "companyLogoUrl": "https://www.gulp.de/firma/img/big/solcom.png",
-      "url": "https://gulp.de/robi/backend/tracker/url?project_url=https%3A%2F%2Fwww.solcom.de%2Fasp%2Frobots%2Fdetail.aspx%3Fmode%3DGULP%26id%3D100096%26utm_source%3Dgulp.de%26utm_medium%3Dsocial%26utm_campaign%3DJobposting",
-      "applicationDate": null,
-      "originalPublicationDate": "2025-06-03T12:17:00.000",
-      "startDate": "30.06.2025",
-      "favorite": null,
-      "hidden": null,
-      "memoText": null,
-      "duration": null,
-      "skills": [],
-      "active": null,
-      "projectKey": null,
-      "isRemoteWorkPossible": true
     }
   ]
 }
