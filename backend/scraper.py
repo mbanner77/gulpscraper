@@ -12,7 +12,7 @@ import asyncio
 import json
 import re
 import os
-from datetime import datetime
+import datetime
 from pathlib import Path
 from typing import List, Dict, Tuple, Any, Optional
 
@@ -45,7 +45,13 @@ app = FastAPI(
 # Add CORS middleware to allow requests from the frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, you should specify your frontend URL
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "https://*.onrender.com",  # Allow all Render subdomains
+        "https://*.render.com",    # Allow all Render domains
+        os.environ.get("FRONTEND_URL", "*")  # Get from environment or allow all as fallback
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

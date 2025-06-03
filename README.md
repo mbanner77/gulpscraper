@@ -114,12 +114,14 @@ Falls Sie noch kein Konto haben, erstellen Sie eines auf [Render.com](https://re
 1. Gehen Sie zu Ihrem Render Dashboard und klicken Sie auf "New" > "Web Service"
 2. Verbinden Sie Ihr GitHub-Repository oder laden Sie den Code direkt hoch
 3. Konfigurieren Sie den Dienst:
-   - Name: `gulp-scraper-api`
+   - Name: `gulp-backend` (wichtig: verwenden Sie ein konsistentes Namensschema für Frontend und Backend)
    - Environment: `Docker`
    - Branch: `main` (oder Ihr Hauptbranch)
    - Root Directory: `backend`
    - Instance Type: Wählen Sie "Standard" (mindestens 1 GB RAM wegen Playwright)
    - Disk: Mindestens 1 GB
+   - Environment Variables: Fügen Sie folgende Variablen hinzu:
+     - `FRONTEND_URL`: Die URL Ihres Frontend-Services (z.B. `https://gulp-frontend.onrender.com`)
 4. Klicken Sie auf "Create Web Service"
 
 ### 3. Frontend-Deployment (Static Site)
@@ -127,12 +129,12 @@ Falls Sie noch kein Konto haben, erstellen Sie eines auf [Render.com](https://re
 1. Gehen Sie zu Ihrem Render Dashboard und klicken Sie auf "New" > "Static Site"
 2. Verbinden Sie dasselbe Repository
 3. Konfigurieren Sie den Dienst:
-   - Name: `gulp-job-viewer`
+   - Name: `gulp-frontend` (wichtig: verwenden Sie ein Namensschema wie "gulp-frontend" für das Frontend und "gulp-backend" für das Backend)
    - Branch: `main` (oder Ihr Hauptbranch)
    - Root Directory: `frontend`
    - Build Command: `npm ci && npm run build`
    - Publish Directory: `build`
-   - Environment Variables: Fügen Sie `REACT_APP_API_URL=https://ihre-backend-url.onrender.com` hinzu (ersetzen Sie die URL mit Ihrer tatsächlichen Backend-URL)
+   - Environment Variables: Fügen Sie `REACT_APP_API_URL=https://gulp-backend.onrender.com` hinzu (ersetzen Sie "gulp-backend" mit dem tatsächlichen Namen Ihres Backend-Services)
 4. Klicken Sie auf "Create Static Site"
 
 ### 4. Umgebungsvariablen konfigurieren
@@ -153,6 +155,25 @@ Da der Scraper Daten speichern muss, sollten Sie einen persistenten Speicher fü
    - Name: `gulp-data`
    - Mount Path: `/app/data`
    - Size: 1 GB (oder mehr, je nach Bedarf)
+
+### 6. Fehlerbehebung: CORS-Probleme nach Deployment
+
+Wenn nach dem Deployment auf Render.com die Fehlermeldung "Fehler beim Laden der Projekte" erscheint, handelt es sich wahrscheinlich um ein CORS-Problem (Cross-Origin Resource Sharing). Folgen Sie diesen Schritten zur Behebung:
+
+1. **Konsistente Namensgebung verwenden**: Stellen Sie sicher, dass Ihre Services konsistent benannt sind (z.B. `gulp-frontend` und `gulp-backend`). Die automatische API-URL-Erkennung im Frontend basiert auf diesem Namensschema.
+
+2. **FRONTEND_URL korrekt setzen**: Überprüfen Sie, dass die Umgebungsvariable `FRONTEND_URL` im Backend-Service korrekt auf die URL Ihres Frontend-Services gesetzt ist.
+
+3. **Browser-Konsole prüfen**: Öffnen Sie die Browser-Konsole (F12), um genauere Fehlermeldungen zu sehen. CORS-Fehler werden dort deutlich angezeigt.
+
+4. **Manuelles Testen der API**: Testen Sie die Backend-API direkt mit einem Tool wie Postman oder curl, um zu überprüfen, ob sie korrekt antwortet:
+   ```bash
+   curl https://gulp-backend.onrender.com/projects
+   ```
+
+5. **Cache leeren**: Leeren Sie den Browser-Cache oder öffnen Sie die Seite im Inkognito-Modus, um sicherzustellen, dass keine alten Konfigurationen verwendet werden.
+
+6. **Deployment-Logs prüfen**: Überprüfen Sie die Logs beider Services in Ihrem Render-Dashboard auf Fehler oder Warnungen.
 
 ## API-Endpunkte
 

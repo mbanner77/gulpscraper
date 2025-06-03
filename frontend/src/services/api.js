@@ -1,7 +1,32 @@
 import axios from 'axios';
 
-// Use environment variable for API URL with fallback for local development
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+// Determine the API URL based on environment
+const determineApiUrl = () => {
+  // If explicit API URL is provided in environment, use it
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  
+  // For Render deployment: if frontend is on render.com, assume backend is too
+  if (window.location.hostname.includes('render.com') || 
+      window.location.hostname.includes('onrender.com')) {
+    // Extract the app name from the hostname (e.g., gulp-frontend-abc.onrender.com -> gulp)
+    const hostParts = window.location.hostname.split('-');
+    if (hostParts.length > 0) {
+      const appPrefix = hostParts[0]; // e.g., 'gulp'
+      // Construct backend URL with same app prefix but -backend suffix
+      return `https://${appPrefix}-backend.onrender.com`;
+    }
+    // Fallback for Render but unknown pattern
+    return window.location.origin.replace('frontend', 'backend');
+  }
+  
+  // Local development
+  return 'http://localhost:8001'; // Updated to match our current port
+};
+
+const API_URL = determineApiUrl();
+console.log('Using API URL:', API_URL);
 
 // Create axios instance with base URL
 const api = axios.create({
@@ -9,6 +34,8 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // Add withCredentials for CORS with credentials
+  withCredentials: API_URL.includes('render.com') || API_URL.includes('onrender.com'),
 });
 
 // Get recent projects (last 24h) with optional filters
