@@ -27,6 +27,7 @@ import {
 } from '@mui/icons-material';
 import { favoritesManager } from '../services/api';
 import AIProjectAnalyzer from './AIProjectAnalyzer';
+import { getAIConfig } from '../utils/aiConfig';
 
 function ProjectCard({ project, onFavoriteToggle, isNew = false, onMarkAsSeen = null }) {
   const navigate = useNavigate();
@@ -36,14 +37,12 @@ function ProjectCard({ project, onFavoriteToggle, isNew = false, onMarkAsSeen = 
   const [showAIAnalysis, setShowAIAnalysis] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(false);
   
-  // Check if AI features are enabled in local storage
+  // Check if AI features are enabled using the aiConfig utility
   useEffect(() => {
     try {
-      const aiConfig = localStorage.getItem('aiConfig');
-      if (aiConfig) {
-        const { enabled } = JSON.parse(aiConfig);
-        setAiEnabled(enabled);
-      }
+      const config = getAIConfig();
+      setAiEnabled(config.enabled);
+      console.log('AI features enabled:', config.enabled);
     } catch (err) {
       console.error('Error loading AI configuration:', err);
     }
