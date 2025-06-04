@@ -255,7 +255,7 @@ const ProjectArchive = () => {
                     {project.description?.length > 300 ? '...' : ''}
                   </Typography>
                   
-                  {project.skills && (
+                  {project.skills && typeof project.skills === 'string' && (
                     <Box sx={{ mt: 1 }}>
                       <Typography variant="subtitle2" gutterBottom>
                         Skills:
