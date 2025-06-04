@@ -49,6 +49,7 @@ function HomePage() {
   const [location_, setLocation] = useState(queryParams.get('location') || '');
   const [remoteOnly, setRemoteOnly] = useState(queryParams.get('remote') === 'true');
   const [newOnly, setNewOnly] = useState(queryParams.get('new') === 'true');
+  const [showAllProjects, setShowAllProjects] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   
   // State for new projects
@@ -68,10 +69,40 @@ function HomePage() {
           search: searchQuery,
           location: location_,
           remote: remoteOnly,
-          new: newOnly
+          new: newOnly,
+          show_all: showAllProjects
         };
         
+        console.log('Fetching projects with params:', params);
         const data = await getProjects(params);
+        console.log('API response:', data);
+        console.log('Projects received:', data.projects ? data.projects.length : 0);
+        
+        if (!data.projects || data.projects.length === 0) {
+          console.warn('No projects received from API');
+          // Try a direct fetch to debug
+          try {
+            const directResponse = await fetch('http://localhost:8001/projects?show_all=true');
+            const directData = await directResponse.json();
+            console.log('Direct API call response:', directData);
+            console.log('Direct projects count:', directData.projects ? directData.projects.length : 0);
+            
+            if (directData.projects && directData.projects.length > 0) {
+              console.log('Using direct fetch data instead');
+              setProjects(directData.projects);
+              setTotalPages(Math.ceil(directData.total / params.limit) || 1);
+              setTotalCount(directData.total || 0);
+              if (directData.newProjectIds) {
+                setNewProjectIds(directData.newProjectIds);
+              }
+              setLoading(false);
+              return;
+            }
+          } catch (directError) {
+            console.error('Direct API call failed:', directError);
+          }
+        }
+        
         // Das Backend gibt ein Objekt mit einem Feld 'projects' zurück, nicht 'data'
         setProjects(data.projects || []);
         // Berechne totalPages basierend auf total und limit
@@ -93,7 +124,7 @@ function HomePage() {
     };
     
     fetchProjects();
-  }, [page, searchQuery, location_, remoteOnly]);
+  }, [page, searchQuery, location_, remoteOnly, newOnly, showAllProjects]);
   
   // Update URL when filters change
   useEffect(() => {
@@ -103,9 +134,10 @@ function HomePage() {
     if (location_) params.set('location', location_);
     if (remoteOnly) params.set('remote', 'true');
     if (newOnly) params.set('new', 'true');
+    if (showAllProjects) params.set('showAll', 'true');
     
     navigate({ search: params.toString() }, { replace: true });
-  }, [page, searchQuery, location_, remoteOnly, newOnly, navigate]);
+  }, [page, searchQuery, location_, remoteOnly, newOnly, showAllProjects, navigate]);
   
   const handlePageChange = (event, value) => {
     setPage(value);
@@ -145,10 +177,13 @@ function HomePage() {
     <Container maxWidth="xl">
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          GULP Freiberufler-Projekte (Letzte 24 Stunden)
+          {showAllProjects ? 'GULP Freiberufler-Projekte (Alle)' : 'GULP Freiberufler-Projekte (Letzte 24 Stunden)'}
         </Typography>
         <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          Durchsuchen Sie die neuesten Projekte der letzten 24 Stunden für Freiberufler auf GULP.de
+          {showAllProjects 
+            ? 'Durchsuchen Sie alle verfügbaren Projekte für Freiberufler auf GULP.de' 
+            : 'Durchsuchen Sie die neuesten Projekte der letzten 24 Stunden für Freiberufler auf GULP.de'
+          }
         </Typography>
         <Button 
           component={Link} 
@@ -233,6 +268,18 @@ function HomePage() {
                     />
                   }
                   label="Nur neue Projekte"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={showAllProjects}
+                      onChange={(e) => setShowAllProjects(e.target.checked)}
+                      color="primary"
+                    />
+                  }
+                  label="Alle Projekte anzeigen (inkl. Archiv)"
                 />
               </Grid>
             </Grid>

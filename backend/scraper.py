@@ -452,6 +452,7 @@ async def get_projects(
     page: int = 1,
     limit: int = 10,
     include_new_only: bool = False,
+    show_all: bool = False,
 ):
     """Get recent projects (last 24h) with optional filtering and pagination."""
     try:
@@ -473,7 +474,8 @@ async def get_projects(
             page=page, 
             limit=limit, 
             include_new_only=include_new_only,
-            archived=False
+            archived=False,
+            show_all=show_all
         )
         
         # Hole die neuen Projekte, um sie im Frontend markieren zu können
@@ -521,7 +523,8 @@ async def get_archived_projects(
             page=page, 
             limit=limit, 
             include_new_only=False,
-            archived=True
+            archived=True,
+            show_all=show_all
         )
         
         # Calculate pagination

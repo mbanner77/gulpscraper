@@ -36,6 +36,12 @@ export const isRecent = (dateString) => {
   try {
     const date = new Date(dateString);
     const now = new Date();
+    
+    // Handle future dates (data from 2025) by treating them as recent
+    if (date > now) {
+      return true;
+    }
+    
     const diffMs = now - date;
     const diffHours = diffMs / (1000 * 60 * 60);
     

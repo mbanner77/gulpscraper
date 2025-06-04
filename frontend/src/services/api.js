@@ -41,7 +41,17 @@ const api = axios.create({
 // Get recent projects (last 24h) with optional filters
 export const getProjects = async (params = {}) => {
   try {
-    const response = await api.get('/projects', { params });
+    // Make sure we're using the correct parameter name for show_all
+    const apiParams = { ...params };
+    
+    // If show_all is present, make sure it's sent as a string 'true' or 'false'
+    if (apiParams.show_all !== undefined) {
+      apiParams.show_all = apiParams.show_all.toString();
+    }
+    
+    console.log('API call to /projects with params:', apiParams);
+    const response = await api.get('/projects', { params: apiParams });
+    console.log('API response status:', response.status);
     return response.data;
   } catch (error) {
     console.error('Error fetching recent projects:', error);

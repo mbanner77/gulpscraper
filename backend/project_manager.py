@@ -261,8 +261,8 @@ class ProjectManager:
         return archive_projects[start_idx:end_idx], len(archive_projects)
     
     def get_projects(self, page: int = 1, limit: int = 10, search: str = None, 
-                   location: str = None, remote: bool = None, archived: bool = False,
-                   include_new_only: bool = False) -> Tuple[List[Dict], int]:
+               location: str = None, remote: bool = None, archived: bool = False,
+               include_new_only: bool = False, show_all: bool = False) -> Tuple[List[Dict], int]:
         """Gibt Projekte mit Filterung und Paginierung zurück.
         
         Args:
@@ -278,8 +278,21 @@ class ProjectManager:
             Tuple mit paginierten Projekten und Gesamtanzahl
         """
         try:
-            # Laden der Projekte basierend auf dem archived-Parameter
-            if archived:
+            # Laden der Projekte basierend auf den Parametern
+            if show_all:
+                # Alle Projekte laden (archiviert und aktuell)
+                archive_projects = self._load_archive_projects()
+                recent_projects = []
+                if self.recent_projects_file.exists():
+                    recent_projects = json.loads(self.recent_projects_file.read_text(encoding="utf-8"))
+                
+                # Combine projects, avoiding duplicates by ID
+                project_dict = {}
+                for project in recent_projects + archive_projects:
+                    if project.get("id"):
+                        project_dict[project.get("id")] = project
+                projects = list(project_dict.values())
+            elif archived:
                 # Archivierte Projekte laden
                 projects = self._load_archive_projects()
             else:
