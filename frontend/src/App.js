@@ -8,6 +8,7 @@ import ProjectDetailsPage from './pages/ProjectDetailsPage';
 import FavoritesPage from './pages/FavoritesPage';
 import ScraperPage from './pages/ScraperPage';
 import ScraperControlPage from './pages/ScraperControlPage';
+import AIPage from './pages/AIPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
           <Route path="/project/:id" element={<ProjectDetailsPage />} />
           <Route path="/favorites" element={<FavoritesPage />} />
           <Route path="/scraper" element={<ScraperControlPage />} />
+          <Route path="/ai" element={<AIPage />} />
           <Route path="/scraper-control" element={<Navigate to="/scraper" replace />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

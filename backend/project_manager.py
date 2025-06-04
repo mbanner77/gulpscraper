@@ -310,13 +310,55 @@ class ProjectManager:
                 new_project_ids = {p.get("id") for p in self.get_new_projects()}
                 filtered_projects = [p for p in filtered_projects if p.get("id") in new_project_ids]
             
-            # Nach Suchbegriff filtern
+            # Nach Suchbegriff filtern - erweiterte Suche mit Skills und besserer Genauigkeit
             if search and search.strip():
-                search_lower = search.lower()
-                filtered_projects = [p for p in filtered_projects if 
-                                   search_lower in p.get("title", "").lower() or 
-                                   search_lower in p.get("description", "").lower() or
-                                   search_lower in p.get("company", "").lower()]
+                search_terms = search.lower().split()
+                projects_with_scores = []
+                
+                for project in filtered_projects:
+                    # Initialisiere Score für dieses Projekt
+                    score = 0
+                    
+                    # Prüfe Titel (höchste Gewichtung)
+                    title = project.get("title", "").lower()
+                    for term in search_terms:
+                        if term in title:
+                            score += 3
+                    
+                    # Prüfe Beschreibung
+                    description = project.get("description", "").lower()
+                    for term in search_terms:
+                        if term in description:
+                            score += 1
+                    
+                    # Prüfe Firma
+                    company = project.get("companyName", "").lower()
+                    for term in search_terms:
+                        if term in company:
+                            score += 2
+                    
+                    # Prüfe Skills (wichtig für Technologien)
+                    skills = project.get("skills", [])
+                    if isinstance(skills, list):
+                        skills_text = " ".join([str(skill).lower() for skill in skills])
+                        for term in search_terms:
+                            if term in skills_text:
+                                score += 3
+                    elif isinstance(skills, str):
+                        skills_text = skills.lower()
+                        for term in search_terms:
+                            if term in skills_text:
+                                score += 3
+                    
+                    # Wenn mindestens ein Suchbegriff gefunden wurde, füge das Projekt mit Score hinzu
+                    if score > 0:
+                        projects_with_scores.append((project, score))
+                
+                # Sortiere Projekte nach Relevanz (höchster Score zuerst)
+                projects_with_scores.sort(key=lambda x: x[1], reverse=True)
+                
+                # Aktualisiere die gefilterten Projekte mit den sortierten Ergebnissen
+                filtered_projects = [project for project, _ in projects_with_scores]
             
             # Nach Standort filtern
             if location and location.strip():

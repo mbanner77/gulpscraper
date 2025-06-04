@@ -1,6 +1,52 @@
 {
-  "totalCount": 536,
+  "totalCount": 534,
   "projects": [
+    {
+      "id": "94d8db1a40ab11f0ace682a1d637046d",
+      "idInIndex": "94d8db1a40ab11f0ace682a1d637046d",
+      "type": "EXTERNAL",
+      "title": "2598524: Project Manager (m/f/d)",
+      "location": "D4, remote",
+      "description": "We are currently looking for an experienced Project Manager (m/f/d) for an exciting project for our client in telecommunications.  Your tasks will be:  Project Manager and \"go to\" on the project side Working close with the client teams to secure the data needed for Completion of the projects Be responsible for ensuring that our GC's and internal teams upload to the correct systems Run the checklist for the projects and follow up on missing points Plan and execute the project plan - replan if needed...",
+      "companyName": "SOLCOM GmbH",
+      "companyLogoUrl": "https://www.gulp.de/firma/img/big/solcom.png",
+      "url": "https://gulp.de/robi/backend/tracker/url?project_url=https%3A%2F%2Fwww.solcom.de%2Fasp%2Frobots%2Fdetail.aspx%3Fmode%3DGULP%26id%3D100095%26utm_source%3Dgulp.de%26utm_medium%3Dsocial%26utm_campaign%3DJobposting",
+      "applicationDate": null,
+      "originalPublicationDate": "2025-06-03T20:49:00.000",
+      "startDate": "asap",
+      "favorite": null,
+      "hidden": null,
+      "memoText": null,
+      "duration": null,
+      "skills": [],
+      "active": null,
+      "projectKey": null,
+      "isRemoteWorkPossible": true
+    },
+    {
+      "id": "C01146864",
+      "idInIndex": "C01146864",
+      "type": "AGENCY",
+      "title": "SAP PP Consultant (m/f/d)",
+      "location": "Iserlohn",
+      "description": "For our client, a medium-sized company in the mechanical engineering sector, we are looking for an experienced SAP PP consultant to support the greenfield implementation of an SAP R/3 system. Location: Mainly remote. 1 to 2 trainings in Sauerland on site Volume: 240 hours Utilization: 20-40 % Location: Mainly remote Go-Live: 01.01.2026\n\n- Process analysis (special requirements, transports, forms/labels) - Master data analysis (workstations, task lists, BOMs) - Checking interfaces - Creating the relevant...",
+      "companyName": null,
+      "companyLogoUrl": "",
+      "url": "https://www.gulp.de/gulp2/g/projekte/agentur/C01146864",
+      "applicationDate": null,
+      "originalPublicationDate": "2025-06-03T20:30:31.493",
+      "startDate": "01.07.2025",
+      "favorite": null,
+      "hidden": null,
+      "memoText": null,
+      "duration": null,
+      "skills": [
+        "SAP PP Customizing (Consultant) Topics: SAP PP customizing, SAP PP consulting, production planning, master data analysis, BOM management Industrial experience with SAP PP in the R/3 environment Discrete manufacturing Anonymous make-to-stock production Material requirements planning Batch production with production orders Subcontracting (integrative with SAP MM) Integrative work with SAP WM, MM, third-party systems"
+      ],
+      "active": null,
+      "projectKey": null,
+      "isRemoteWorkPossible": true
+    },
     {
       "id": "9e47594240ab11f0ace682a1d637046d",
       "idInIndex": "9e47594240ab11f0ace682a1d637046d",
@@ -406,52 +452,6 @@
       "active": null,
       "projectKey": null,
       "isRemoteWorkPossible": false
-    },
-    {
-      "id": "C01146576",
-      "idInIndex": "C01146576",
-      "type": "AGENCY",
-      "title": "IT Developer/Developer Input Management (m/f/d) - IBM OpenText Capture",
-      "location": "Frankfurt am Main",
-      "description": "In the area of inbound management, processes are to be optimized - in particular the recognition and forwarding of incoming mail and the extraction of a wide range of information. This is achieved through rule-based recognition with OpenText.\n\nIn the area of inbound management, processes are to be optimized - in particular the recognition and forwarding of incoming mail, taking into account a wide range of information. This is achieved through rule-based recognition with OpenText. In addition to...",
-      "companyName": null,
-      "companyLogoUrl": "",
-      "url": "https://www.gulp.de/gulp2/g/projekte/agentur/C01146576",
-      "applicationDate": null,
-      "originalPublicationDate": "2025-06-03T15:30:31.657",
-      "startDate": "23.06.2025",
-      "favorite": null,
-      "hidden": null,
-      "memoText": null,
-      "duration": null,
-      "skills": [
-        "- Core competence: OpenText Capture - .NET programming - build management - configuration and release management - design and build enablement - Language skills: German - Work location: Remote (Germany) - Seniority: Senior"
-      ],
-      "active": null,
-      "projectKey": null,
-      "isRemoteWorkPossible": true
-    },
-    {
-      "id": "f8a72fea408111f0ace682a1d637046d",
-      "idInIndex": "f8a72fea408111f0ace682a1d637046d",
-      "type": "EXTERNAL",
-      "title": "Business Analyst Post Merger Integration (SAP, Salesforce) (m/f/d)",
-      "location": "Remote, D2",
-      "description": "For our existing client we are currently looking for an experienced Business Analyst for Post Merger Integration. Workload: 80% Location: Nearly 100% remote, 2-4 days on site/month in D2 Required. Language skills: German (business fluent), English (business fluent) Your task: Creation of Business Blue Prints for process optimization project, end to end processes (logistics) On the edge also the integration in Salesforce Integration in other modules Execution of an actual/target analysis Execution...",
-      "companyName": "SOLCOM GmbH",
-      "companyLogoUrl": "https://www.gulp.de/firma/img/big/solcom.png",
-      "url": "https://gulp.de/robi/backend/tracker/url?project_url=https%3A%2F%2Fwww.solcom.de%2Fasp%2Frobots%2Fdetail.aspx%3Fmode%3DGULP%26id%3D100101%26utm_source%3Dgulp.de%26utm_medium%3Dsocial%26utm_campaign%3DJobposting",
-      "applicationDate": null,
-      "originalPublicationDate": "2025-06-03T15:18:00.000",
-      "startDate": "01.07.2025",
-      "favorite": null,
-      "hidden": null,
-      "memoText": null,
-      "duration": null,
-      "skills": [],
-      "active": null,
-      "projectKey": null,
-      "isRemoteWorkPossible": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -11,7 +11,8 @@ import {
   IconButton,
   Tooltip,
   CardMedia,
-  Badge
+  Badge,
+  Divider
 } from '@mui/material';
 import {
   Favorite as FavoriteIcon,
@@ -20,15 +21,33 @@ import {
   CalendarToday as CalendarIcon,
   AccessTime as AccessTimeIcon,
   Laptop as LaptopIcon,
-  FiberNew as NewIcon
+  FiberNew as NewIcon,
+  SmartToy as SmartToyIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 import { favoritesManager } from '../services/api';
+import AIProjectAnalyzer from './AIProjectAnalyzer';
 
 function ProjectCard({ project, onFavoriteToggle, isNew = false, onMarkAsSeen = null }) {
   const navigate = useNavigate();
-  const [isFavorite, setIsFavorite] = React.useState(
+  const [isFavorite, setIsFavorite] = useState(
     favoritesManager.isFavorite(project.id)
   );
+  const [showAIAnalysis, setShowAIAnalysis] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(false);
+  
+  // Check if AI features are enabled in local storage
+  useEffect(() => {
+    try {
+      const aiConfig = localStorage.getItem('aiConfig');
+      if (aiConfig) {
+        const { enabled } = JSON.parse(aiConfig);
+        setAiEnabled(enabled);
+      }
+    } catch (err) {
+      console.error('Error loading AI configuration:', err);
+    }
+  }, []);
   
   // Format date to German locale
   const formatDate = (dateString) => {
@@ -50,15 +69,24 @@ function ProjectCard({ project, onFavoriteToggle, isNew = false, onMarkAsSeen = 
   };
   
   const handleFavoriteClick = () => {
-    if (isFavorite) {
-      favoritesManager.removeFavorite(project.id);
+    const newStatus = !isFavorite;
+    setIsFavorite(newStatus);
+    if (newStatus) {
+      favoritesManager.addFavorite(project.id);
     } else {
-      favoritesManager.addFavorite(project);
+      favoritesManager.removeFavorite(project.id);
     }
-    setIsFavorite(!isFavorite);
     if (onFavoriteToggle) {
-      onFavoriteToggle(project.id, !isFavorite);
+      onFavoriteToggle(project.id, newStatus);
     }
+  };
+
+  // Toggle AI analysis visibility
+  const toggleAIAnalysis = (e) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    setShowAIAnalysis(!showAIAnalysis);
   };
   
   const handleCardClick = () => {
@@ -220,7 +248,25 @@ function ProjectCard({ project, onFavoriteToggle, isNew = false, onMarkAsSeen = 
             Auf GULP ansehen
           </Button>
         )}
+        
+        {aiEnabled && (
+          <Button
+            size="small"
+            color="info"
+            startIcon={<SmartToyIcon />}
+            onClick={toggleAIAnalysis}
+          >
+            {showAIAnalysis ? 'KI ausblenden' : 'KI-Analyse'}
+          </Button>
+        )}
       </CardActions>
+      
+      {showAIAnalysis && (
+        <Box sx={{ p: 2, pt: 0 }}>
+          <Divider sx={{ my: 2 }} />
+          <AIProjectAnalyzer project={project} onClose={() => setShowAIAnalysis(false)} />
+        </Box>
+      )}
     </Card>
   );
 }

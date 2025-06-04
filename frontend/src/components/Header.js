@@ -29,7 +29,8 @@ import {
   Close as CloseIcon,
   DataUsage as DataUsageIcon,
   Settings as SettingsIcon,
-  Notifications as NotificationsIcon
+  Notifications as NotificationsIcon,
+  SmartToy as SmartToyIcon
 } from '@mui/icons-material';
 import { styled, alpha } from '@mui/material/styles';
 
@@ -38,6 +39,7 @@ const navItems = [
   { text: 'Favorites', path: '/favorites', icon: <FavoriteIcon /> },
   { text: 'Projekte', path: '/scraper', icon: <DataUsageIcon /> },
   { text: 'Scraper-Verwaltung', path: '/scraper-control', icon: <SettingsIcon /> },
+  { text: 'KI-Funktionen', path: '/ai', icon: <SmartToyIcon /> },
 ];
 
 // Styled search component

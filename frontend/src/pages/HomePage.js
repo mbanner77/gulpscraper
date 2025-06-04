@@ -8,19 +8,20 @@ import {
   CircularProgress,
   Pagination,
   TextField,
+  Button,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   FormControlLabel,
   Switch,
-  Paper,
-  Divider,
   Alert,
-  Button,
-  IconButton,
   Tooltip,
-  Link
+  InputAdornment,
+  FormHelperText,
+  IconButton,
+  Link,
+  Paper
 } from '@mui/material';
 import {
   FilterAlt as FilterIcon,
@@ -232,8 +233,25 @@ function HomePage() {
                   size="small"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Titel, Beschreibung, Firma..."
+                  placeholder="Titel, Skills, Beschreibung..."
+                  InputProps={{
+                    endAdornment: searchQuery ? (
+                      <InputAdornment position="end">
+                        <Tooltip title="Suche löschen">
+                          <IconButton
+                            size="small"
+                            onClick={() => setSearchQuery('')}
+                          >
+                            <ClearIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </InputAdornment>
+                    ) : null
+                  }}
                 />
+                <FormHelperText>
+                  Suche nach Technologien, Skills, Titel oder Firmen
+                </FormHelperText>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
                 <TextField
