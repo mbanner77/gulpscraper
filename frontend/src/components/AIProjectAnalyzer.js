@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -12,16 +12,12 @@ import {
   AccordionSummary,
   AccordionDetails,
   Chip,
-  Divider,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
-  Paper
+  Stack,
+  Divider
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
+import { getAIConfig } from '../utils/aiConfig';
 
 /**
  * Component for AI-powered project analysis
@@ -31,9 +27,15 @@ const AIProjectAnalyzer = ({ project, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
-  const [model, setModel] = useState('google/flan-t5-small');
   const [customPrompt, setCustomPrompt] = useState('');
   const [analysisType, setAnalysisType] = useState('skills');
+  const [config, setConfig] = useState(null);
+  
+  // Lade KI-Konfiguration beim Komponenten-Mount
+  useEffect(() => {
+    const aiConfig = getAIConfig();
+    setConfig(aiConfig);
+  }, []);
 
   // Available free models
   const availableModels = [
@@ -76,26 +78,43 @@ Skills: ${Array.isArray(skills) ? skills.join(', ') : (skills || 'Keine Skills a
 
   // Call the Hugging Face Inference API
   const analyzeProject = async () => {
+    if (!config) {
+      setError('KI-Konfiguration konnte nicht geladen werden.');
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     
     try {
       const prompt = generatePrompt();
+      const selectedModel = config.defaultModel;
       
       // Use the Hugging Face Inference API (requires API key in production)
       // For demo purposes, we'll simulate a response
       
       // In a real implementation, you would make an API call like this:
       /*
+      const apiKey = config.apiKey || process.env.REACT_APP_HUGGINGFACE_API_KEY;
+      
+      if (!apiKey) {
+        console.warn('Kein API-Schlüssel gefunden, verwende eingeschränkten Zugriff');
+      }
+      
       const response = await fetch(
-        `https://api-inference.huggingface.co/models/${model}`,
+        `https://api-inference.huggingface.co/models/${selectedModel}`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.REACT_APP_HUGGINGFACE_API_KEY}`
+            ...(apiKey && { 'Authorization': `Bearer ${apiKey}` })
           },
-          body: JSON.stringify({ inputs: prompt }),
+          body: JSON.stringify({ 
+            inputs: prompt,
+            parameters: {
+              max_new_tokens: config.maxTokens || 100
+            }
+          }),
         }
       );
       
@@ -196,21 +215,14 @@ Hier ist eine benutzerdefinierte Analyse basierend auf Ihrer Anfrage. In einer P
             />
           )}
           
-          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-            <InputLabel>KI-Modell</InputLabel>
-            <Select
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              label="KI-Modell"
-            >
-              {availableModels.map((model) => (
-                <MenuItem key={model.id} value={model.id}>{model.name}</MenuItem>
-              ))}
-            </Select>
-            <FormHelperText>
-              Alle Modelle sind kostenlos über die Hugging Face Inference API verfügbar
-            </FormHelperText>
-          </FormControl>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              Verwendetes Modell: {config ? availableModels.find(m => m.id === config.defaultModel)?.name || config.defaultModel : 'Wird geladen...'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Konfigurieren Sie die KI-Einstellungen auf der KI-Seite
+            </Typography>
+          </Box>
           
           <Button
             variant="contained"
