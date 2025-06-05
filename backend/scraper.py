@@ -834,6 +834,12 @@ async def startup_event():
             print("Scheduler started successfully")
         except Exception as e:
             print(f"Error starting scheduler: {str(e)}")
+    
+    # In Cloud-Umgebung (Render) sofort einen Scrape ausführen, damit Daten verfügbar sind
+    if IS_CLOUD_ENV:
+        print("Cloud-Umgebung erkannt: Führe sofortigen Scrape aus, um Daten zu laden...")
+        # Scraper im Hintergrund ausführen, damit der Server starten kann
+        asyncio.create_task(scheduled_scrape())
     else:
         print("Scheduler is already running")
     
