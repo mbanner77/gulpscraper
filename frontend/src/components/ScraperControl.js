@@ -182,9 +182,18 @@ const ScraperControl = () => {
                     Zeitplan:
                   </Typography>
                   <Typography variant="body2">
-                    {status.scheduler && status.scheduler.enabled 
-                      ? `${String(status.scheduler.hour).padStart(2, '0')}:${String(status.scheduler.minute).padStart(2, '0')} Uhr${status.scheduler.interval_days > 1 ? `, alle ${status.scheduler.interval_days} Tage` : ' täglich'}` 
+                    {status.scheduler && status.scheduler.enabled && status.scheduler.formatted_runs
+                      ? `${status.scheduler.formatted_runs.join(', ')} Uhr${status.scheduler.interval_days > 1 ? `, alle ${status.scheduler.interval_days} Tage` : ' täglich'}` 
                       : 'Deaktiviert'}
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Nächster geplanter Lauf:
+                  </Typography>
+                  <Typography variant="body2">
+                    {status.next_scheduled_run ? new Date(status.next_scheduled_run).toLocaleString('de-DE') : 'Nicht geplant'}
                   </Typography>
                 </Box>
                 

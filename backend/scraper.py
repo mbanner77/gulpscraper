@@ -654,9 +654,22 @@ async def get_status():
     history = project_manager.get_history()
     new_projects = project_manager.get_new_projects()
     
+    # Ermittle die nächste geplante Ausführung
+    next_run = None
+    for job in scheduler.get_jobs():
+        if job.id.startswith('scraper_job_') and job.next_run_time:
+            if next_run is None or job.next_run_time < next_run:
+                next_run = job.next_run_time
+    
+    # Formatiere die täglichen Läufe für bessere Lesbarkeit
+    formatted_daily_runs = []
+    for run in scheduler_config["daily_runs"]:
+        formatted_daily_runs.append(f"{run['hour']:02d}:{run['minute']:02d}")
+    
     return {
         "is_scraping": is_scraping,
         "last_scrape": last_scrape_time,
+        "next_scheduled_run": next_run.isoformat() if next_run else None,
         "data_available": OUTPUT_JSON.exists(),
         "project_count": len(json.loads(OUTPUT_JSON.read_text(encoding="utf-8"))) if OUTPUT_JSON.exists() else 0,
         "new_project_count": len(new_projects),
@@ -669,7 +682,8 @@ async def get_status():
         "scheduler": {
             "enabled": scheduler_config["enabled"],
             "interval_days": scheduler_config["interval_days"],
-            "daily_runs": scheduler_config["daily_runs"]
+            "daily_runs": scheduler_config["daily_runs"],
+            "formatted_runs": formatted_daily_runs
         },
         "archive": {
             "count": project_manager.get_archive_count()
