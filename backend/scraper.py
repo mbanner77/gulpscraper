@@ -169,11 +169,24 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
     network_lines: List[str] = []
 
     try:
+        # Besondere Debug-Ausgabe für Render-Umgebung
+        if IS_CLOUD_ENV:
+            print(f"\n[RENDER DEBUG] Starte Playwright in Cloud-Umgebung mit HEADLESS={HEADLESS}")
+            print(f"[RENDER DEBUG] Datenverzeichnis: {DATA_DIR.absolute()}")
+            print(f"[RENDER DEBUG] Ausgabedatei existiert: {OUTPUT_JSON.exists()}")
+            if OUTPUT_JSON.exists():
+                try:
+                    with open(OUTPUT_JSON, 'r', encoding='utf-8') as f:
+                        project_count = len(json.load(f))
+                        print(f"[RENDER DEBUG] Anzahl Projekte in Datei: {project_count}")
+                except Exception as e:
+                    print(f"[RENDER DEBUG] Fehler beim Lesen der Projektdatei: {str(e)}")
+        
         async with async_playwright() as pw:
-            # Launch browser with appropriate options for cloud environment
-            browser = await pw.chromium.launch(
-                headless=HEADLESS, 
-                args=[
+            # Erweiterte Browser-Konfiguration speziell für Render
+            launch_options = {
+                "headless": HEADLESS,
+                "args": [
                     "--no-sandbox",
                     "--disable-setuid-sandbox",
                     "--disable-dev-shm-usage",
@@ -181,9 +194,21 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
                     "--no-first-run",
                     "--no-zygote",
                     "--single-process",
-                    "--disable-gpu"
+                    "--disable-gpu",
+                    "--disable-extensions",
+                    "--disable-features=site-per-process",
+                    "--disable-software-rasterizer"
                 ]
-            )
+            }
+            
+            # Spezielle Konfiguration für Render
+            if IS_CLOUD_ENV:
+                print(f"[RENDER DEBUG] Verwende spezielle Browser-Konfiguration für Render")
+                launch_options["chromium_sandbox"] = False
+                launch_options["timeout"] = 60000  # Erhöhtes Timeout für Render
+            
+            # Browser starten
+            browser = await pw.chromium.launch(**launch_options)
             context = await browser.new_context(
                 user_agent=USER_AGENT, 
                 viewport={"width": 1280, "height": 900}
@@ -849,11 +874,40 @@ async def startup_event():
         except Exception as e:
             print(f"Error starting scheduler: {str(e)}")
     
-    # In Cloud-Umgebung (Render) sofort einen Scrape ausführen, damit Daten verfügbar sind
+    # In Cloud-Umgebung (Render) spezielles Setup durchführen
     if IS_CLOUD_ENV:
-        print("Cloud-Umgebung erkannt: Führe sofortigen Scrape aus, um Daten zu laden...")
-        # Scraper im Hintergrund ausführen, damit der Server starten kann
-        asyncio.create_task(scheduled_scrape())
+        print("\n[RENDER SETUP] Cloud-Umgebung erkannt: Führe spezielles Setup durch...")
+        
+        # Stelle sicher, dass der Scheduler aktiviert ist
+        scheduler_config["enabled"] = True
+        print(f"[RENDER SETUP] Scheduler-Status: {scheduler_config['enabled']}")
+        
+        # Stelle sicher, dass die Datenverzeichnisse existieren und beschreibbar sind
+        print(f"[RENDER SETUP] Überprüfe Datenverzeichnisse...")
+        DATA_DIR.mkdir(exist_ok=True, parents=True)
+        DEBUG_DIR.mkdir(exist_ok=True, parents=True)
+        
+        # Prüfe, ob Daten vorhanden sind
+        if not OUTPUT_JSON.exists() or os.path.getsize(OUTPUT_JSON) == 0:
+            print(f"[RENDER SETUP] Keine Projektdaten gefunden, starte sofortigen Scrape...")
+            # Scraper direkt ausführen (nicht als Task), damit Daten sofort verfügbar sind
+            await scheduled_scrape()
+        else:
+            print(f"[RENDER SETUP] Projektdaten gefunden ({os.path.getsize(OUTPUT_JSON)} Bytes), überprüfe Inhalt...")
+            try:
+                with open(OUTPUT_JSON, 'r', encoding='utf-8') as f:
+                    projects = json.load(f)
+                    print(f"[RENDER SETUP] {len(projects)} Projekte in Datei gefunden")
+                    
+                    # Aktualisiere den letzten Scrape-Zeitpunkt, damit er nicht als "Noch nie" angezeigt wird
+                    global last_scrape_time
+                    if not last_scrape_time:
+                        last_scrape_time = datetime.datetime.now().isoformat()
+                        print(f"[RENDER SETUP] Letzter Scrape-Zeitpunkt auf {last_scrape_time} gesetzt")
+            except Exception as e:
+                print(f"[RENDER SETUP] Fehler beim Lesen der Projektdatei: {str(e)}")
+                print(f"[RENDER SETUP] Starte sofortigen Scrape wegen Fehler...")
+                await scheduled_scrape()
     else:
         print("Scheduler is already running")
     

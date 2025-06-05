@@ -1,36 +1,5 @@
 [
   {
-    "id": "68415a859818d92f78091be1",
-    "idInIndex": "68415a859818d92f78091be1",
-    "type": "TALENT_FINDER",
-    "title": "Atlassian Engineer (f/m/d)",
-    "location": "Köln",
-    "description": "Tasks:\n- Administration, technical support, optimization and further development of Atlassian tools (Jira, Confluence)\n- Installation, configuration and integration of the Atlassian solutions Jira and Confluence into our existing IT environments.\n- Analyzing and troubleshooting technical problems and ensuring system stability. Contributing ideas and suggestions for improvement for the further development of our plug-ins and systems in the direction of Atlassian Cloud. And here in particular for the...",
-    "companyName": "STI Consulting GmbH",
-    "companyLogoUrl": null,
-    "url": "https://www.gulp.de/gulp2/g/projekte/talentfinder/68415a859818d92f78091be1",
-    "applicationDate": null,
-    "originalPublicationDate": "2025-06-05T10:51:17.636",
-    "startDate": "23.06.2025",
-    "favorite": null,
-    "hidden": null,
-    "memoText": null,
-    "duration": null,
-    "skills": [
-      "At least three years of experience in supporting Atlassian systems on-prem and in the cloud",
-      "Sound knowledge and practical experience with the Atlassian stack (Jira; Confluence; etc.)",
-      "Practical plugin development experience for Atlassian Forge and knowledge of the extended Atlassian ecosystem such as Guard; Analytics; Rovo is an advantage",
-      "Independent and structured way of working",
-      "Programming skills in Java / Typescript and the Atlassian API",
-      "Good understanding of larger IT infrastructures and software integrations and migrations",
-      "Analytical and solution-oriented thinking as well as an independent way of working",
-      "Strong communication skills and ability to work in a team"
-    ],
-    "active": null,
-    "projectKey": null,
-    "isRemoteWorkPossible": true
-  },
-  {
     "id": "C01147430",
     "idInIndex": "C01147430",
     "type": "AGENCY",

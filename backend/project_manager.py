@@ -187,6 +187,13 @@ class ProjectManager:
                         # Fallback für andere Datumsformate
                         updated_at = datetime.strptime(updated_str, "%Y-%m-%dT%H:%M:%S.%f")
                     
+                    # Prüfen, ob das Datum in der Zukunft liegt (z.B. 2025)
+                    if updated_at > current_time:
+                        print(f"Projekt {project.get('id')}: Zukunftsdatum {updated_str} erkannt, als aktuell markiert")
+                        recent_projects.append(project)
+                        continue
+                    
+                    # Prüfen, ob das Projekt innerhalb der letzten 24 Stunden aktualisiert wurde
                     time_diff = current_time - updated_at
                     print(f"Projekt {project.get('id')}: Datum {updated_str}, Differenz: {time_diff.total_seconds()/3600:.2f} Stunden")
                     if time_diff.total_seconds() < 24 * 60 * 60:  # 24 Stunden in Sekunden
