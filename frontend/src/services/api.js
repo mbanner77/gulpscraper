@@ -2,26 +2,44 @@ import axios from 'axios';
 
 // Determine the API URL based on environment
 const determineApiUrl = () => {
+  console.log('Determining API URL for hostname:', window.location.hostname);
+  
   // If explicit API URL is provided in environment, use it
   if (process.env.REACT_APP_API_URL) {
+    console.log('Using explicit API URL from environment:', process.env.REACT_APP_API_URL);
     return process.env.REACT_APP_API_URL;
   }
   
   // For Render deployment: if frontend is on render.com, assume backend is too
   if (window.location.hostname.includes('render.com') || 
       window.location.hostname.includes('onrender.com')) {
-    // Extract the app name from the hostname (e.g., gulp-frontend-abc.onrender.com -> gulp)
+    console.log('Detected Render deployment');
+    
+    // Verbesserte Logik für Render-Deployment
+    // 1. Wenn die URL gulp-job-app.onrender.com ist, verwende gulp-job-app-api.onrender.com
+    if (window.location.hostname.includes('gulp-job-app')) {
+      const apiUrl = window.location.origin.replace('gulp-job-app', 'gulp-job-app-api');
+      console.log('Using matched Render API URL:', apiUrl);
+      return apiUrl;
+    }
+    
+    // 2. Fallback: Extrahiere den App-Namen aus dem Hostnamen
     const hostParts = window.location.hostname.split('-');
     if (hostParts.length > 0) {
-      const appPrefix = hostParts[0]; // e.g., 'gulp'
-      // Construct backend URL with same app prefix but -backend suffix
-      return `https://${appPrefix}-backend.onrender.com`;
+      const appPrefix = hostParts[0]; // z.B. 'gulp'
+      const apiUrl = `https://${appPrefix}-backend.onrender.com`;
+      console.log('Using constructed Render API URL with prefix:', apiUrl);
+      return apiUrl;
     }
-    // Fallback for Render but unknown pattern
-    return window.location.origin.replace('frontend', 'backend');
+    
+    // 3. Letzter Fallback: Ersetze 'frontend' durch 'backend'
+    const fallbackUrl = window.location.origin.replace('frontend', 'backend');
+    console.log('Using fallback Render API URL:', fallbackUrl);
+    return fallbackUrl;
   }
   
   // Local development
+  console.log('Using local development API URL');
   return 'http://localhost:8001'; // Updated to match our current port
 };
 

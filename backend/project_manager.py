@@ -268,8 +268,8 @@ class ProjectManager:
         return archive_projects[start_idx:end_idx], len(archive_projects)
     
     def get_projects(self, page: int = 1, limit: int = 10, search: str = None, 
-               location: str = None, remote: bool = None, archived: bool = False,
-               include_new_only: bool = False, show_all: bool = False) -> Tuple[List[Dict], int]:
+                location: str = None, remote: bool = None, archived: bool = False,
+                include_new_only: bool = False, show_all: bool = False) -> Tuple[List[Dict], int]:
         """Gibt Projekte mit Filterung und Paginierung zurück.
         
         Args:
@@ -280,18 +280,54 @@ class ProjectManager:
             remote: Filter für Remote-Status
             archived: Wenn True, werden archivierte Projekte zurückgegeben, sonst aktuelle
             include_new_only: Wenn True, werden nur neue Projekte zurückgegeben
+            show_all: Wenn True, werden alle Projekte (aktuell und archiviert) zurückgegeben
             
         Returns:
             Tuple mit paginierten Projekten und Gesamtanzahl
         """
         try:
+            print(f"\n[DEBUG] get_projects aufgerufen mit: archived={archived}, show_all={show_all}, include_new_only={include_new_only}")
+            
+            # Prüfen, ob die Projektdateien existieren
+            print(f"[DEBUG] Projektdateien: recent={self.recent_projects_file.exists()}, archive={self.archive_projects_file.exists()}, raw={self.projects_file.exists()}")
+            
+            # Wenn die Projektdatei existiert, aber keine recent oder archive Dateien, versuchen wir die Projekte neu zu verarbeiten
+            if self.projects_file.exists() and (not self.recent_projects_file.exists() or not self.archive_projects_file.exists()):
+                print(f"[DEBUG] Projektdateien fehlen, versuche Neuverarbeitung der Rohdaten")
+                try:
+                    raw_projects = json.loads(self.projects_file.read_text(encoding="utf-8"))
+                    print(f"[DEBUG] {len(raw_projects)} Rohdaten-Projekte geladen, verarbeite neu...")
+                    self.process_projects(raw_projects)
+                except Exception as e:
+                    print(f"[DEBUG] Fehler bei Neuverarbeitung: {str(e)}")
+            
             # Laden der Projekte basierend auf den Parametern
             if show_all:
+                print(f"[DEBUG] Lade ALLE Projekte (aktuell + archiviert)")
                 # Alle Projekte laden (archiviert und aktuell)
                 archive_projects = self._load_archive_projects()
                 recent_projects = []
+                
                 if self.recent_projects_file.exists():
-                    recent_projects = json.loads(self.recent_projects_file.read_text(encoding="utf-8"))
+                    try:
+                        recent_projects = json.loads(self.recent_projects_file.read_text(encoding="utf-8"))
+                        print(f"[DEBUG] {len(recent_projects)} aktuelle Projekte geladen")
+                    except Exception as e:
+                        print(f"[DEBUG] Fehler beim Laden aktueller Projekte: {str(e)}")
+                else:
+                    print(f"[DEBUG] Keine aktuellen Projekte gefunden")
+                    
+                print(f"[DEBUG] {len(archive_projects)} archivierte Projekte geladen")
+                
+                # Wenn keine Projekte gefunden wurden, versuchen wir direkt aus der Rohdatei zu laden
+                if not recent_projects and not archive_projects and self.projects_file.exists():
+                    print(f"[DEBUG] Keine Projekte gefunden, versuche direkt aus Rohdaten zu laden")
+                    try:
+                        all_projects = json.loads(self.projects_file.read_text(encoding="utf-8"))
+                        print(f"[DEBUG] {len(all_projects)} Projekte direkt aus Rohdaten geladen")
+                        return self._apply_filters_and_pagination(all_projects, page, limit, search, location, remote, include_new_only)
+                    except Exception as e:
+                        print(f"[DEBUG] Fehler beim direkten Laden aus Rohdaten: {str(e)}")
                 
                 # Combine projects, avoiding duplicates by ID
                 project_dict = {}
@@ -299,6 +335,17 @@ class ProjectManager:
                     if project.get("id"):
                         project_dict[project.get("id")] = project
                 projects = list(project_dict.values())
+                print(f"[DEBUG] {len(projects)} kombinierte Projekte nach Deduplizierung")
+                
+                # Wenn immer noch keine Projekte gefunden wurden, versuchen wir es mit der Rohdatei
+                if not projects and self.projects_file.exists():
+                    print(f"[DEBUG] Keine kombinierten Projekte, versuche Rohdaten")
+                    try:
+                        projects = json.loads(self.projects_file.read_text(encoding="utf-8"))
+                        print(f"[DEBUG] {len(projects)} Projekte aus Rohdaten geladen")
+                    except Exception as e:
+                        print(f"[DEBUG] Fehler beim Laden aus Rohdaten: {str(e)}")
+                        projects = []
             elif archived:
                 # Archivierte Projekte laden
                 projects = self._load_archive_projects()

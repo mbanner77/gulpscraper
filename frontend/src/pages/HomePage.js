@@ -50,7 +50,8 @@ function HomePage() {
   const [location_, setLocation] = useState(queryParams.get('location') || '');
   const [remoteOnly, setRemoteOnly] = useState(queryParams.get('remote') === 'true');
   const [newOnly, setNewOnly] = useState(queryParams.get('new') === 'true');
-  const [showAllProjects, setShowAllProjects] = useState(true);
+  // Standardmäßig alle Projekte anzeigen (true), um sicherzustellen, dass Projekte auf Render angezeigt werden
+  const [showAllProjects, setShowAllProjects] = useState(queryParams.get('show_all') !== 'false');
   const [showFilters, setShowFilters] = useState(false);
   
   // State for new projects
@@ -81,9 +82,37 @@ function HomePage() {
         
         if (!data.projects || data.projects.length === 0) {
           console.warn('No projects received from API');
-          // Try a direct fetch to debug
+          // Try a direct fetch to debug using the same API URL from api.js
           try {
-            const directResponse = await fetch('http://localhost:8001/projects?show_all=true');
+            // Verwende die gleiche API-URL-Bestimmung wie in api.js
+            const apiUrl = (() => {
+              console.log('Determining fallback API URL for hostname:', window.location.hostname);
+              
+              if (process.env.REACT_APP_API_URL) {
+                return process.env.REACT_APP_API_URL;
+              }
+              
+              if (window.location.hostname.includes('render.com') || 
+                  window.location.hostname.includes('onrender.com')) {
+                console.log('Detected Render deployment for fallback');
+                
+                if (window.location.hostname.includes('gulp-job-app')) {
+                  return window.location.origin.replace('gulp-job-app', 'gulp-job-app-api');
+                }
+                
+                const hostParts = window.location.hostname.split('-');
+                if (hostParts.length > 0) {
+                  return `https://${hostParts[0]}-backend.onrender.com`;
+                }
+                
+                return window.location.origin.replace('frontend', 'backend');
+              }
+              
+              return 'http://localhost:8001';
+            })();
+            
+            console.log('Trying direct fetch with API URL:', apiUrl);
+            const directResponse = await fetch(`${apiUrl}/projects?show_all=true`);
             const directData = await directResponse.json();
             console.log('Direct API call response:', directData);
             console.log('Direct projects count:', directData.projects ? directData.projects.length : 0);
