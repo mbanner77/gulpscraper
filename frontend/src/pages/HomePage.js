@@ -89,7 +89,11 @@ function HomePage() {
       if (data.projects && data.projects.length > 0) {
         setProjects(data.projects);
         setTotalProjects(data.total);
-        setLoading(false);
+        
+        // Speichere die IDs der neuen Projekte, um sie hervorzuheben
+        if (data.new_project_ids) {
+          setNewProjectIds(data.new_project_ids);
+        }
         return true; // Erfolgreicher Abruf
       }
       
@@ -120,63 +124,53 @@ function HomePage() {
             if (window.location.hostname.includes('gulp-job-app')) {
               return window.location.origin.replace('gulp-job-app', 'gulp-job-app-api');
             }
-              
-              const hostParts = window.location.hostname.split('-');
-              if (hostParts.length > 0) {
-                const appPrefix = hostParts[0]; // z.B. 'gulp'
-                const apiUrl = `https://${appPrefix}-backend.onrender.com`;
-                console.log('Using constructed Render API URL with prefix:', apiUrl);
-                return apiUrl;
-              }
-              
-              const fallbackUrl = window.location.origin.replace('frontend', 'backend');
-              console.log('Using fallback Render API URL:', fallbackUrl);
-              return fallbackUrl;
+            
+            const hostParts = window.location.hostname.split('-');
+            if (hostParts.length > 0) {
+              const appPrefix = hostParts[0]; // z.B. 'gulp'
+              const apiUrl = `https://${appPrefix}-backend.onrender.com`;
+              console.log('Using constructed Render API URL with prefix:', apiUrl);
+              return apiUrl;
             }
             
-            return 'http://localhost:8001';
-          })();
-          
-          console.log('Trying direct fetch from:', apiUrl);
-          const directResponse = await fetch(`${apiUrl}/projects?show_all=true&force_reprocess=true`);
-          const directData = await directResponse.json();
-          console.log('Direct fetch response:', directData);
-          
-          if (directData.projects && directData.projects.length > 0) {
-            console.log('Direct fetch successful, got', directData.projects.length, 'projects');
-            setProjects(directData.projects);
-            setTotalProjects(directData.total || directData.projects.length);
-            return true; // Erfolgreicher direkter Abruf
-          } else {
-            console.warn('Direct fetch returned no projects');
-            // Wenn wir auf Render sind und immer noch keine Projekte haben, versuchen wir es mit einem Seiten-Reload
-            if (isRender) {
-              console.log('On Render with no projects after all attempts, will try page reload in 5 seconds');
-              setTimeout(() => {
-                window.location.reload();
-              }, 5000);
-            }
-            setProjects([]);
-            setTotalProjects(0);
-            setError('Keine Projekte gefunden. Bitte starten Sie den Scraper.');
-            return false;
+            const fallbackUrl = window.location.origin.replace('frontend', 'backend');
+            console.log('Using fallback Render API URL:', fallbackUrl);
+            return fallbackUrl;
           }
-        } catch (directFetchError) {
-          console.error('Direct fetch failed:', directFetchError);
+          
+          return 'http://localhost:8001';
+        })();
+        
+        console.log('Trying direct fetch from:', apiUrl);
+        const directResponse = await fetch(`${apiUrl}/projects?show_all=true&force_reprocess=true`);
+        const directData = await directResponse.json();
+        console.log('Direct fetch response:', directData);
+        
+        if (directData.projects && directData.projects.length > 0) {
+          console.log('Direct fetch successful, got', directData.projects.length, 'projects');
+          setProjects(directData.projects);
+          setTotalProjects(directData.total || directData.projects.length);
+          return true; // Erfolgreicher direkter Abruf
+        } else {
+          console.warn('Direct fetch returned no projects');
+          // Wenn wir auf Render sind und immer noch keine Projekte haben, versuchen wir es mit einem Seiten-Reload
+          if (isRender) {
+            console.log('On Render with no projects after all attempts, will try page reload in 5 seconds');
+            setTimeout(() => {
+              window.location.reload();
+            }, 5000);
+          }
           setProjects([]);
           setTotalProjects(0);
           setError('Keine Projekte gefunden. Bitte starten Sie den Scraper.');
           return false;
         }
-      } else {
-        setProjects(data.projects);
-        setTotalProjects(data.total);
-        
-        // Speichere die IDs der neuen Projekte, um sie hervorzuheben
-        if (data.new_project_ids) {
-          setNewProjectIds(data.new_project_ids);
-        }
-        return true;
+      } catch (directFetchError) {
+        console.error('Direct fetch failed:', directFetchError);
+        setProjects([]);
+        setTotalProjects(0);
+        setError('Keine Projekte gefunden. Bitte starten Sie den Scraper.');
+        return false;
       }
     } catch (err) {
       console.error('Error fetching projects:', err);
