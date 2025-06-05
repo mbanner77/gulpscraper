@@ -78,12 +78,62 @@ const ScraperControl = () => {
       setError(null);
       setSuccess(null);
       
+      console.log('Starte manuellen Scraper-Vorgang...');
+      // Starte den Scraper und warte auf die Antwort
       const result = await triggerScrape({ send_email: sendEmail });
+      console.log('Scraper-Antwort erhalten:', result);
       
-      setSuccess('Scraper wurde erfolgreich gestartet!');
-      
-      // Status sofort aktualisieren
-      fetchStatus();
+      // Wenn der Scraper erfolgreich war und eine success-Eigenschaft hat
+      if (result && result.success) {
+        console.log('Scraper war erfolgreich, aktualisiere UI-Status mit:', {
+          last_scrape: result.last_scrape,
+          project_count: result.project_count,
+          new_project_count: result.new_project_count
+        });
+        
+        // Aktualisiere den Status direkt mit den Daten aus der Antwort
+        setStatus(prevStatus => ({
+          ...prevStatus,
+          is_scraping: false,
+          last_scrape: result.last_scrape,
+          project_count: result.project_count || prevStatus.project_count,
+          new_project_count: result.new_project_count || prevStatus.new_project_count,
+          data_available: true
+        }));
+        
+        // Erfolgsmeldung anzeigen
+        setSuccess('Scraper wurde erfolgreich ausgeführt! Projekte wurden aktualisiert.');
+        
+        // Benachrichtige die übergeordnete Komponente, dass neue Daten verfügbar sind
+        console.log('Sende projectsUpdated-Event, um UI zu aktualisieren');
+        try {
+          // Verwende sowohl CustomEvent als auch ein normales Event für maximale Kompatibilität
+          window.dispatchEvent(new CustomEvent('projectsUpdated', { detail: { timestamp: new Date().getTime() } }));
+          
+          // Für Render: Verzögerte Aktualisierung, um sicherzustellen, dass die Daten geladen werden
+          setTimeout(() => {
+            console.log('Verzögerte Aktualisierung nach Scrape');
+            window.dispatchEvent(new Event('projectsUpdated'));
+            
+            // Für Render: Erzwinge einen Reload der Seite nach 2 Sekunden, wenn wir auf Render sind
+            if (window.location.hostname.includes('render.com') || 
+                window.location.hostname.includes('onrender.com')) {
+              console.log('Render-Umgebung erkannt, erzwinge Reload nach 2 Sekunden');
+              setTimeout(() => {
+                window.location.reload();
+              }, 2000);
+            }
+          }, 1000);
+        } catch (eventErr) {
+          console.error('Fehler beim Senden des projectsUpdated-Events:', eventErr);
+        }
+      } else {
+        // Fallback für den alten Modus (Hintergrundaufgabe)
+        console.log('Scraper wurde gestartet, aber keine Erfolgsbestätigung erhalten');
+        setSuccess('Scraper wurde erfolgreich gestartet!');
+        // Status sofort aktualisieren
+        fetchStatus();
+      }
       
       // Erfolgsmeldung nach 5 Sekunden ausblenden
       setTimeout(() => setSuccess(null), 5000);

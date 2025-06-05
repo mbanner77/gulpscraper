@@ -100,6 +100,7 @@ OUTPUT_JSON = DATA_DIR / "gulp_projekte_raw.json"
 DEBUG_DIR = DATA_DIR / "debug"
 DEBUG_DIR.mkdir(exist_ok=True)
 NETWORK_LOG = DEBUG_DIR / "network.log"
+LAST_SCRAPE_FILE = DATA_DIR / "last_scrape.txt"
 
 # Log data directory location
 print(f"Using data directory: {DATA_DIR.absolute()}")
@@ -639,40 +640,6 @@ async def get_project(project_id: str):
         )
 
 
-@app.post("/scrape")
-async def trigger_scrape(
-    background_tasks: BackgroundTasks,
-    request: ScrapeRequest = ScrapeRequest()
-):
-    """Trigger a new scrape."""
-    global email_notification_enabled
-    
-    if is_scraping:
-        return JSONResponse(
-            status_code=409,
-            content={"error": "A scrape is already in progress"}
-        )
-        
-    # Convert the pages list to a range if provided
-    pages = PAGE_RANGE
-    if request.pages:
-        pages = range(min(request.pages), max(request.pages) + 1)
-    
-    # Aktiviere E-Mail-Benachrichtigung für diesen Scrape-Vorgang, wenn angefordert
-    if request.send_email:
-        email_notification_enabled = True
-    else:
-        email_notification_enabled = False
-        
-    # Run the scrape in the background
-    background_tasks.add_task(scrape_gulp, pages)
-    
-    return {
-        "message": "Scrape started in the background",
-        "email_notification": email_notification_enabled and email_recipient != ""
-    }
-
-
 @app.get("/status")
 async def get_status():
     """Get the scraper status."""
@@ -930,3 +897,149 @@ async def shutdown_event():
 if __name__ == "__main__":
     # Run the API server
     uvicorn.run("scraper:app", host="0.0.0.0", port=int(os.environ.get("PORT", 8001)), log_level="info")
+@app.post("/scrape")
+async def trigger_scrape(
+    background_tasks: BackgroundTasks,
+    request: ScrapeRequest = ScrapeRequest()
+):
+    """Trigger a new scrape."""
+    global email_notification_enabled, last_scrape_time
+    
+    if is_scraping:
+        return JSONResponse(
+            status_code=409,
+            content={"error": "A scrape is already in progress"}
+        )
+    
+    print(f"\n[MANUAL SCRAPE] Manueller Scrape-Vorgang gestartet")
+        
+    # Convert the pages list to a range if provided
+    pages = PAGE_RANGE
+    if request.pages:
+        pages = range(min(request.pages), max(request.pages) + 1)
+    
+    # Aktiviere E-Mail-Benachrichtigung für diesen Scrape-Vorgang, wenn angefordert
+    if request.send_email:
+        email_notification_enabled = True
+    else:
+        email_notification_enabled = False
+    
+    # Direkter Scrape statt Hintergrundaufgabe, um sofortige Rückmeldung zu ermöglichen
+    try:
+        # Starte den Scrape-Vorgang direkt
+        print(f"[MANUAL SCRAPE] Führe Scrape direkt aus...")
+        await scrape_gulp(pages)
+        
+        # Stelle sicher, dass der letzte Scrape-Zeitpunkt aktualisiert wird
+        last_scrape_time = datetime.datetime.now().isoformat()
+        
+        # Speichere den letzten Scrape-Zeitpunkt in einer Datei für Persistenz
+        try:
+            LAST_SCRAPE_FILE.write_text(last_scrape_time, encoding="utf-8")
+            print(f"[MANUAL SCRAPE] Letzter Scrape-Zeitpunkt gespeichert: {last_scrape_time}")
+        except Exception as e:
+            print(f"[MANUAL SCRAPE] Fehler beim Speichern des letzten Scrape-Zeitpunkts: {str(e)}")
+        
+        return {
+            "message": "Scrape wurde erfolgreich durchgeführt",
+            "success": True,
+            "last_scrape": last_scrape_time,
+            "project_count": len(json.loads(OUTPUT_JSON.read_text(encoding="utf-8"))) if OUTPUT_JSON.exists() else 0,
+            "new_project_count": len(project_manager.get_new_projects()),
+            "email_notification": email_notification_enabled and email_recipient != ""
+        }
+    except Exception as e:
+        print(f"[MANUAL SCRAPE] Fehler beim Scrapen: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": f"Fehler beim Scrapen: {str(e)}",
+                "success": False
+            }
+        )
+# Datei für den letzten Scrape-Zeitpunkt
+LAST_SCRAPE_FILE = DATA_DIR / "last_scrape.txt"
+
+@app.post("/scrape")
+async def trigger_scrape(
+    background_tasks: BackgroundTasks,
+    request: ScrapeRequest = ScrapeRequest()
+):
+    """Trigger a new scrape."""
+    global email_notification_enabled, last_scrape_time
+    
+    if is_scraping:
+        return JSONResponse(
+            status_code=409,
+            content={"error": "A scrape is already in progress"}
+        )
+    
+    print(f"\n[MANUAL SCRAPE] Manueller Scrape-Vorgang gestartet")
+        
+    # Convert the pages list to a range if provided
+    pages = PAGE_RANGE
+    if request.pages:
+        pages = range(min(request.pages), max(request.pages) + 1)
+    
+    # Aktiviere E-Mail-Benachrichtigung für diesen Scrape-Vorgang, wenn angefordert
+    if request.send_email:
+        email_notification_enabled = True
+    else:
+        email_notification_enabled = False
+    
+    # Direkter Scrape statt Hintergrundaufgabe, um sofortige Rückmeldung zu ermöglichen
+    try:
+        # Starte den Scrape-Vorgang direkt
+        print(f"[MANUAL SCRAPE] Führe Scrape direkt aus...")
+        await scrape_gulp(pages)
+        
+        # Stelle sicher, dass der letzte Scrape-Zeitpunkt aktualisiert wird
+        last_scrape_time = datetime.datetime.now().isoformat()
+        
+        # Speichere den letzten Scrape-Zeitpunkt in einer Datei für Persistenz
+        try:
+            LAST_SCRAPE_FILE.write_text(last_scrape_time, encoding="utf-8")
+            print(f"[MANUAL SCRAPE] Letzter Scrape-Zeitpunkt gespeichert: {last_scrape_time}")
+        except Exception as e:
+            print(f"[MANUAL SCRAPE] Fehler beim Speichern des letzten Scrape-Zeitpunkts: {str(e)}")
+        
+        # Stelle sicher, dass die Projekte korrekt verarbeitet wurden
+        project_count = 0
+        new_project_count = 0
+        
+        try:
+            # Prüfe, ob Projektdaten vorhanden sind
+            if OUTPUT_JSON.exists():
+                raw_projects = json.loads(OUTPUT_JSON.read_text(encoding="utf-8"))
+                project_count = len(raw_projects)
+                
+                # Stelle sicher, dass die Projekte im ProjectManager verarbeitet werden
+                # Dies ist besonders wichtig für Render, um sicherzustellen, dass die Daten korrekt gespeichert werden
+                print(f"[MANUAL SCRAPE] Verarbeite {project_count} Projekte im ProjectManager...")
+                _, new_projects = project_manager.process_projects(raw_projects)
+                new_project_count = len(new_projects)
+                
+                # Für Render: Stelle sicher, dass die Projektdaten in allen relevanten Dateien aktualisiert sind
+                print(f"[MANUAL SCRAPE] Aktualisiere Projektdateien für Render-Kompatibilität...")
+                # Erzwinge eine Neusortierung der Projekte (aktuell vs. archiviert)
+                project_manager.get_projects(force_reprocess=True, show_all=True)
+        except Exception as e:
+            print(f"[MANUAL SCRAPE] Fehler bei der Projektverarbeitung: {str(e)}")
+        
+        return {
+            "message": "Scrape wurde erfolgreich durchgeführt",
+            "success": True,
+            "last_scrape": last_scrape_time,
+            "project_count": project_count,
+            "new_project_count": new_project_count,
+            "email_notification": email_notification_enabled and email_recipient != ""
+        }
+    except Exception as e:
+        print(f"[MANUAL SCRAPE] Fehler beim Scrapen: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": f"Fehler beim Scrapen: {str(e)}",
+                "success": False
+            }
+        )

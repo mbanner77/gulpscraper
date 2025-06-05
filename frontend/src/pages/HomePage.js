@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -57,127 +57,162 @@ function HomePage() {
   // State for new projects
   const [newProjectIds, setNewProjectIds] = useState([]);
   
-  // Load projects on mount and when filters change
-  useEffect(() => {
-    const fetchProjects = async () => {
-      setLoading(true);
-      setError(null);
+  // Funktion zum Laden der Projekte mit useCallback
+  const fetchProjects = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Build query parameters
+      const params = {
+        page,
+        limit: 12,
+        search: searchQuery,
+        location: location_,
+        remote: remoteOnly,
+        new: newOnly,
+        show_all: showAllProjects
+      };
       
-      try {
-        // Build query parameters
-        const params = {
-          page,
-          limit: 12,
-          search: searchQuery,
-          location: location_,
-          remote: remoteOnly,
-          new: newOnly,
-          show_all: showAllProjects
-        };
-        
-        console.log('Fetching projects with params:', params);
-        const data = await getProjects(params);
-        console.log('API response:', data);
-        console.log('Projects received:', data.projects ? data.projects.length : 0);
-        
-        if (!data.projects || data.projects.length === 0) {
-          console.warn('No projects received from API');
-          // Try a direct fetch to debug using the same API URL from api.js
-          try {
-            // Verwende die gleiche API-URL-Bestimmung wie in api.js
-            const apiUrl = (() => {
-              console.log('Determining fallback API URL for hostname:', window.location.hostname);
-              
-              if (process.env.REACT_APP_API_URL) {
-                return process.env.REACT_APP_API_URL;
-              }
-              
-              if (window.location.hostname.includes('render.com') || 
-                  window.location.hostname.includes('onrender.com')) {
-                console.log('Detected Render deployment for fallback');
-                
-                if (window.location.hostname.includes('gulp-job-app')) {
-                  return window.location.origin.replace('gulp-job-app', 'gulp-job-app-api');
-                }
-                
-                const hostParts = window.location.hostname.split('-');
-                if (hostParts.length > 0) {
-                  return `https://${hostParts[0]}-backend.onrender.com`;
-                }
-                
-                return window.location.origin.replace('frontend', 'backend');
-              }
-              
-              return 'http://localhost:8001';
-            })();
+      console.log('Fetching projects with params:', params);
+      const data = await getProjects(params);
+      console.log('API response:', data);
+      console.log('Projects received:', data.projects ? data.projects.length : 0);
+      
+      if (!data.projects || data.projects.length === 0) {
+        console.warn('No projects received from API');
+        // Try a direct fetch to debug using the same API URL from api.js
+        try {
+          // Verwende die gleiche API-URL-Bestimmung wie in api.js
+          const apiUrl = (() => {
+            console.log('Determining fallback API URL for hostname:', window.location.hostname);
             
-            console.log('Trying direct fetch with API URL:', apiUrl);
-            const directResponse = await fetch(`${apiUrl}/projects?show_all=true`);
-            const directData = await directResponse.json();
-            console.log('Direct API call response:', directData);
-            console.log('Direct projects count:', directData.projects ? directData.projects.length : 0);
-            
-            if (directData.projects && directData.projects.length > 0) {
-              console.log('Using direct fetch data instead');
-              setProjects(directData.projects);
-              setTotalPages(Math.ceil(directData.total / params.limit) || 1);
-              setTotalCount(directData.total || 0);
-              if (directData.newProjectIds) {
-                setNewProjectIds(directData.newProjectIds);
-              }
-              setLoading(false);
-              return;
+            if (process.env.REACT_APP_API_URL) {
+              return process.env.REACT_APP_API_URL;
             }
-          } catch (directError) {
-            console.error('Direct API call failed:', directError);
+            
+            if (window.location.hostname.includes('render.com') || 
+                window.location.hostname.includes('onrender.com')) {
+              console.log('Detected Render deployment for fallback');
+              
+              if (window.location.hostname.includes('gulp-job-app')) {
+                return window.location.origin.replace('gulp-job-app', 'gulp-job-app-api');
+              }
+              
+              const hostParts = window.location.hostname.split('-');
+              if (hostParts.length > 0) {
+                const appPrefix = hostParts[0];
+                return `https://${appPrefix}-backend.onrender.com`;
+              }
+              
+              return window.location.origin.replace('frontend', 'backend');
+            }
+            
+            return 'http://localhost:8001';
+          })();
+          
+          console.log('Trying direct fetch from:', apiUrl);
+          const directResponse = await fetch(`${apiUrl}/projects?${new URLSearchParams(params)}`);
+          const directData = await directResponse.json();
+          console.log('Direct fetch response:', directData);
+          
+          if (directData.projects && directData.projects.length > 0) {
+            setProjects(directData.projects);
+            setTotalCount(directData.total || directData.projects.length);
+            setTotalPages(Math.ceil((directData.total || directData.projects.length) / 12));
+            setNewProjectIds(directData.new_project_ids || []);
+          } else {
+            setError('Keine Projekte gefunden. Bitte versuchen Sie es später erneut.');
           }
+        } catch (directErr) {
+          console.error('Direct fetch failed:', directErr);
+          setError('Fehler beim Laden der Projekte. Bitte versuchen Sie es später erneut.');
         }
-        
-        // Das Backend gibt ein Objekt mit einem Feld 'projects' zurück, nicht 'data'
-        setProjects(data.projects || []);
-        // Berechne totalPages basierend auf total und limit
-        const calculatedTotalPages = Math.ceil(data.total / params.limit);
-        setTotalPages(calculatedTotalPages || 1);
-        setTotalCount(data.total || 0);
-        
-        // Set new project IDs if available
-        if (data.newProjectIds) {
-          setNewProjectIds(data.newProjectIds);
-        }
-      } catch (err) {
-        console.error('Error fetching projects:', err);
-        setError('Fehler beim Laden der Projekte. Bitte versuchen Sie es später erneut.');
-        setProjects([]);
-      } finally {
-        setLoading(false);
+      } else {
+        setProjects(data.projects);
+        setTotalCount(data.total || data.projects.length);
+        setTotalPages(Math.ceil((data.total || data.projects.length) / 12));
+        setNewProjectIds(data.new_project_ids || []);
+      }
+    } catch (err) {
+      console.error('Error fetching projects:', err);
+      setError('Fehler beim Laden der Projekte. Bitte versuchen Sie es später erneut.');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, searchQuery, location_, remoteOnly, newOnly, showAllProjects]);
+  
+  // Event-Listener für Projekt-Updates (z.B. nach manuellem Scrape)
+  useEffect(() => {
+    // Handler für das projectsUpdated-Event
+    const handleProjectsUpdated = (event) => {
+      console.log('Projekte wurden aktualisiert, lade neu...', event?.detail);
+      
+      // Für Render: Verzögertes Neuladen, um sicherzustellen, dass die Daten verfügbar sind
+      if (window.location.hostname.includes('render.com') || 
+          window.location.hostname.includes('onrender.com')) {
+        console.log('Render-Umgebung erkannt, verzögertes Laden der Projekte');
+        setTimeout(() => {
+          fetchProjects();
+        }, 500);
+      } else {
+        fetchProjects();
       }
     };
     
-    fetchProjects();
-  }, [page, searchQuery, location_, remoteOnly, newOnly, showAllProjects]);
+    // Event-Listener hinzufügen
+    window.addEventListener('projectsUpdated', handleProjectsUpdated);
+    
+    // Event-Listener entfernen beim Aufräumen
+    return () => {
+      window.removeEventListener('projectsUpdated', handleProjectsUpdated);
+    };
+  }, []); // Leere Abhängigkeitsliste, damit der Event-Listener nur einmal registriert wird
   
-  // Update URL when filters change
+  // Automatisches Neuladen der Projekte alle 5 Sekunden, wenn keine Projekte angezeigt werden und wir auf Render sind
   useEffect(() => {
+    // Nur auf Render und nur wenn keine Projekte angezeigt werden
+    if ((window.location.hostname.includes('render.com') || 
+         window.location.hostname.includes('onrender.com')) && 
+        projects.length === 0 && !loading) {
+      
+      console.log('Keine Projekte auf Render, starte automatisches Neuladen...');
+      
+      const intervalId = setInterval(() => {
+        console.log('Automatisches Neuladen der Projekte...');
+        fetchProjects();
+      }, 5000); // Alle 5 Sekunden
+      
+      return () => clearInterval(intervalId);
+    }
+  }, [projects.length, loading, fetchProjects]);
+  
+  // Load projects on mount and when filters change
+  useEffect(() => {
+    fetchProjects();
+    
+    // Update URL with current filters
     const params = new URLSearchParams();
     if (page > 1) params.set('page', page.toString());
     if (searchQuery) params.set('search', searchQuery);
     if (location_) params.set('location', location_);
     if (remoteOnly) params.set('remote', 'true');
     if (newOnly) params.set('new', 'true');
-    if (showAllProjects) params.set('showAll', 'true');
+    if (!showAllProjects) params.set('show_all', 'false');
     
-    navigate({ search: params.toString() }, { replace: true });
-  }, [page, searchQuery, location_, remoteOnly, newOnly, showAllProjects, navigate]);
+    navigate({
+      pathname: location.pathname,
+      search: params.toString()
+    }, { replace: true });
+  }, [page, searchQuery, location_, remoteOnly, newOnly, showAllProjects, navigate, location.pathname]);
   
   const handlePageChange = (event, value) => {
     setPage(value);
-    window.scrollTo(0, 0);
   };
   
   const handleFilterSubmit = (e) => {
     e.preventDefault();
-    // Reset to page 1 when filters change
-    setPage(1);
+    setPage(1);  // Reset to first page when applying filters
   };
   
   const handleClearFilters = () => {
@@ -189,67 +224,52 @@ function HomePage() {
   };
   
   const handleFavoriteToggle = () => {
-    // This is just to force a re-render when a favorite is toggled
-    setProjects([...projects]);
+    // Implement favorite toggle functionality
   };
   
   const handleMarkAsSeen = async (projectIds) => {
     try {
       await markProjectsAsSeen(projectIds);
-      // Remove the marked projects from the newProjectIds list
-      setNewProjectIds(newProjectIds.filter(id => !projectIds.includes(id)));
-    } catch (error) {
-      console.error('Error marking projects as seen:', error);
+      setNewProjectIds(prev => prev.filter(id => !projectIds.includes(id)));
+    } catch (err) {
+      console.error('Error marking projects as seen:', err);
     }
   };
-
+  
   return (
-    <Container maxWidth="xl">
-      <Box sx={{ mb: 4 }}>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          {showAllProjects ? 'GULP Freiberufler-Projekte (Alle)' : 'GULP Freiberufler-Projekte (Letzte 24 Stunden)'}
+          {showAllProjects ? 'Alle GULP Projekte' : 'Aktuelle GULP Projekte'}
         </Typography>
-        <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-          {showAllProjects 
-            ? 'Durchsuchen Sie alle verfügbaren Projekte für Freiberufler auf GULP.de' 
-            : 'Durchsuchen Sie die neuesten Projekte der letzten 24 Stunden für Freiberufler auf GULP.de'
-          }
-        </Typography>
-        <Button 
-          component={Link} 
-          href="/scraper?tab=3" 
-          startIcon={<ArchiveIcon />} 
-          variant="outlined" 
-          size="small" 
-          sx={{ mt: 1 }}
-        >
-          Ältere Projekte im Archiv ansehen
-        </Button>
+        
+        <Box>
+          <Button
+            variant="outlined"
+            startIcon={<FilterIcon />}
+            onClick={() => setShowFilters(!showFilters)}
+            sx={{ mr: 1 }}
+          >
+            Filter {showFilters ? 'ausblenden' : 'anzeigen'}
+          </Button>
+          
+          <Button
+            variant="outlined"
+            color="secondary"
+            component={Link}
+            href="/scraper"
+            startIcon={<ArchiveIcon />}
+            sx={{ mr: 1 }}
+          >
+            Scraper & Archiv
+          </Button>
+        </Box>
       </Box>
       
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6" component="h2">
-            Filter
-          </Typography>
-          <IconButton 
-            size="small" 
-            onClick={() => setShowFilters(!showFilters)}
-            sx={{ ml: 1 }}
-          >
-            <FilterIcon />
-          </IconButton>
-          <Box sx={{ flexGrow: 1 }} />
-          <Tooltip title="Filter zurücksetzen">
-            <IconButton 
-              size="small" 
-              onClick={handleClearFilters}
-              disabled={!searchQuery && !location_ && !remoteOnly}
-            >
-              <ClearIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
+      <Paper sx={{ p: 2, mb: 3, display: showFilters ? 'block' : 'none' }}>
+        <Typography variant="h6" gutterBottom>
+          Projektfilter
+        </Typography>
         
         {showFilters && (
           <form onSubmit={handleFilterSubmit}>
@@ -262,24 +282,22 @@ function HomePage() {
                   size="small"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Titel, Skills, Beschreibung..."
+                  placeholder="z.B. React, Python, DevOps..."
                   InputProps={{
-                    endAdornment: searchQuery ? (
+                    endAdornment: searchQuery && (
                       <InputAdornment position="end">
-                        <Tooltip title="Suche löschen">
-                          <IconButton
-                            size="small"
-                            onClick={() => setSearchQuery('')}
-                          >
-                            <ClearIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                        <IconButton
+                          size="small"
+                          onClick={() => setSearchQuery('')}
+                        >
+                          <ClearIcon fontSize="small" />
+                        </IconButton>
                       </InputAdornment>
-                    ) : null
+                    ),
                   }}
                 />
                 <FormHelperText>
-                  Suche nach Technologien, Skills, Titel oder Firmen
+                  Suche in Titel, Beschreibung und Skills
                 </FormHelperText>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
