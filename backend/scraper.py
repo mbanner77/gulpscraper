@@ -14,18 +14,28 @@ import re
 import os
 import datetime
 from pathlib import Path
-from typing import List, Dict, Tuple, Any, Optional
+from typing import List, Dict, Tuple, Any, Optional, Union
+from pydantic import BaseModel, EmailStr
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Form, Depends
+from fastapi import FastAPI, BackgroundTasks, Form, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
+from typing import List, Dict, Optional
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
-# Importieren der eigenen Module
-from email_service import EmailService
+import os
+import json
+import datetime
+import time
+import uuid
+import logging
+import traceback
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 from project_manager import ProjectManager
+from email_service import EmailService
+from email_test_route import router as email_router
 
 # Import Playwright with proper error handling
 try:
@@ -59,6 +69,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Importiere die E-Mail-Test-Route
+from email_test_route import router as email_router
+
+# Registriere die E-Mail-Test-Route
+app.include_router(email_router, prefix="/api/email", tags=["email"])
 
 # Globale Variablen für Dienste
 email_service = None
@@ -95,8 +111,15 @@ if IS_CLOUD_ENV:
 
 
 # E-Mail-Konfiguration
-DEFAULT_EMAIL_RECIPIENT = os.environ.get("EMAIL_RECIPIENT", "")
+DEFAULT_EMAIL_RECIPIENT = os.environ.get("EMAIL_RECIPIENT", "m.banner@realcore.de")
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost")
+
+# Standard SMTP-Konfiguration
+DEFAULT_SMTP_HOST = os.environ.get("SMTP_HOST", "mail.tk-core.de")
+DEFAULT_SMTP_PORT = int(os.environ.get("SMTP_PORT", "465"))
+DEFAULT_SMTP_USER = os.environ.get("SMTP_USER", "gulpai@tk-core.de")
+DEFAULT_SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "gulpai2025")
+DEFAULT_EMAIL_SENDER = os.environ.get("EMAIL_SENDER", "GULP Job Scraper <gulpai@tk-core.de>")
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -753,24 +776,6 @@ async def set_email_config(config: EmailConfig):
             content={"error": f"Fehler beim Speichern der E-Mail-Konfiguration: {str(e)}"}
         )
 
-@app.get("/email-config")
-async def get_email_config():
-    """Gibt die aktuelle E-Mail-Konfiguration zurück."""
-    if not email_service:
-        return {
-            "is_configured": False,
-            "enabled": email_notification_enabled,
-            "recipient": email_recipient
-        }
-    
-    config = email_service.get_config_status()
-    config["enabled"] = email_notification_enabled
-    config["recipient"] = email_recipient
-    
-    # Passwort aus Sicherheitsgründen nicht zurückgeben
-    if "smtp_password" in config:
-        config["smtp_password"] = "********"
-    
     return config
 
 @app.get("/new-projects")
@@ -801,14 +806,22 @@ async def startup_event():
     # Initialisiere den Projekt-Manager
     project_manager = ProjectManager(DATA_DIR)
     
-    # Initialisiere den E-Mail-Service mit Umgebungsvariablen
+    # Initialisiere den E-Mail-Service mit Standard-SMTP-Einstellungen
     email_service = EmailService(
-        smtp_host=os.environ.get("SMTP_HOST"),
-        smtp_port=int(os.environ.get("SMTP_PORT", 587)),
-        smtp_user=os.environ.get("SMTP_USER"),
-        smtp_password=os.environ.get("SMTP_PASSWORD"),
-        sender=os.environ.get("EMAIL_SENDER"),
+        smtp_host=DEFAULT_SMTP_HOST,
+        smtp_port=DEFAULT_SMTP_PORT,
+        smtp_user=DEFAULT_SMTP_USER,
+        smtp_password=DEFAULT_SMTP_PASSWORD,
+        sender=DEFAULT_EMAIL_SENDER,
         frontend_url=FRONTEND_URL
+    )
+    
+    # Initialisiere die E-Mail-Test-Route
+    import email_test_route
+    email_test_route.initialize(
+        email_svc=email_service,
+        email_rcpt=email_recipient,
+        default_email_rcpt=DEFAULT_EMAIL_RECIPIENT
     )
     
     # Configure and start the scheduler

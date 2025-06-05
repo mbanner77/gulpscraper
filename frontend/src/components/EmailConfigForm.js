@@ -12,12 +12,15 @@ import {
   Divider,
   Grid,
   InputAdornment,
-  IconButton
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import SaveIcon from '@mui/icons-material/Save';
-import { getEmailConfig, setEmailConfig } from '../services/api';
+import SendIcon from '@mui/icons-material/Send';
+import InfoIcon from '@mui/icons-material/Info';
+import { getEmailConfig, setEmailConfig, testEmailConfig } from '../services/api';
 
 const EmailConfigForm = () => {
   const [config, setConfig] = useState({
@@ -33,9 +36,11 @@ const EmailConfigForm = () => {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [testResult, setTestResult] = useState(null);
   
   useEffect(() => {
     fetchConfig();
@@ -123,6 +128,45 @@ const EmailConfigForm = () => {
     setShowPassword(!showPassword);
   };
   
+  const handleTestEmail = async () => {
+    try {
+      setTesting(true);
+      setTestResult(null);
+      setError(null);
+      
+      if (!config.recipient) {
+        setError('Bitte geben Sie eine Empfänger-E-Mail-Adresse an.');
+        setTesting(false);
+        return;
+      }
+      
+      const result = await testEmailConfig(config.recipient);
+      
+      if (result.success) {
+        setTestResult({
+          success: true,
+          message: result.message
+        });
+      } else {
+        setTestResult({
+          success: false,
+          message: result.message || 'Fehler beim Senden der Test-E-Mail.'
+        });
+      }
+      
+      // Testresultat nach 10 Sekunden ausblenden
+      setTimeout(() => setTestResult(null), 10000);
+    } catch (err) {
+      console.error('Fehler beim Testen der E-Mail-Konfiguration:', err);
+      setTestResult({
+        success: false,
+        message: 'Fehler beim Testen der E-Mail-Konfiguration.'
+      });
+    } finally {
+      setTesting(false);
+    }
+  };
+  
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
@@ -141,6 +185,10 @@ const EmailConfigForm = () => {
         Konfigurieren Sie E-Mail-Benachrichtigungen für neue Projekte. Sie erhalten eine E-Mail, wenn neue Projekte gefunden werden.
       </Typography>
       
+      <Alert severity="info" sx={{ mb: 2 }} icon={<InfoIcon />}>
+        Die Standard-SMTP-Konfiguration ist bereits eingerichtet (mail.tk-core.de). Sie können die Test-E-Mail-Funktion nutzen, um die Konfiguration zu überprüfen.
+      </Alert>
+      
       <Divider sx={{ my: 2 }} />
       
       {error && (
@@ -152,6 +200,12 @@ const EmailConfigForm = () => {
       {success && (
         <Alert severity="success" sx={{ mb: 2 }}>
           {success}
+        </Alert>
+      )}
+      
+      {testResult && (
+        <Alert severity={testResult.success ? "success" : "error"} sx={{ mb: 2 }}>
+          {testResult.message}
         </Alert>
       )}
       
@@ -264,12 +318,24 @@ const EmailConfigForm = () => {
           </Grid>
           
           <Grid item xs={12}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+              <Tooltip title="Sendet eine Test-E-Mail an die angegebene Empfänger-Adresse">
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  disabled={testing || saving}
+                  onClick={handleTestEmail}
+                  startIcon={testing ? <CircularProgress size={20} /> : <SendIcon />}
+                >
+                  {testing ? 'Wird gesendet...' : 'Test-E-Mail senden'}
+                </Button>
+              </Tooltip>
+              
               <Button
                 type="submit"
                 variant="contained"
                 color="primary"
-                disabled={saving}
+                disabled={saving || testing}
                 startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
               >
                 {saving ? 'Wird gespeichert...' : 'Konfiguration speichern'}

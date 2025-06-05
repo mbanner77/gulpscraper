@@ -46,7 +46,13 @@ class EmailService:
         ])
         
         # E-Mail-Template laden
-        self.new_projects_template = str(EMAIL_TEMPLATE_DIR / "new_projects.html")
+        self.new_projects_template_path = EMAIL_TEMPLATE_DIR / "new_projects.html"
+        try:
+            with open(self.new_projects_template_path, 'r', encoding='utf-8') as f:
+                self.new_projects_template = f.read()
+        except Exception as e:
+            print(f"Fehler beim Laden des E-Mail-Templates: {str(e)}")
+            self.new_projects_template = "<h1>Neue GULP Projekte gefunden</h1><p>Es wurden {{new_projects|length}} neue Projekte gefunden.</p>"
     
     def send_new_projects_notification(
         self,
@@ -68,7 +74,7 @@ class EmailService:
         
         # E-Mail erstellen
         message = emails.html(
-            html=JinjaTemplate(filename=self.new_projects_template),
+            html=JinjaTemplate(self.new_projects_template),
             subject=f"GULP Job Scraper: {len(new_projects)} neue Projekte gefunden",
             mail_from=self.sender
         )
@@ -81,16 +87,25 @@ class EmailService:
         }
         
         # E-Mail senden
+        # Port 465 verwendet SSL, Port 587 verwendet TLS
+        use_ssl = self.smtp_port == 465
+        use_tls = self.smtp_port == 587
+        
+        smtp_options = {
+            "host": self.smtp_host,
+            "port": self.smtp_port,
+            "user": self.smtp_user,
+            "password": self.smtp_password,
+            "ssl": use_ssl,
+            "tls": use_tls
+        }
+        
+        print(f"Sende E-Mail über {self.smtp_host}:{self.smtp_port} mit {'SSL' if use_ssl else 'TLS' if use_tls else 'keine Verschlüsselung'}")
+        
         response = message.send(
             to=recipient,
             render=context,
-            smtp={
-                "host": self.smtp_host,
-                "port": self.smtp_port,
-                "user": self.smtp_user,
-                "password": self.smtp_password,
-                "tls": True
-            }
+            smtp=smtp_options
         )
         
         success = response.status_code == 250

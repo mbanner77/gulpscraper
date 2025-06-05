@@ -90,9 +90,15 @@ Folgende Umgebungsvariablen können im Render Dashboard konfiguriert werden:
 
 **Backend:**
 - `DATA_DIR`: Verzeichnis für Datenspeicherung (Standard: `data`)
-- `EMAIL_RECIPIENT`: E-Mail-Adresse für Benachrichtigungen
+- `EMAIL_RECIPIENT`: E-Mail-Adresse für Benachrichtigungen (Standard: `m.banner@realcore.de`)
 - `FRONTEND_URL`: URL des Frontend-Services (wird automatisch von Render gesetzt)
 - `RENDER`: Wird automatisch auf `true` gesetzt
+- `SMTP_HOST`: SMTP-Server für E-Mail-Versand (Standard: `mail.tk-core.de`)
+- `SMTP_PORT`: SMTP-Port (Standard: `465`)
+- `SMTP_USER`: SMTP-Benutzername (Standard: `gulpai@tk-core.de`)
+- `SMTP_PASSWORD`: SMTP-Passwort (Standard: `gulpai2025`)
+- `EMAIL_SENDER`: Absender-E-Mail-Adresse (Standard: `GULP Job Scraper <gulpai@tk-core.de>`)
+
 
 **Frontend:**
 - `REACT_APP_API_URL`: URL des Backend-Services (wird automatisch von Render gesetzt)

@@ -117,10 +117,26 @@ export const markProjectsAsSeen = async (projectIds) => {
 // Get email configuration
 export const getEmailConfig = async () => {
   try {
-    const response = await api.get('/email-config');
+    const response = await api.get('/api/email/config');
     return response.data;
   } catch (error) {
     console.error('Error fetching email configuration:', error);
+    throw error;
+  }
+};
+
+// Test email configuration
+export const testEmailConfig = async (recipient = null) => {
+  try {
+    const requestData = {};
+    if (recipient) {
+      requestData.email = recipient;
+    }
+    
+    const response = await api.post('/api/email/test', requestData);
+    return response.data;
+  } catch (error) {
+    console.error('Error testing email configuration:', error);
     throw error;
   }
 };
@@ -139,7 +155,7 @@ export const getSchedulerConfig = async () => {
 // Set email configuration
 export const setEmailConfig = async (config) => {
   try {
-    const response = await api.post('/email-config', config);
+    const response = await api.post('/api/email/config', config);
     return response.data;
   } catch (error) {
     console.error('Error setting email configuration:', error);
