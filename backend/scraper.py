@@ -35,6 +35,9 @@ except ImportError:
     print("And then: playwright install chromium")
     raise
 
+# Determine if we're running in a cloud environment
+IS_CLOUD_ENV = os.environ.get('RENDER', False) or os.environ.get('CLOUD_ENV', False)
+
 # Initialize FastAPI app
 app = FastAPI(
     title="GULP Job Scraper API",
@@ -66,19 +69,30 @@ project_manager = None
 # ---------------------------------------------------------------------------
 START_URL_TEMPLATE = "https://www.gulp.de/gulp2/g/projekte?page={page}"
 PAGE_RANGE = range(1, 4)  # First 3 pages by default
-HEADLESS = True  # Always run headless in cloud environment
+# Always run headless in cloud environment
+HEADLESS = True if IS_CLOUD_ENV else os.environ.get('HEADLESS', 'True').lower() in ('true', '1', 't')
 TIMEOUT_MS = 45_000
 SCROLL_PAUSE = 0.8
 SCROLL_STEPS = 6
 COLLECT_SECS = 8
 
-# Set up data directory
-DATA_DIR = Path("data")
+# Set up data directory - use environment variable if available (for cloud environments)
+data_dir_path = os.environ.get('DATA_DIR', 'data')
+DATA_DIR = Path(data_dir_path)
 DATA_DIR.mkdir(exist_ok=True)
 OUTPUT_JSON = DATA_DIR / "gulp_projekte_raw.json"
 DEBUG_DIR = DATA_DIR / "debug"
 DEBUG_DIR.mkdir(exist_ok=True)
 NETWORK_LOG = DEBUG_DIR / "network.log"
+
+# Log data directory location
+print(f"Using data directory: {DATA_DIR.absolute()}")
+
+# For cloud environments, warn about non-persistent storage
+if IS_CLOUD_ENV:
+    print("WARNING: Running in cloud environment. Data may not persist between restarts unless using a mounted volume.")
+    print("Consider using a database or cloud storage service for persistent data.")
+
 
 # E-Mail-Konfiguration
 DEFAULT_EMAIL_RECIPIENT = os.environ.get("EMAIL_RECIPIENT", "")

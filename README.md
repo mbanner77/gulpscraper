@@ -73,9 +73,32 @@ gulp-job-app/
 - Statusanzeige für laufende Scraping-Prozesse
 - Anzeige des letzten Scan-Zeitpunkts
 
-## Lokale Entwicklung
+## Deployment
 
-### Mit Docker Compose
+### Deployment auf Render.com
+
+Dieses Projekt ist für ein einfaches Deployment auf Render.com vorbereitet:
+
+1. Erstellen Sie ein Konto auf [Render.com](https://render.com) (falls noch nicht vorhanden)
+2. Klicken Sie auf "New" und wählen Sie "Blueprint"
+3. Verbinden Sie Ihr GitHub-Repository
+4. Render wird automatisch die `render.yaml`-Datei erkennen und beide Services (Frontend und Backend) einrichten
+
+#### Umgebungsvariablen für Render.com
+
+Folgende Umgebungsvariablen können im Render Dashboard konfiguriert werden:
+
+**Backend:**
+- `DATA_DIR`: Verzeichnis für Datenspeicherung (Standard: `data`)
+- `EMAIL_RECIPIENT`: E-Mail-Adresse für Benachrichtigungen
+- `FRONTEND_URL`: URL des Frontend-Services (wird automatisch von Render gesetzt)
+- `RENDER`: Wird automatisch auf `true` gesetzt
+
+**Frontend:**
+- `REACT_APP_API_URL`: URL des Backend-Services (wird automatisch von Render gesetzt)
+- `REACT_APP_HUGGINGFACE_API_KEY`: Optional für KI-Funktionen
+
+### Mit Docker Compose (lokale Entwicklung)
 
 1. Stellen Sie sicher, dass Docker und Docker Compose installiert sind
 2. Klonen Sie das Repository
