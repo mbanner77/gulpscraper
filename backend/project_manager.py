@@ -126,6 +126,25 @@ class ProjectManager:
         Returns:
             Tuple[List[Dict], List[Dict]]: (Alle Projekte ohne Duplikate, Nur neue Projekte)
         """
+        print(f"\n[DEBUG] Verarbeite {len(projects)} Projekte")
+        
+        # Sicherstellen, dass wir eine Liste haben
+        if not isinstance(projects, list):
+            print(f"[WARNUNG] projects ist kein Array, sondern {type(projects)}")
+            if isinstance(projects, dict):
+                # Versuchen, ein Dictionary zu verarbeiten (z.B. wenn es ein JSON-Objekt mit einem 'projects'-Feld ist)
+                if 'projects' in projects and isinstance(projects['projects'], list):
+                    projects = projects['projects']
+                    print(f"[DEBUG] Extrahierte {len(projects)} Projekte aus dem 'projects'-Feld")
+                else:
+                    # Konvertieren zu einer Liste mit einem Element
+                    projects = [projects]
+                    print(f"[DEBUG] Konvertierte ein einzelnes Dictionary zu einer Liste")
+            else:
+                # Fallback: Leere Liste
+                print(f"[FEHLER] Konnte projects nicht verarbeiten, verwende leere Liste")
+                projects = []
+        
         history = self._load_history()
         known_project_ids = set(history["known_project_ids"])
         
@@ -135,11 +154,21 @@ class ProjectManager:
         seen_ids = set()
         
         for project in projects:
+            # Sicherstellen, dass wir ein Dictionary haben
+            if not isinstance(project, dict):
+                print(f"[WARNUNG] Überspringe Projekt, das kein Dictionary ist: {type(project)}")
+                continue
+                
             project_id = project.get("id")
             
-            # Überspringen, wenn keine ID vorhanden ist
+            # Wenn keine ID vorhanden ist, generieren wir eine basierend auf dem Titel und anderen Attributen
             if not project_id:
-                continue
+                title = project.get("title", "")
+                company = project.get("company", "")
+                location = project.get("location", "")
+                project_id = f"{title}_{company}_{location}".replace(" ", "_")[:50]
+                project["id"] = project_id
+                print(f"[DEBUG] Generierte ID für Projekt ohne ID: {project_id}")
                 
             # Überspringen, wenn wir dieses Projekt bereits in diesem Durchlauf gesehen haben
             if project_id in seen_ids:
@@ -155,6 +184,8 @@ class ProjectManager:
             if project_id not in known_project_ids:
                 new_projects.append(project)
                 known_project_ids.add(project_id)
+        
+        print(f"[DEBUG] {len(unique_projects)} eindeutige Projekte, {len(new_projects)} neue Projekte")
         
         # Projekthistorie aktualisieren
         current_time = datetime.now()
@@ -174,40 +205,61 @@ class ProjectManager:
         existing_archive = self._load_archive_projects()
         archive_ids = {p.get("id") for p in existing_archive if p.get("id")}
         
-        for project in unique_projects:
-            # Prüfen, ob das Projekt in den letzten 24 Stunden aktualisiert wurde
-            # GULP-Projekte verwenden originalPublicationDate für das Datum
-            updated_str = project.get("originalPublicationDate") or project.get("updated_at") or project.get("created_at")
-            if updated_str:
-                try:
-                    # Versuchen, das Datum zu parsen
+        # Für Render: Wenn wir auf Render sind, behandeln wir alle Projekte als aktuell
+        is_render = os.environ.get('RENDER', False)
+        if is_render:
+            print(f"[DEBUG] Render-Umgebung erkannt, behandle alle Projekte als aktuell")
+            recent_projects = unique_projects
+        else:
+            # Normale Verarbeitung für lokale Umgebung
+            for project in unique_projects:
+                # Prüfen, ob das Projekt in den letzten 24 Stunden aktualisiert wurde
+                # GULP-Projekte verwenden originalPublicationDate für das Datum
+                updated_str = project.get("originalPublicationDate") or project.get("updated_at") or project.get("created_at")
+                if updated_str:
                     try:
-                        updated_at = datetime.fromisoformat(updated_str)
-                    except ValueError:
-                        # Fallback für andere Datumsformate
-                        updated_at = datetime.strptime(updated_str, "%Y-%m-%dT%H:%M:%S.%f")
-                    
-                    # Prüfen, ob das Datum in der Zukunft liegt (z.B. 2025)
-                    if updated_at > current_time:
-                        print(f"Projekt {project.get('id')}: Zukunftsdatum {updated_str} erkannt, als aktuell markiert")
+                        # Versuchen, das Datum zu parsen
+                        try:
+                            updated_at = datetime.fromisoformat(updated_str)
+                        except ValueError:
+                            # Fallback für andere Datumsformate
+                            try:
+                                updated_at = datetime.strptime(updated_str, "%Y-%m-%dT%H:%M:%S.%f")
+                            except ValueError:
+                                # Weitere Fallbacks für andere Datumsformate
+                                try:
+                                    updated_at = datetime.strptime(updated_str, "%Y-%m-%d")
+                                except ValueError:
+                                    # Als letzten Versuch das aktuelle Datum verwenden
+                                    print(f"[WARNUNG] Konnte Datum nicht parsen für Projekt {project.get('id')}: {updated_str}")
+                                    updated_at = current_time
+                        
+                        # Prüfen, ob das Datum in der Zukunft liegt (z.B. 2025)
+                        if updated_at > current_time:
+                            print(f"Projekt {project.get('id')}: Zukunftsdatum {updated_str} erkannt, als aktuell markiert")
+                            recent_projects.append(project)
+                            continue
+                        
+                        # Prüfen, ob das Projekt innerhalb der letzten 24 Stunden aktualisiert wurde
+                        time_diff = current_time - updated_at
+                        print(f"Projekt {project.get('id')}: Datum {updated_str}, Differenz: {time_diff.total_seconds()/3600:.2f} Stunden")
+                        if time_diff.total_seconds() < 24 * 60 * 60:  # 24 Stunden in Sekunden
+                            recent_projects.append(project)
+                            continue
+                    except (ValueError, TypeError) as e:
+                        print(f"Fehler beim Parsen des Datums für Projekt {project.get('id')}: {str(e)} (Datum: {updated_str})")
+                        # Wenn das Datum nicht geparst werden kann, behandeln wir es als aktuell, um keine Projekte zu verlieren
                         recent_projects.append(project)
                         continue
-                    
-                    # Prüfen, ob das Projekt innerhalb der letzten 24 Stunden aktualisiert wurde
-                    time_diff = current_time - updated_at
-                    print(f"Projekt {project.get('id')}: Datum {updated_str}, Differenz: {time_diff.total_seconds()/3600:.2f} Stunden")
-                    if time_diff.total_seconds() < 24 * 60 * 60:  # 24 Stunden in Sekunden
-                        recent_projects.append(project)
-                        continue
-                except (ValueError, TypeError) as e:
-                    print(f"Fehler beim Parsen des Datums für Projekt {project.get('id')}: {str(e)} (Datum: {updated_str})")
-                    # Wenn das Datum nicht geparst werden kann, behandeln wir es als aktuell, um keine Projekte zu verlieren
+                else:
+                    # Wenn kein Datum vorhanden ist, behandeln wir es als aktuell
+                    print(f"Projekt {project.get('id')}: Kein Datum vorhanden, als aktuell markiert")
                     recent_projects.append(project)
                     continue
-                
-            # Wenn das Projekt nicht aktuell ist, fügen wir es zum Archiv hinzu
-            if project.get("id") not in archive_ids:
-                archive_projects.append(project)
+                    
+                # Wenn das Projekt nicht aktuell ist, fügen wir es zum Archiv hinzu
+                if project.get("id") not in archive_ids:
+                    archive_projects.append(project)
         
         # Aktualisieren des Archivs mit neuen Archiv-Projekten
         if archive_projects:
@@ -292,6 +344,26 @@ class ProjectManager:
             # Prüfen, ob die Projektdateien existieren
             print(f"[DEBUG] Projektdateien: recent={self.recent_projects_file.exists()}, archive={self.archive_projects_file.exists()}, raw={self.projects_file.exists()}")
             
+            # Für Render: Wenn wir auf Render sind, versuchen wir immer zuerst die Rohdaten zu laden
+            is_render = os.environ.get('RENDER', False)
+            if is_render and self.projects_file.exists():
+                print(f"[DEBUG] Render-Umgebung erkannt, lade Rohdaten direkt")
+                try:
+                    raw_projects = json.loads(self.projects_file.read_text(encoding="utf-8"))
+                    print(f"[DEBUG] {len(raw_projects)} Rohdaten-Projekte geladen")
+                    
+                    # Wenn show_all oder archived nicht gesetzt ist, verarbeite die Projekte neu
+                    if force_reprocess or not (self.recent_projects_file.exists() and self.archive_projects_file.exists()):
+                        print(f"[DEBUG] Verarbeite Projekte neu für Render")
+                        self.process_projects(raw_projects)
+                    
+                    # Für Render: Wenn show_all aktiviert ist oder keine spezifische Anfrage, gib alle Projekte zurück
+                    if show_all or (not archived and not include_new_only):
+                        print(f"[DEBUG] Render: Gebe alle {len(raw_projects)} Projekte zurück")
+                        return self._apply_filters_and_pagination(raw_projects, page, limit, search, location, remote, include_new_only)
+                except Exception as e:
+                    print(f"[DEBUG] Fehler beim Laden der Rohdaten auf Render: {str(e)}")
+            
             # Wenn force_reprocess aktiviert ist oder die Projektdatei existiert, aber keine recent oder archive Dateien,
             # versuchen wir die Projekte neu zu verarbeiten
             if force_reprocess or (self.projects_file.exists() and (not self.recent_projects_file.exists() or not self.archive_projects_file.exists())):
@@ -331,21 +403,13 @@ class ProjectManager:
                 projects = list(project_dict.values())
                 print(f"[DEBUG] {len(projects)} kombinierte Projekte nach Deduplizierung")
                 
-                # Wenn keine Projekte gefunden wurden oder wir auf Render sind, versuchen wir direkt aus der Rohdatei zu laden
-                if (not projects or os.environ.get('RENDER', False)) and self.projects_file.exists():
-                    print(f"[DEBUG] Keine kombinierten Projekte oder Render-Umgebung erkannt, versuche Rohdaten")
+                # Wenn keine Projekte gefunden wurden, versuchen wir direkt aus der Rohdatei zu laden
+                if not projects and self.projects_file.exists():
+                    print(f"[DEBUG] Keine kombinierten Projekte, versuche Rohdaten")
                     try:
                         raw_projects = json.loads(self.projects_file.read_text(encoding="utf-8"))
                         print(f"[DEBUG] {len(raw_projects)} Projekte direkt aus Rohdaten geladen")
-                        
-                        # Für Render: Stelle sicher, dass wir die Projekte korrekt verarbeiten
-                        if os.environ.get('RENDER', False):
-                            print(f"[DEBUG] Render-Umgebung erkannt, verwende Rohdaten direkt")
-                            return self._apply_filters_and_pagination(raw_projects, page, limit, search, location, remote, include_new_only)
-                        
-                        # Wenn wir keine Projekte haben, verwenden wir die Rohdaten
-                        if not projects:
-                            projects = raw_projects
+                        projects = raw_projects
                     except Exception as e:
                         print(f"[DEBUG] Fehler beim Laden aus Rohdaten: {str(e)}")
             elif archived:

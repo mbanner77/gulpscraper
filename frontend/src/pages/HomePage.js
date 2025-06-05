@@ -58,7 +58,7 @@ function HomePage() {
   const [newProjectIds, setNewProjectIds] = useState([]);
   
   // Funktion zum Laden der Projekte mit useCallback
-  const fetchProjects = useCallback(async () => {
+  const fetchProjects = useCallback(async (forceReprocess = false) => {
     setLoading(true);
     setError(null);
     
@@ -74,69 +74,116 @@ function HomePage() {
         show_all: showAllProjects
       };
       
+      // Für Render: force_reprocess Parameter hinzufügen, wenn angefordert
+      if (forceReprocess) {
+        params.force_reprocess = true;
+        console.log('Forcing project reprocessing on fetch');
+      }
+      
       console.log('Fetching projects with params:', params);
       const data = await getProjects(params);
       console.log('API response:', data);
       console.log('Projects received:', data.projects ? data.projects.length : 0);
       
-      if (!data.projects || data.projects.length === 0) {
-        console.warn('No projects received from API');
-        // Try a direct fetch to debug using the same API URL from api.js
-        try {
-          // Verwende die gleiche API-URL-Bestimmung wie in api.js
-          const apiUrl = (() => {
-            console.log('Determining fallback API URL for hostname:', window.location.hostname);
+      // Wenn Projekte vorhanden sind, setzen wir sie und beenden
+      if (data.projects && data.projects.length > 0) {
+        setProjects(data.projects);
+        setTotalProjects(data.total);
+        setLoading(false);
+        return true; // Erfolgreicher Abruf
+      }
+      
+      console.warn('No projects received from API, trying fallback approaches');
+      
+      // Wenn wir auf Render sind und keine Projekte erhalten haben, versuchen wir es mit force_reprocess
+      const isRender = window.location.hostname.includes('render.com') || 
+                      window.location.hostname.includes('onrender.com');
+      
+      if (isRender && !forceReprocess) {
+        console.log('On Render with no projects, retrying with force_reprocess');
+        return fetchProjects(true); // Rekursiver Aufruf mit force_reprocess
+      }
+      
+      // Direkter Fallback-API-Aufruf als letzter Versuch
+      try {
+        // Verwende die gleiche API-URL-Bestimmung wie in api.js
+        const apiUrl = (() => {
+          console.log('Determining fallback API URL for hostname:', window.location.hostname);
+          
+          if (process.env.REACT_APP_API_URL) {
+            return process.env.REACT_APP_API_URL;
+          }
+          
+          if (isRender) {
+            console.log('Detected Render deployment for fallback');
             
-            if (process.env.REACT_APP_API_URL) {
-              return process.env.REACT_APP_API_URL;
+            if (window.location.hostname.includes('gulp-job-app')) {
+              return window.location.origin.replace('gulp-job-app', 'gulp-job-app-api');
             }
-            
-            if (window.location.hostname.includes('render.com') || 
-                window.location.hostname.includes('onrender.com')) {
-              console.log('Detected Render deployment for fallback');
-              
-              if (window.location.hostname.includes('gulp-job-app')) {
-                return window.location.origin.replace('gulp-job-app', 'gulp-job-app-api');
-              }
               
               const hostParts = window.location.hostname.split('-');
               if (hostParts.length > 0) {
-                const appPrefix = hostParts[0];
-                return `https://${appPrefix}-backend.onrender.com`;
+                const appPrefix = hostParts[0]; // z.B. 'gulp'
+                const apiUrl = `https://${appPrefix}-backend.onrender.com`;
+                console.log('Using constructed Render API URL with prefix:', apiUrl);
+                return apiUrl;
               }
               
-              return window.location.origin.replace('frontend', 'backend');
+              const fallbackUrl = window.location.origin.replace('frontend', 'backend');
+              console.log('Using fallback Render API URL:', fallbackUrl);
+              return fallbackUrl;
             }
             
             return 'http://localhost:8001';
           })();
           
           console.log('Trying direct fetch from:', apiUrl);
-          const directResponse = await fetch(`${apiUrl}/projects?${new URLSearchParams(params)}`);
+          const directResponse = await fetch(`${apiUrl}/projects?show_all=true&force_reprocess=true`);
           const directData = await directResponse.json();
           console.log('Direct fetch response:', directData);
           
           if (directData.projects && directData.projects.length > 0) {
+            console.log('Direct fetch successful, got', directData.projects.length, 'projects');
             setProjects(directData.projects);
-            setTotalCount(directData.total || directData.projects.length);
-            setTotalPages(Math.ceil((directData.total || directData.projects.length) / 12));
-            setNewProjectIds(directData.new_project_ids || []);
+            setTotalProjects(directData.total || directData.projects.length);
+            return true; // Erfolgreicher direkter Abruf
           } else {
-            setError('Keine Projekte gefunden. Bitte versuchen Sie es später erneut.');
+            console.warn('Direct fetch returned no projects');
+            // Wenn wir auf Render sind und immer noch keine Projekte haben, versuchen wir es mit einem Seiten-Reload
+            if (isRender) {
+              console.log('On Render with no projects after all attempts, will try page reload in 5 seconds');
+              setTimeout(() => {
+                window.location.reload();
+              }, 5000);
+            }
+            setProjects([]);
+            setTotalProjects(0);
+            setError('Keine Projekte gefunden. Bitte starten Sie den Scraper.');
+            return false;
           }
-        } catch (directErr) {
-          console.error('Direct fetch failed:', directErr);
-          setError('Fehler beim Laden der Projekte. Bitte versuchen Sie es später erneut.');
+        } catch (directFetchError) {
+          console.error('Direct fetch failed:', directFetchError);
+          setProjects([]);
+          setTotalProjects(0);
+          setError('Keine Projekte gefunden. Bitte starten Sie den Scraper.');
+          return false;
         }
       } else {
         setProjects(data.projects);
-        setTotalCount(data.total || data.projects.length);
-        setTotalPages(Math.ceil((data.total || data.projects.length) / 12));
-        setNewProjectIds(data.new_project_ids || []);
+        setTotalProjects(data.total);
+        
+        // Speichere die IDs der neuen Projekte, um sie hervorzuheben
+        if (data.new_project_ids) {
+          setNewProjectIds(data.new_project_ids);
+        }
+        return true;
       }
     } catch (err) {
       console.error('Error fetching projects:', err);
       setError('Fehler beim Laden der Projekte. Bitte versuchen Sie es später erneut.');
+      setProjects([]);
+      setTotalProjects(0);
+      return false;
     } finally {
       setLoading(false);
     }
@@ -148,14 +195,25 @@ function HomePage() {
     const handleProjectsUpdated = (event) => {
       console.log('Projekte wurden aktualisiert, lade neu...', event?.detail);
       
-      // Für Render: Verzögertes Neuladen, um sicherzustellen, dass die Daten verfügbar sind
-      if (window.location.hostname.includes('render.com') || 
-          window.location.hostname.includes('onrender.com')) {
-        console.log('Render-Umgebung erkannt, verzögertes Laden der Projekte');
+      // Für Render: Verzögertes Neuladen mit force_reprocess
+      const isRender = window.location.hostname.includes('render.com') || 
+                      window.location.hostname.includes('onrender.com');
+      
+      if (isRender) {
+        console.log('Render-Umgebung erkannt, verzögertes Laden der Projekte mit force_reprocess');
+        // Erste Aktualisierung nach 500ms
         setTimeout(() => {
-          fetchProjects();
+          console.log('Erste verzögerte Aktualisierung nach Scrape');
+          fetchProjects(true); // Mit force_reprocess
+          
+          // Zweite Aktualisierung nach weiteren 2 Sekunden, falls die erste nicht erfolgreich war
+          setTimeout(() => {
+            console.log('Zweite verzögerte Aktualisierung nach Scrape');
+            fetchProjects(true);
+          }, 2000);
         }, 500);
       } else {
+        // Für lokale Umgebung: Sofort aktualisieren
         fetchProjects();
       }
     };
@@ -163,29 +221,40 @@ function HomePage() {
     // Event-Listener hinzufügen
     window.addEventListener('projectsUpdated', handleProjectsUpdated);
     
-    // Event-Listener entfernen beim Aufräumen
+    // Für Render: Automatische Aktualisierung alle 5 Sekunden, wenn keine Projekte angezeigt werden
+    const isRender = window.location.hostname.includes('render.com') || 
+                    window.location.hostname.includes('onrender.com');
+    
+    let autoRefreshInterval = null;
+    
+    if (isRender) {
+      console.log('Render-Umgebung erkannt, starte Auto-Refresh-Überwachung');
+      
+      // Starte einen Interval, der prüft, ob Projekte angezeigt werden
+      autoRefreshInterval = setInterval(() => {
+        // Nur aktualisieren, wenn keine Projekte angezeigt werden und kein Ladevorgang läuft
+        if (projects.length === 0 && !loading) {
+          console.log('Keine Projekte auf Render gefunden, automatische Aktualisierung...');
+          fetchProjects(true); // Mit force_reprocess
+        } else if (projects.length > 0) {
+          // Wenn Projekte angezeigt werden, stoppe die automatische Aktualisierung
+          console.log('Projekte werden angezeigt, stoppe Auto-Refresh');
+          clearInterval(autoRefreshInterval);
+          autoRefreshInterval = null;
+        }
+      }, 5000); // Alle 5 Sekunden prüfen
+    }
+    
+    // Cleanup beim Unmount
     return () => {
       window.removeEventListener('projectsUpdated', handleProjectsUpdated);
+      if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+      }
     };
-  }, []); // Leere Abhängigkeitsliste, damit der Event-Listener nur einmal registriert wird
+  }, [fetchProjects, projects, loading]); // Leere Abhängigkeitsliste, damit der Event-Listener nur einmal registriert wird
   
-  // Automatisches Neuladen der Projekte alle 5 Sekunden, wenn keine Projekte angezeigt werden und wir auf Render sind
-  useEffect(() => {
-    // Nur auf Render und nur wenn keine Projekte angezeigt werden
-    if ((window.location.hostname.includes('render.com') || 
-         window.location.hostname.includes('onrender.com')) && 
-        projects.length === 0 && !loading) {
-      
-      console.log('Keine Projekte auf Render, starte automatisches Neuladen...');
-      
-      const intervalId = setInterval(() => {
-        console.log('Automatisches Neuladen der Projekte...');
-        fetchProjects();
-      }, 5000); // Alle 5 Sekunden
-      
-      return () => clearInterval(intervalId);
-    }
-  }, [projects.length, loading, fetchProjects]);
+  // Der automatische Neuladen-Mechanismus wurde in den Event-Listener-useEffect integriert
   
   // Load projects on mount and when filters change
   useEffect(() => {
