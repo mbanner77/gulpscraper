@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -88,7 +89,7 @@ function HomePage() {
       // Wenn Projekte vorhanden sind, setzen wir sie und beenden
       if (data.projects && data.projects.length > 0) {
         setProjects(data.projects);
-        setTotalProjects(data.total);
+        setTotalCount(data.total);
         
         // Speichere die IDs der neuen Projekte, um sie hervorzuheben
         if (data.new_project_ids) {
@@ -149,7 +150,7 @@ function HomePage() {
         if (directData.projects && directData.projects.length > 0) {
           console.log('Direct fetch successful, got', directData.projects.length, 'projects');
           setProjects(directData.projects);
-          setTotalProjects(directData.total || directData.projects.length);
+          setTotalCount(directData.total || directData.projects.length);
           return true; // Erfolgreicher direkter Abruf
         } else {
           console.warn('Direct fetch returned no projects');
@@ -161,14 +162,14 @@ function HomePage() {
             }, 5000);
           }
           setProjects([]);
-          setTotalProjects(0);
+          setTotalCount(0);
           setError('Keine Projekte gefunden. Bitte starten Sie den Scraper.');
           return false;
         }
       } catch (directFetchError) {
         console.error('Direct fetch failed:', directFetchError);
         setProjects([]);
-        setTotalProjects(0);
+        setTotalCount(0);
         setError('Keine Projekte gefunden. Bitte starten Sie den Scraper.');
         return false;
       }
@@ -176,7 +177,7 @@ function HomePage() {
       console.error('Error fetching projects:', err);
       setError('Fehler beim Laden der Projekte. Bitte versuchen Sie es später erneut.');
       setProjects([]);
-      setTotalProjects(0);
+      setTotalCount(0);
       return false;
     } finally {
       setLoading(false);
