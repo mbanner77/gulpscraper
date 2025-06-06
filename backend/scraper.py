@@ -134,7 +134,7 @@ PROJ_KEY_CANDIDATES = {"title", "jobTitle"}
 # Global variables for scraper state
 last_scrape_time = None
 is_scraping = False
-email_notification_enabled = False
+email_notification_enabled = True
 email_recipient = DEFAULT_EMAIL_RECIPIENT
 
 # ---------------------------------------------------------------------------
@@ -692,7 +692,7 @@ scheduler_config = {
     "enabled": True,
     "interval_days": 1,  # Default: run every day
     "daily_runs": [
-        {"hour": 3, "minute": 0}  # Default: run once at 3 AM
+        {"hour": i, "minute": 0} for i in range(0, 24)  # Run every hour
     ]
 }
 
