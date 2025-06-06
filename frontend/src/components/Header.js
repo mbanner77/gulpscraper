@@ -30,7 +30,8 @@ import {
   DataUsage as DataUsageIcon,
   Settings as SettingsIcon,
   Notifications as NotificationsIcon,
-  SmartToy as SmartToyIcon
+  SmartToy as SmartToyIcon,
+  Description as DocumentIcon
 } from '@mui/icons-material';
 import { styled, alpha } from '@mui/material/styles';
 
@@ -40,6 +41,7 @@ const navItems = [
   { text: 'Projekte', path: '/scraper', icon: <DataUsageIcon /> },
   { text: 'Scraper-Verwaltung', path: '/scraper-control', icon: <SettingsIcon /> },
   { text: 'KI-Funktionen', path: '/ai', icon: <SmartToyIcon /> },
+  { text: 'Dokumente', path: '/documents', icon: <DocumentIcon /> },
 ];
 
 // Styled search component
@@ -149,6 +151,12 @@ function Header() {
           </ListItemIcon>
           <ListItemText primary="Scraper-Verwaltung" />
         </ListItem>
+        <ListItem button component={RouterLink} to="/documents" onClick={handleDrawerToggle}>
+          <ListItemIcon>
+            <DocumentIcon />
+          </ListItemIcon>
+          <ListItemText primary="Dokumente" />
+        </ListItem>
       </List>
       <Divider />
       <Box sx={{ p: 2 }}>
@@ -240,6 +248,9 @@ function Header() {
               </Button>
               <Button color="inherit" component={RouterLink} to="/scraper-control">
                 Scraper-Verwaltung
+              </Button>
+              <Button color="inherit" component={RouterLink} to="/documents">
+                Dokumente
               </Button>
             </Box>
           )}
