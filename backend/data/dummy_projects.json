@@ -1,0 +1,62 @@
+[
+  {
+    "id": "dummy-1",
+    "title": "Senior Full Stack Developer (React/Node.js)",
+    "company": "Example GmbH",
+    "location": "München",
+    "url": "https://www.gulp.de/projekte/dummy-1",
+    "description": "Wir suchen einen erfahrenen Full Stack Developer mit Kenntnissen in React und Node.js für ein spannendes Projekt.",
+    "skills": ["React", "Node.js", "TypeScript", "MongoDB"],
+    "date": "2023-11-15",
+    "remote": true,
+    "duration": "6+ Monate"
+  },
+  {
+    "id": "dummy-2",
+    "title": "DevOps Engineer (Kubernetes/AWS)",
+    "company": "Tech Solutions AG",
+    "location": "Berlin",
+    "url": "https://www.gulp.de/projekte/dummy-2",
+    "description": "Als DevOps Engineer unterstützt du unser Team bei der Implementierung und Wartung unserer Cloud-Infrastruktur.",
+    "skills": ["Kubernetes", "AWS", "Docker", "Terraform"],
+    "date": "2023-11-14",
+    "remote": true,
+    "duration": "12+ Monate"
+  },
+  {
+    "id": "dummy-3",
+    "title": "Data Scientist (Python/ML)",
+    "company": "Data Insights GmbH",
+    "location": "Hamburg",
+    "url": "https://www.gulp.de/projekte/dummy-3",
+    "description": "Für unser Data Science Team suchen wir Verstärkung im Bereich Machine Learning und Datenanalyse.",
+    "skills": ["Python", "TensorFlow", "Pandas", "SQL"],
+    "date": "2023-11-13",
+    "remote": false,
+    "duration": "3+ Monate"
+  },
+  {
+    "id": "dummy-4",
+    "title": "UX/UI Designer",
+    "company": "Creative Digital",
+    "location": "Frankfurt",
+    "url": "https://www.gulp.de/projekte/dummy-4",
+    "description": "Gestalte innovative Benutzeroberflächen für unsere digitalen Produkte und verbessere die User Experience.",
+    "skills": ["Figma", "Adobe XD", "Sketch", "Prototyping"],
+    "date": "2023-11-12",
+    "remote": true,
+    "duration": "6+ Monate"
+  },
+  {
+    "id": "dummy-5",
+    "title": "Backend Developer (Java/Spring)",
+    "company": "Enterprise Solutions",
+    "location": "Düsseldorf",
+    "url": "https://www.gulp.de/projekte/dummy-5",
+    "description": "Entwicklung und Wartung von skalierbaren Backend-Systemen mit Java und Spring Boot.",
+    "skills": ["Java", "Spring Boot", "Hibernate", "PostgreSQL"],
+    "date": "2023-11-11",
+    "remote": false,
+    "duration": "9+ Monate"
+  }
+]

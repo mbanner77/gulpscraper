@@ -48,6 +48,9 @@ except ImportError:
 # Determine if we're running in a cloud environment
 IS_CLOUD_ENV = os.environ.get('RENDER', False) or os.environ.get('CLOUD_ENV', False)
 
+# Determine if we should use the real scraper (default: True)
+USE_REAL_SCRAPER = os.environ.get('USE_REAL_SCRAPER', 'True').lower() in ('true', '1', 't')
+
 # Initialize FastAPI app
 app = FastAPI(
     title="GULP Job Scraper API",
@@ -165,6 +168,7 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
     
     is_scraping = True
     print(f"Starting GULP scraper at {datetime.datetime.now().isoformat()}")
+    print(f"Using real scraper: {USE_REAL_SCRAPER}")
     
     all_projects: List[dict] = []
     network_lines: List[str] = []
@@ -175,6 +179,7 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
             print(f"\n[RENDER DEBUG] Starte Playwright in Cloud-Umgebung mit HEADLESS={HEADLESS}")
             print(f"[RENDER DEBUG] Datenverzeichnis: {DATA_DIR.absolute()}")
             print(f"[RENDER DEBUG] Ausgabedatei existiert: {OUTPUT_JSON.exists()}")
+            print(f"[RENDER DEBUG] USE_REAL_SCRAPER={USE_REAL_SCRAPER}")
             if OUTPUT_JSON.exists():
                 try:
                     with open(OUTPUT_JSON, 'r', encoding='utf-8') as f:
@@ -182,6 +187,26 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
                         print(f"[RENDER DEBUG] Anzahl Projekte in Datei: {project_count}")
                 except Exception as e:
                     print(f"[RENDER DEBUG] Fehler beim Lesen der Projektdatei: {str(e)}")
+        
+        # Wenn USE_REAL_SCRAPER auf False gesetzt ist, verwende Dummy-Daten
+        if not USE_REAL_SCRAPER:
+            print("Using dummy data instead of real scraper")
+            try:
+                # Versuche, Dummy-Daten aus der Datei zu laden
+                dummy_file = DATA_DIR / "dummy_projects.json"
+                if dummy_file.exists():
+                    with open(dummy_file, 'r', encoding='utf-8') as f:
+                        all_projects = json.load(f)
+                        print(f"Loaded {len(all_projects)} projects from dummy data")
+                else:
+                    print("No dummy data file found, using empty project list")
+            except Exception as e:
+                print(f"Error loading dummy data: {str(e)}")
+            
+            # Aktualisiere den Zeitstempel des letzten Scans
+            last_scrape_time = datetime.datetime.now().isoformat()
+            is_scraping = False
+            return all_projects
         
         async with async_playwright() as pw:
             # Erweiterte Browser-Konfiguration speziell für Render
@@ -291,15 +316,21 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
         last_scrape_time = datetime.datetime.now().isoformat()
         
         # Sende E-Mail-Benachrichtigung, wenn aktiviert und neue Projekte gefunden wurden
-        if email_notification_enabled and email_recipient and new_projects and email_service:
-            try:
-                email_service.send_new_projects_notification(
-                    recipient=email_recipient,
-                    new_projects=new_projects,
-                    scan_time=datetime.datetime.now()
-                )
-            except Exception as e:
-                print(f"Error sending email notification: {str(e)}")
+        if email_notification_enabled and email_recipient and new_projects:
+            print(f"\n[SCRAPER] Versuche E-Mail-Benachrichtigung zu senden...")
+            if not email_service:
+                print(f"[SCRAPER] E-Mail-Service ist nicht initialisiert!")
+            else:
+                print(f"[SCRAPER] E-Mail-Service Status: {email_service.get_config_status().get('is_configured')}")
+                try:
+                    success = email_service.send_new_projects_notification(
+                        recipient=email_recipient,
+                        new_projects=new_projects,
+                        scan_time=datetime.datetime.now()
+                    )
+                    print(f"[SCRAPER] E-Mail-Versand Ergebnis: {'Erfolgreich' if success else 'Fehlgeschlagen'}")
+                except Exception as e:
+                    print(f"Error sending email notification: {str(e)}")
         
         return unique_projects
     
@@ -820,14 +851,31 @@ async def startup_event():
     project_manager = ProjectManager(DATA_DIR)
     
     # Initialisiere den E-Mail-Service mit Standard-SMTP-Einstellungen
+    print("\n[STARTUP] Initialisiere E-Mail-Service...")
+    print(f"[STARTUP] SMTP-Konfiguration: Host={DEFAULT_SMTP_HOST}, Port={DEFAULT_SMTP_PORT}, User={DEFAULT_SMTP_USER}")
+    print(f"[STARTUP] Umgebungsvariablen: SMTP_HOST={os.environ.get('SMTP_HOST')}, SMTP_PORT={os.environ.get('SMTP_PORT')}")
+    
+    # Verwende Umgebungsvariablen, falls vorhanden, sonst Standardwerte
+    smtp_host = os.environ.get("SMTP_HOST", DEFAULT_SMTP_HOST)
+    smtp_port = int(os.environ.get("SMTP_PORT", DEFAULT_SMTP_PORT))
+    smtp_user = os.environ.get("SMTP_USER", DEFAULT_SMTP_USER)
+    smtp_password = os.environ.get("SMTP_PASSWORD", DEFAULT_SMTP_PASSWORD)
+    email_sender = os.environ.get("EMAIL_SENDER", DEFAULT_EMAIL_SENDER)
+    
     email_service = EmailService(
-        smtp_host=DEFAULT_SMTP_HOST,
-        smtp_port=DEFAULT_SMTP_PORT,
-        smtp_user=DEFAULT_SMTP_USER,
-        smtp_password=DEFAULT_SMTP_PASSWORD,
-        sender=DEFAULT_EMAIL_SENDER,
+        smtp_host=smtp_host,
+        smtp_port=smtp_port,
+        smtp_user=smtp_user,
+        smtp_password=smtp_password,
+        sender=email_sender,
         frontend_url=FRONTEND_URL
     )
+    
+    # Ausgabe der Konfiguration
+    config_status = email_service.get_config_status()
+    print(f"[STARTUP] E-Mail-Service konfiguriert: {config_status.get('is_configured')}")
+    print(f"[STARTUP] Hostname: {config_status.get('hostname')}")
+    print(f"[STARTUP] Umgebung: {config_status.get('environment')}")
     
     # Initialisiere die E-Mail-Test-Route
     import email_test_route
@@ -836,6 +884,10 @@ async def startup_event():
         email_rcpt=email_recipient,
         default_email_rcpt=DEFAULT_EMAIL_RECIPIENT
     )
+    
+    # Registriere die E-Mail-Test-Route in der API
+    app.include_router(email_test_route.router, prefix="/email", tags=["email"])
+    print(f"[STARTUP] E-Mail-Test-Route registriert unter /email/config, /email/test und /email/diagnose")
     
     # Configure and start the scheduler
     configure_scheduler()
@@ -855,6 +907,47 @@ async def startup_event():
         # Stelle sicher, dass der Scheduler aktiviert ist
         scheduler_config["enabled"] = True
         print(f"[RENDER SETUP] Scheduler-Status: {scheduler_config['enabled']}")
+        print(f"[RENDER SETUP] USE_REAL_SCRAPER={USE_REAL_SCRAPER}")
+        
+        # Spezielle E-Mail-Konfiguration für Render
+        print("[RENDER SETUP] Überprüfe E-Mail-Konfiguration...")
+        if email_service:
+            config_status = email_service.get_config_status()
+            print(f"[RENDER SETUP] E-Mail-Konfiguration: {config_status}")
+            
+            # Überprüfe, ob die E-Mail-Konfiguration vollständig ist
+            if not config_status.get('is_configured'):
+                print("[RENDER SETUP] E-Mail-Service ist nicht vollständig konfiguriert. Versuche Fallback-Konfiguration...")
+                
+                # Versuche, die E-Mail-Konfiguration aus den Umgebungsvariablen zu laden
+                smtp_host = os.environ.get("SMTP_HOST", DEFAULT_SMTP_HOST)
+                smtp_port = int(os.environ.get("SMTP_PORT", DEFAULT_SMTP_PORT))
+                smtp_user = os.environ.get("SMTP_USER", DEFAULT_SMTP_USER)
+                smtp_password = os.environ.get("SMTP_PASSWORD", DEFAULT_SMTP_PASSWORD)
+                email_sender = os.environ.get("EMAIL_SENDER", DEFAULT_EMAIL_SENDER)
+                
+                print(f"[RENDER SETUP] Verwende folgende E-Mail-Konfiguration:")
+                print(f"[RENDER SETUP] - SMTP_HOST: {smtp_host}")
+                print(f"[RENDER SETUP] - SMTP_PORT: {smtp_port}")
+                print(f"[RENDER SETUP] - SMTP_USER: {smtp_user}")
+                print(f"[RENDER SETUP] - EMAIL_SENDER: {email_sender}")
+                
+                # Initialisiere den E-Mail-Service neu mit den aktuellen Werten
+                email_service = EmailService(
+                    smtp_host=smtp_host,
+                    smtp_port=smtp_port,
+                    smtp_user=smtp_user,
+                    smtp_password=smtp_password,
+                    sender=email_sender,
+                    frontend_url=FRONTEND_URL
+                )
+                
+                # Überprüfe die neue Konfiguration
+                new_config = email_service.get_config_status()
+                print(f"[RENDER SETUP] Neue E-Mail-Konfiguration: {new_config}")
+                print(f"[RENDER SETUP] E-Mail-Service konfiguriert: {new_config.get('is_configured')}")
+            else:
+                print("[RENDER SETUP] E-Mail-Service ist korrekt konfiguriert.")
         
         # Stelle sicher, dass die Datenverzeichnisse existieren und beschreibbar sind
         print(f"[RENDER SETUP] Überprüfe Datenverzeichnisse...")
