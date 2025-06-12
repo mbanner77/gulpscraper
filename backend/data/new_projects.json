@@ -1,1 +1,46 @@
-[]
+[
+  {
+    "id": "154477c8476911f0ace682a1d637046d",
+    "idInIndex": "154477c8476911f0ace682a1d637046d",
+    "type": "EXTERNAL",
+    "title": "PLC Programmer / Commissioning Engineer (m/f/d)",
+    "location": "D2, Quickborn",
+    "description": "We are currently looking for a PLC programmer / commissioning engineer for an exciting project with our customer.  The task includes the following activities  Development, programming and commissioning of PLC controls for special machines using the TIA portal Implementation of customer-specific requirements and integration of new technologies Implementation of FAT/SAT Troubleshooting and optimization of the control software Creation of technical documentation Extensive experience as PLC programmer...",
+    "companyName": "SOLCOM GmbH",
+    "companyLogoUrl": "https://www.gulp.de/firma/img/big/solcom.png",
+    "url": "https://gulp.de/robi/backend/tracker/url?project_url=https%3A%2F%2Fwww.solcom.de%2Fasp%2Frobots%2Fdetail.aspx%3Fmode%3DGULP%26id%3D100269%26utm_source%3Dgulp.de%26utm_medium%3Dsocial%26utm_campaign%3DJobposting",
+    "applicationDate": null,
+    "originalPublicationDate": "2025-06-12T10:19:00.000",
+    "startDate": "14.07.2025",
+    "favorite": null,
+    "hidden": null,
+    "memoText": null,
+    "duration": null,
+    "skills": [],
+    "active": null,
+    "projectKey": null,
+    "isRemoteWorkPossible": false
+  },
+  {
+    "id": "0d466e3c476911f0ace682a1d637046d",
+    "idInIndex": "0d466e3c476911f0ace682a1d637046d",
+    "type": "EXTERNAL",
+    "title": "Construction site safety specialist (m/f/d)",
+    "location": "siehe Beschreibung",
+    "description": "We are currently looking for a safety specialist for an exciting construction project directly on the construction site. Certified / trained safety specialist / occupational safety specialist / safety engineer / at least 3 years of construction site experience (SIGE / SIGEKO) Experience in large-scale plant construction (ideally pharmaceuticals, otherwise oil &amp; gas, chemicals or power plant construction is also possible) D5, 100% on-site at the construction site",
+    "companyName": "SOLCOM GmbH",
+    "companyLogoUrl": "https://www.gulp.de/firma/img/big/solcom.png",
+    "url": "https://gulp.de/robi/backend/tracker/url?project_url=https%3A%2F%2Fwww.solcom.de%2Fasp%2Frobots%2Fdetail.aspx%3Fmode%3DGULP%26id%3D100270%26utm_source%3Dgulp.de%26utm_medium%3Dsocial%26utm_campaign%3DJobposting",
+    "applicationDate": null,
+    "originalPublicationDate": "2025-06-12T10:18:00.000",
+    "startDate": "KW 27 2025",
+    "favorite": null,
+    "hidden": null,
+    "memoText": null,
+    "duration": null,
+    "skills": [],
+    "active": null,
+    "projectKey": null,
+    "isRemoteWorkPossible": false
+  }
+]

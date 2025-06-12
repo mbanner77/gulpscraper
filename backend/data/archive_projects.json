@@ -2042,5 +2042,81 @@
     "active": null,
     "projectKey": null,
     "isRemoteWorkPossible": false
+  },
+  {
+    "id": "C01148936",
+    "idInIndex": "C01148936",
+    "type": "AGENCY",
+    "title": "IT Supporter / Technician (m/f/d) onsite in Kirchheim",
+    "location": "Kirchheim bei München",
+    "description": "For our client in Kirchheim near Munich we are looking for an IT Supporter / Technician (m/f/d) Start short-term by arrangement Duration: open Workload: 1-2 days per week Location: Kirchheim near Munich Languages: German and English\n\n- First point of contact: You receive IT malfunctions and service requests from our employees and process them directly on site - Technical support: You install, configure and maintain hardware and software - User administration: You support the setup and administration...",
+    "companyName": null,
+    "companyLogoUrl": "",
+    "url": "https://www.gulp.de/gulp2/g/projekte/agentur/C01148936",
+    "applicationDate": null,
+    "originalPublicationDate": "2025-06-11T11:00:30.909",
+    "startDate": "16.06.2025",
+    "favorite": null,
+    "hidden": null,
+    "memoText": null,
+    "duration": null,
+    "skills": [
+      "- Experience in IT support or in a similar position is an advantage - Good knowledge of Windows operating systems, MS Office and network technologies - Strong problem solving skills and a high service orientation - Strong communication skills and ability to work in a team - Good written and spoken German and English skills"
+    ],
+    "active": null,
+    "projectKey": null,
+    "isRemoteWorkPossible": false
+  },
+  {
+    "id": "C01148868",
+    "idInIndex": "C01148868",
+    "type": "AGENCY",
+    "title": "Senior Software Developer / Backend Developer / Fullstack Developer (m/f/d) - Berlin",
+    "location": "Berlin",
+    "description": "Start 01.08.2025 Project duration: 12 months Fulltime (40 hours / week) Location: Berlin 4 days, remote 1 day per week Note: For this project it is necessary to undergo a security check according to § 8 or § 9 SÜG. (SÜ 2)\n\n- Fullstack software development within the scope of software engineering requirements with focus on backend ! - Backend implementation with focus on functional logics, Data conversion and development of time-critical requirements and assured data processing as well as interaction...",
+    "companyName": null,
+    "companyLogoUrl": "",
+    "url": "https://www.gulp.de/gulp2/g/projekte/agentur/C01148868",
+    "applicationDate": null,
+    "originalPublicationDate": "2025-06-11T11:00:30.887",
+    "startDate": "01.08.2025",
+    "favorite": null,
+    "hidden": null,
+    "memoText": null,
+    "duration": null,
+    "skills": [
+      "University degree in computer science, business informatics or comparable qualification At least 5 years of experience in backend development of distributed and/or cloud-based systems in Java In-depth understanding and at least 3 years of experience in the development of microservices as container-based software solutions as well as in the area of CI/CD setup and operation, at least of own developments. Accordingly, knowledge of Linux/Bash, Dockerfile, Kubernetes/Helm/YAML, GitLabCI-CD/YAML technologies In-depth understanding and relevant experience in requirements and solutions for container-based software solutions in security areas as air-gapped on-premise Kubernetes deployments, as well as resource requirements of containers and container security. In-depth understanding and at least 3 years of experience in the design and development of distributed systems as complex geo-redundant microservices solutions for the implementation and compliance of time-critical requirements and assured data processing as well as the interaction with data warehouse systems In-depth understanding and at least 3 years of experience in the development of converters of complex data structures, at least in the formats or between Microsoft Excel, CSV, JSON and SQL In-depth understanding and at least 3 years of experience in the development of data models and software systems using SQL (at least Oracle and PostgreSQL or comparable) and NoSQL databases (at least CouchDB or comparable) In-depth understanding and at least 3 years of experience in the simulation of proprietary data interfaces and protocols in the course of development as well as in the development of data warehouse systems.Several years of experience in the development of front-end systems as well as back-end development in the context of micro-front-end architectures Domain-specific knowledge in design and development in the area of configuration and asset management as well as in the areas of networks and Tetra digital radio or alternatively mobile radio Sufficient knowledge and understanding to work with JavaScript, TypeScript and Python code Strong analytical skills and knowledge in the design and specification of IT and software architectures. Good written and spoken communication skills Structured, independent and quality-oriented way of working as well as team spirit and several years of experience in agile software development"
+    ],
+    "active": null,
+    "projectKey": null,
+    "isRemoteWorkPossible": true
+  },
+  {
+    "id": "6849447b9818d92f780d16a3",
+    "idInIndex": "6849447b9818d92f780d16a3",
+    "type": "TALENT_FINDER",
+    "title": "Power Platform Expert (f/m/d)",
+    "location": "Wien (100% remote)",
+    "description": "Power Platform Expert (f/m/d) Power Platform Development for various requirements with focus on Power Apps (Canvas Apps) &amp; Power Automate (Cloud Flows &amp; RPA) Knowledge with Power Platform Knowledge with SQL Knowledge with Power Apps Knowledge with Canvas Apps Knowledge with Cloud Flows &amp; RPA Vienna (100% remote) remote",
+    "companyName": "STI Consulting GmbH",
+    "companyLogoUrl": null,
+    "url": "https://www.gulp.de/gulp2/g/projekte/talentfinder/6849447b9818d92f780d16a3",
+    "applicationDate": null,
+    "originalPublicationDate": "2025-06-11T10:55:23.875",
+    "startDate": "01.07.2025",
+    "favorite": null,
+    "hidden": null,
+    "memoText": null,
+    "duration": null,
+    "skills": [
+      "Knowledge of Power Platform",
+      "Knowledge of SQL",
+      "Knowledge of Power Apps",
+      "Knowledge with Canvas Apps",
+      "Knowledge of cloud flows &amp; RPA"
+    ],
+    "active": null,
+    "projectKey": null,
+    "isRemoteWorkPossible": true
   }
 ]

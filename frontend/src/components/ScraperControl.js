@@ -26,6 +26,7 @@ const ScraperControl = () => {
     project_count: 0,
     new_project_count: 0,
     total_projects_found: 0,
+    dummy_data: false,
     email_notification: {
       enabled: false,
       recipient: null,
@@ -98,7 +99,8 @@ const ScraperControl = () => {
           last_scrape: result.last_scrape,
           project_count: result.project_count || prevStatus.project_count,
           new_project_count: result.new_project_count || prevStatus.new_project_count,
-          data_available: true
+          data_available: true,
+          dummy_data: result.dummy_data || false
         }));
         
         // Erfolgsmeldung anzeigen
@@ -118,219 +120,211 @@ const ScraperControl = () => {
             // Für Render: Erzwinge einen Reload der Seite nach 2 Sekunden, wenn wir auf Render sind
             if (window.location.hostname.includes('render.com') || 
                 window.location.hostname.includes('onrender.com')) {
-              console.log('Render-Umgebung erkannt, erzwinge Reload nach 2 Sekunden');
+              console.log('Render-Umgebung erkannt, erzwinge Reload in 2 Sekunden');
               setTimeout(() => {
                 window.location.reload();
               }, 2000);
             }
           }, 1000);
-        } catch (eventErr) {
-          console.error('Fehler beim Senden des projectsUpdated-Events:', eventErr);
+        } catch (eventError) {
+          console.error('Fehler beim Senden des projectsUpdated-Events:', eventError);
         }
       } else {
-        // Fallback für den alten Modus (Hintergrundaufgabe)
-        console.log('Scraper wurde gestartet, aber keine Erfolgsbestätigung erhalten');
-        setSuccess('Scraper wurde erfolgreich gestartet!');
-        // Status sofort aktualisieren
-        fetchStatus();
+        // Fehlermeldung anzeigen, wenn der Scraper nicht erfolgreich war
+        setError('Der Scraper konnte nicht ausgeführt werden.');
       }
-      
-      // Erfolgsmeldung nach 5 Sekunden ausblenden
-      setTimeout(() => setSuccess(null), 5000);
     } catch (err) {
       console.error('Fehler beim Starten des Scrapers:', err);
-      
-      if (err.response && err.response.status === 409) {
-        setError('Ein Scrape-Vorgang läuft bereits.');
-      } else {
-        setError('Der Scraper konnte nicht gestartet werden.');
-      }
+      setError(`Fehler beim Starten des Scrapers: ${err.message || 'Unbekannter Fehler'}`);
     }
   };
   
   const formatDate = (dateString) => {
-    if (!dateString) return 'Nie';
-    
     try {
+      // Versuche, das Datum zu parsen und zu formatieren
       const date = new Date(dateString);
-      return new Intl.DateTimeFormat('de-DE', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      }).format(date);
-    } catch (e) {
-      return dateString;
+      
+      // Überprüfe, ob das Datum gültig ist
+      if (isNaN(date.getTime())) {
+        return dateString; // Wenn nicht gültig, gib den ursprünglichen String zurück
+      }
+      
+      // Formatiere das Datum im deutschen Format
+      return date.toLocaleString('de-DE');
+    } catch (error) {
+      console.error('Fehler beim Formatieren des Datums:', error);
+      return dateString; // Bei Fehler den ursprünglichen String zurückgeben
     }
   };
   
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-  
   return (
-    <Paper sx={{ p: 3, mb: 4 }}>
-      <Typography variant="h6" gutterBottom>
-        Scraper-Steuerung
-      </Typography>
-      
-      <Typography variant="body2" color="text.secondary" paragraph>
-        Starten Sie den Scraper manuell und sehen Sie den aktuellen Status.
-      </Typography>
-      
-      <Divider sx={{ my: 2 }} />
-      
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-      
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          {success}
-        </Alert>
-      )}
-      
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="subtitle1" gutterBottom>
-                Status
-              </Typography>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Scraper aktiv:
+    <Paper elevation={0} sx={{ p: 3, borderRadius: 2 }}>
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : error ? (
+        <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+      ) : (
+        <>
+          {success && (
+            <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>
+          )}
+          
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Status
                   </Typography>
-                  <Chip 
-                    size="small"
-                    color={status.is_scraping ? "primary" : "default"}
-                    label={status.is_scraping ? "Aktiv" : "Inaktiv"}
-                  />
-                </Box>
-                
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Letzter Lauf:
-                  </Typography>
-                  <Typography variant="body2">
-                    {status.last_scrape ? new Date(status.last_scrape).toLocaleString('de-DE') : 'Noch nie'}
-                  </Typography>
-                </Box>
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Zeitplan:
-                  </Typography>
-                  <Typography variant="body2">
-                    {status.scheduler && status.scheduler.enabled && status.scheduler.formatted_runs
-                      ? `${status.scheduler.formatted_runs.join(', ')} Uhr${status.scheduler.interval_days > 1 ? `, alle ${status.scheduler.interval_days} Tage` : ' täglich'}` 
-                      : 'Deaktiviert'}
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Nächster geplanter Lauf:
-                  </Typography>
-                  <Typography variant="body2">
-                    {status.next_scheduled_run ? new Date(status.next_scheduled_run).toLocaleString('de-DE') : 'Nicht geplant'}
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Projekte gesamt:
-                  </Typography>
-                  <Typography variant="body2">
-                    {status.project_count}
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Neue Projekte:
-                  </Typography>
-                  <Typography variant="body2" color={status.new_project_count > 0 ? "success.main" : "text.primary"} fontWeight={status.new_project_count > 0 ? "bold" : "normal"}>
-                    {status.new_project_count}
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Projekte insgesamt gefunden:
-                  </Typography>
-                  <Typography variant="body2">
-                    {status.total_projects_found}
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} md={6}>
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="subtitle1" gutterBottom>
-                Aktionen
-              </Typography>
-              
-              <Box sx={{ mb: 2 }}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={sendEmail}
-                      onChange={(e) => setSendEmail(e.target.checked)}
-                      disabled={!status.email_notification.configured}
-                      color="primary"
-                    />
-                  }
-                  label={
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body2">
-                        E-Mail-Benachrichtigung senden
+                  
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Scraper aktiv:
                       </Typography>
-                      {!status.email_notification.configured && (
-                        <Typography variant="caption" color="error" sx={{ ml: 1 }}>
-                          (Nicht konfiguriert)
-                        </Typography>
-                      )}
+                      <Chip 
+                        size="small"
+                        color={status.is_scraping ? "primary" : "default"}
+                        label={status.is_scraping ? "Aktiv" : "Inaktiv"}
+                      />
                     </Box>
-                  }
-                />
-                
-                {status.email_notification.configured && status.email_notification.recipient && (
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 4 }}>
-                    An: {status.email_notification.recipient}
+                    
+                    <Box sx={{ mt: 2 }}>
+                      {status.dummy_data && (
+                        <Alert severity="info" sx={{ mb: 2 }}>
+                          <Typography variant="body2">
+                            <strong>Hinweis:</strong> Es wurden Dummy-Daten verwendet, da der echte Scraper nicht verfügbar war.
+                          </Typography>
+                        </Alert>
+                      )}
+                      
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Letzter Scrape:
+                        </Typography>
+                        <Typography variant="body2">
+                          {status.last_scrape ? formatDate(status.last_scrape) : 'Noch nie'}
+                          {status.dummy_data && (
+                            <Chip 
+                              label="Dummy-Daten" 
+                              size="small" 
+                              color="warning" 
+                              variant="outlined" 
+                              sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} 
+                            />
+                          )}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Zeitplan:
+                        </Typography>
+                        <Typography variant="body2">
+                          {status.scheduler && status.scheduler.enabled && status.scheduler.formatted_runs
+                            ? `${status.scheduler.formatted_runs.join(', ')} Uhr${status.scheduler.interval_days > 1 ? `, alle ${status.scheduler.interval_days} Tage` : ' täglich'}` 
+                            : 'Deaktiviert'}
+                        </Typography>
+                      </Box>
+                      
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Nächster geplanter Lauf:
+                        </Typography>
+                        <Typography variant="body2">
+                          {status.next_scheduled_run ? new Date(status.next_scheduled_run).toLocaleString('de-DE') : 'Nicht geplant'}
+                        </Typography>
+                      </Box>
+                      
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Projekte gesamt:
+                        </Typography>
+                        <Typography variant="body2">
+                          {status.project_count}
+                        </Typography>
+                      </Box>
+                      
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Neue Projekte:
+                        </Typography>
+                        <Typography variant="body2" color={status.new_project_count > 0 ? "success.main" : "text.primary"} fontWeight={status.new_project_count > 0 ? "bold" : "normal"}>
+                          {status.new_project_count}
+                        </Typography>
+                      </Box>
+                      
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Projekte insgesamt gefunden:
+                        </Typography>
+                        <Typography variant="body2">
+                          {status.total_projects_found}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Aktionen
                   </Typography>
-                )}
-              </Box>
-              
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={status.is_scraping ? <CircularProgress size={20} color="inherit" /> : <RefreshIcon />}
-                endIcon={sendEmail && status.email_notification.configured ? <MailOutlineIcon /> : null}
-                onClick={handleStartScrape}
-                disabled={status.is_scraping}
-                fullWidth
-              >
-                {status.is_scraping ? 'Scraper läuft...' : 'Scraper starten'}
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+                  
+                  <Box sx={{ mb: 2 }}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={sendEmail}
+                          onChange={(e) => setSendEmail(e.target.checked)}
+                          disabled={!status.email_notification.configured}
+                          color="primary"
+                        />
+                      }
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography variant="body2">
+                            E-Mail-Benachrichtigung senden
+                          </Typography>
+                          {!status.email_notification.configured && (
+                            <Typography variant="caption" color="error" sx={{ ml: 1 }}>
+                              (Nicht konfiguriert)
+                            </Typography>
+                          )}
+                        </Box>
+                      }
+                    />
+                    
+                    {status.email_notification.configured && status.email_notification.recipient && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 4 }}>
+                        An: {status.email_notification.recipient}
+                      </Typography>
+                    )}
+                  </Box>
+                  
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={status.is_scraping ? <CircularProgress size={20} color="inherit" /> : <RefreshIcon />}
+                    endIcon={sendEmail && status.email_notification.configured ? <MailOutlineIcon /> : null}
+                    onClick={handleStartScrape}
+                    disabled={status.is_scraping}
+                    fullWidth
+                  >
+                    {status.is_scraping ? 'Scraper läuft...' : 'Scraper starten'}
+                  </Button>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </>
+      )}
     </Paper>
   );
 };
