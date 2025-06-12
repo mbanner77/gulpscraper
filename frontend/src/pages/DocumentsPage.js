@@ -79,7 +79,7 @@ const DocumentsPage = () => {
     setError(null);
     
     try {
-      const response = await fetch('/api/documents/list');
+      const response = await fetch('/documents/list');
       const data = await response.json();
       
       if (response.ok) {
@@ -118,7 +118,7 @@ const DocumentsPage = () => {
         formData.append('name', documentName);
       }
       
-      const response = await fetch('/api/documents/upload', {
+      const response = await fetch('/documents/upload', {
         method: 'POST',
         body: formData,
       });
@@ -148,7 +148,7 @@ const DocumentsPage = () => {
     }
     
     try {
-      const response = await fetch(`/api/documents/${documentId}`, {
+      const response = await fetch(`/documents/${documentId}`, {
         method: 'DELETE',
       });
       
@@ -179,7 +179,7 @@ const DocumentsPage = () => {
     setMatchingProjects([]);
     
     try {
-      const response = await fetch(`/api/documents/${document.id}/compare`);
+      const response = await fetch(`/documents/${document.id}/compare`);
       const data = await response.json();
       
       if (response.ok) {
