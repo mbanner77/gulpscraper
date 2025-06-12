@@ -1,0 +1,306 @@
+/Users/mbanner/CascadeProjects/gulp-job-app/.venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Using data directory: /Users/mbanner/CascadeProjects/gulp-job-app/backend/data
+/Users/mbanner/CascadeProjects/gulp-job-app/backend/scraper.py:807: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+/Users/mbanner/CascadeProjects/gulp-job-app/backend/scraper.py:886: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("shutdown")
+Using data directory: /Users/mbanner/CascadeProjects/gulp-job-app/backend/data
+INFO:     Started server process [61832]
+INFO:     Waiting for application startup.
+
+--- CONFIGURING SCHEDULER ---
+Current scheduler state: Running=False
+Current jobs before removal: []
+Scheduler is enabled, configuring 24 daily runs
+Added job scraper_job_0 to run at 0:0 every 1 day(s)
+Error adding job for run at 0:0: next_run_time
+Added job scraper_job_1 to run at 1:0 every 1 day(s)
+Error adding job for run at 1:0: next_run_time
+Added job scraper_job_2 to run at 2:0 every 1 day(s)
+Error adding job for run at 2:0: next_run_time
+Added job scraper_job_3 to run at 3:0 every 1 day(s)
+Error adding job for run at 3:0: next_run_time
+Added job scraper_job_4 to run at 4:0 every 1 day(s)
+Error adding job for run at 4:0: next_run_time
+Added job scraper_job_5 to run at 5:0 every 1 day(s)
+Error adding job for run at 5:0: next_run_time
+Added job scraper_job_6 to run at 6:0 every 1 day(s)
+Error adding job for run at 6:0: next_run_time
+Added job scraper_job_7 to run at 7:0 every 1 day(s)
+Error adding job for run at 7:0: next_run_time
+Added job scraper_job_8 to run at 8:0 every 1 day(s)
+Error adding job for run at 8:0: next_run_time
+Added job scraper_job_9 to run at 9:0 every 1 day(s)
+Error adding job for run at 9:0: next_run_time
+Added job scraper_job_10 to run at 10:0 every 1 day(s)
+Error adding job for run at 10:0: next_run_time
+Added job scraper_job_11 to run at 11:0 every 1 day(s)
+Error adding job for run at 11:0: next_run_time
+Added job scraper_job_12 to run at 12:0 every 1 day(s)
+Error adding job for run at 12:0: next_run_time
+Added job scraper_job_13 to run at 13:0 every 1 day(s)
+Error adding job for run at 13:0: next_run_time
+Added job scraper_job_14 to run at 14:0 every 1 day(s)
+Error adding job for run at 14:0: next_run_time
+Added job scraper_job_15 to run at 15:0 every 1 day(s)
+Error adding job for run at 15:0: next_run_time
+Added job scraper_job_16 to run at 16:0 every 1 day(s)
+Error adding job for run at 16:0: next_run_time
+Added job scraper_job_17 to run at 17:0 every 1 day(s)
+Error adding job for run at 17:0: next_run_time
+Added job scraper_job_18 to run at 18:0 every 1 day(s)
+Error adding job for run at 18:0: next_run_time
+Added job scraper_job_19 to run at 19:0 every 1 day(s)
+Error adding job for run at 19:0: next_run_time
+Added job scraper_job_20 to run at 20:0 every 1 day(s)
+Error adding job for run at 20:0: next_run_time
+Added job scraper_job_21 to run at 21:0 every 1 day(s)
+Error adding job for run at 21:0: next_run_time
+Added job scraper_job_22 to run at 22:0 every 1 day(s)
+Error adding job for run at 22:0: next_run_time
+Added job scraper_job_23 to run at 23:0 every 1 day(s)
+Error adding job for run at 23:0: next_run_time
+Total scheduled runs: 24
+Jobs after configuration: ['scraper_job_0', 'scraper_job_1', 'scraper_job_2', 'scraper_job_3', 'scraper_job_4', 'scraper_job_5', 'scraper_job_6', 'scraper_job_7', 'scraper_job_8', 'scraper_job_9', 'scraper_job_10', 'scraper_job_11', 'scraper_job_12', 'scraper_job_13', 'scraper_job_14', 'scraper_job_15', 'scraper_job_16', 'scraper_job_17', 'scraper_job_18', 'scraper_job_19', 'scraper_job_20', 'scraper_job_21', 'scraper_job_22', 'scraper_job_23']
+--- END SCHEDULER CONFIGURATION ---
+
+Scheduler started successfully
+Scheduler is already running
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59038 - "GET /api/projects HTTP/1.1" 404 Not Found
+Running scheduled scrape at 2025-06-12T10:00:00.004515
+Starting GULP scraper at 2025-06-12T10:00:00.004867
+→ Page 1: https://www.gulp.de/gulp2/g/projekte?page=1
+   20 projects found (source: https://www.gulp.de/gulp2/rest/internal/projects/search)
+→ Page 2: https://www.gulp.de/gulp2/g/projekte?page=2
+   20 projects found (source: https://www.gulp.de/gulp2/rest/internal/projects/search)
+→ Page 3: https://www.gulp.de/gulp2/g/projekte?page=3
+   20 projects found (source: https://www.gulp.de/gulp2/rest/internal/projects/search)
+
+[DEBUG] Verarbeite 60 Projekte
+[DEBUG] 60 eindeutige Projekte, 60 neue Projekte
+Projekt 684a7e9f8c300e5fa5d180f0: Datum 2025-06-12T09:15:43.637, Differenz: 0.75 Stunden
+Projekt C01146688: Datum 2025-06-12T09:00:29.035, Differenz: 1.01 Stunden
+Projekt C01146712: Datum 2025-06-12T09:00:25.167, Differenz: 1.01 Stunden
+Projekt C01149062: Datum 2025-06-12T08:00:24.723, Differenz: 2.01 Stunden
+Projekt 684a67ed9818d92f780e573d: Datum 2025-06-12T07:38:53.140, Differenz: 2.37 Stunden
+Projekt 9b147c0246f311f0ace682a1d637046d: Datum 2025-06-11T20:40:00.000, Differenz: 13.35 Stunden
+Projekt adc45d4a46f311f0ace682a1d637046d: Datum 2025-06-11T20:39:00.000, Differenz: 13.36 Stunden
+Projekt acab085046f311f0ace682a1d637046d: Datum 2025-06-11T20:37:00.000, Differenz: 13.40 Stunden
+Projekt 94a47ebc46f311f0ace682a1d637046d: Datum 2025-06-11T20:18:00.000, Differenz: 13.71 Stunden
+Projekt 955c80de46f311f0ace682a1d637046d: Datum 2025-06-11T20:18:00.000, Differenz: 13.71 Stunden
+Projekt a77a584046f311f0ace682a1d637046d: Datum 2025-06-11T20:18:00.000, Differenz: 13.71 Stunden
+Projekt 9ee8b58246f311f0ace682a1d637046d: Datum 2025-06-11T20:18:00.000, Differenz: 13.71 Stunden
+Projekt 930944fc46f311f0ace682a1d637046d: Datum 2025-06-11T20:18:00.000, Differenz: 13.71 Stunden
+Projekt 1732491046e311f0ace682a1d637046d: Datum 2025-06-11T18:42:00.000, Differenz: 15.31 Stunden
+Projekt C01149307: Datum 2025-06-11T18:00:29.322, Differenz: 16.01 Stunden
+Projekt 8ed08ff846da11f0ace682a1d637046d: Datum 2025-06-11T17:19:00.000, Differenz: 16.70 Stunden
+Projekt 68499a6d8c300e5fa5d16854: Datum 2025-06-11T17:02:05.163, Differenz: 16.98 Stunden
+Projekt 2c9a248c46d211f0ace682a1d637046d: Datum 2025-06-11T16:41:00.000, Differenz: 17.33 Stunden
+Projekt 2dc58c3446d211f0ace682a1d637046d: Datum 2025-06-11T16:41:00.000, Differenz: 17.33 Stunden
+Projekt 45c584c446d211f0ace682a1d637046d: Datum 2025-06-11T16:41:00.000, Differenz: 17.33 Stunden
+Projekt 3a59b45246d211f0ace682a1d637046d: Datum 2025-06-11T16:41:00.000, Differenz: 17.33 Stunden
+Projekt 3bb6c6aa46d211f0ace682a1d637046d: Datum 2025-06-11T16:41:00.000, Differenz: 17.33 Stunden
+Projekt 32e2ccf446d211f0ace682a1d637046d: Datum 2025-06-11T16:41:00.000, Differenz: 17.33 Stunden
+Projekt 3d50cd1246d211f0ace682a1d637046d: Datum 2025-06-11T16:18:00.000, Differenz: 17.71 Stunden
+Projekt 407c29aa46d211f0ace682a1d637046d: Datum 2025-06-11T16:18:00.000, Differenz: 17.71 Stunden
+Projekt ec017cb646c911f0ace682a1d637046d: Datum 2025-06-11T15:19:00.000, Differenz: 18.70 Stunden
+Projekt ec9bca1e46c911f0ace682a1d637046d: Datum 2025-06-11T15:19:00.000, Differenz: 18.70 Stunden
+Projekt 68497f6d9818d92f780d5010: Datum 2025-06-11T15:06:53.898, Differenz: 18.90 Stunden
+Projekt C01149116: Datum 2025-06-11T15:00:31.369, Differenz: 19.00 Stunden
+Projekt C01149172: Datum 2025-06-11T15:00:31.233, Differenz: 19.00 Stunden
+Projekt f215dcee46c111f0ace682a1d637046d: Datum 2025-06-11T14:19:00.000, Differenz: 19.70 Stunden
+Projekt C01149130: Datum 2025-06-11T14:00:26.457, Differenz: 20.01 Stunden
+Projekt 55181b6246b911f0ace682a1d637046d: Datum 2025-06-11T13:43:00.000, Differenz: 20.30 Stunden
+Projekt fd30415246b011f0ace682a1d637046d: Datum 2025-06-11T12:18:00.000, Differenz: 21.71 Stunden
+Projekt C01149072: Datum 2025-06-11T12:00:31.640, Differenz: 22.00 Stunden
+Projekt 68494f909818d92f780d278e: Datum 2025-06-11T11:42:40.241, Differenz: 22.30 Stunden
+Projekt 83f1b63446a811f0ace682a1d637046d: Datum 2025-06-11T11:19:00.000, Differenz: 22.70 Stunden
+Projekt 877243b446a811f0ace682a1d637046d: Datum 2025-06-11T11:18:00.000, Differenz: 22.71 Stunden
+Projekt 88f1101246a811f0ace682a1d637046d: Datum 2025-06-11T11:18:00.000, Differenz: 22.71 Stunden
+Projekt 4a0dfcce46a411f0ace682a1d637046d: Datum 2025-06-11T11:13:00.000, Differenz: 22.80 Stunden
+Projekt C01148936: Datum 2025-06-11T11:00:30.909, Differenz: 23.01 Stunden
+Projekt C01148868: Datum 2025-06-11T11:00:30.887, Differenz: 23.01 Stunden
+Projekt 6849447b9818d92f780d16a3: Datum 2025-06-11T10:55:23.875, Differenz: 23.09 Stunden
+Projekt 68493d758c300e5fa5d100eb: Datum 2025-06-11T10:25:25.643, Differenz: 23.59 Stunden
+Projekt 42c3d00046a011f0ace682a1d637046d: Datum 2025-06-11T10:19:00.000, Differenz: 23.70 Stunden
+Projekt 4507caec46a011f0ace682a1d637046d: Datum 2025-06-11T10:19:00.000, Differenz: 23.70 Stunden
+Projekt 4648033646a011f0ace682a1d637046d: Datum 2025-06-11T10:19:00.000, Differenz: 23.70 Stunden
+Projekt C01148905: Datum 2025-06-11T10:00:32.309, Differenz: 24.00 Stunden
+Projekt 684935568c300e5fa5d0eef0: Datum 2025-06-11T09:50:46.184, Differenz: 24.17 Stunden
+Projekt 68435cc3733e7f7d2c2e12c4: Datum 2025-06-10T21:47:17.010, Differenz: 36.23 Stunden
+Projekt 5d980212462211f0ace682a1d637046d: Datum 2025-06-10T19:19:00.000, Differenz: 38.70 Stunden
+Projekt f97dd08e461911f0ace682a1d637046d: Datum 2025-06-10T18:42:00.000, Differenz: 39.31 Stunden
+Projekt 026e4b92461a11f0ace682a1d637046d: Datum 2025-06-10T18:42:00.000, Differenz: 39.31 Stunden
+Projekt 06f91f0c461a11f0ace682a1d637046d: Datum 2025-06-10T18:42:00.000, Differenz: 39.31 Stunden
+Projekt 081856be461a11f0ace682a1d637046d: Datum 2025-06-10T18:42:00.000, Differenz: 39.31 Stunden
+Projekt f56fc56a461911f0ace682a1d637046d: Datum 2025-06-10T18:19:00.000, Differenz: 39.70 Stunden
+Projekt f6b0bb78461911f0ace682a1d637046d: Datum 2025-06-10T18:19:00.000, Differenz: 39.70 Stunden
+Projekt fabcd9cc461911f0ace682a1d637046d: Datum 2025-06-10T18:19:00.000, Differenz: 39.70 Stunden
+Projekt 0e3fa3e4461a11f0ace682a1d637046d: Datum 2025-06-10T18:19:00.000, Differenz: 39.70 Stunden
+Projekt fc4a4450461911f0ace682a1d637046d: Datum 2025-06-10T18:19:00.000, Differenz: 39.70 Stunden
+✓ Scraping completed at 2025-06-12T10:00:49.132184
+  → 60 unique projects saved to data/gulp_projekte_raw.json
+  → 60 new projects found
+Sende E-Mail über mail.tk-core.de:465 mit SSL
+E-Mail erfolgreich an m.banner@realcore.de gesendet.
+
+[DEBUG] get_projects aufgerufen mit: archived=False, show_all=False, include_new_only=False, force_reprocess=False
+[DEBUG] Projektdateien: recent=True, archive=True, raw=True
+INFO:     127.0.0.1:60680 - "GET /projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60680 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+
+[DEBUG] get_projects aufgerufen mit: archived=False, show_all=False, include_new_only=False, force_reprocess=False
+[DEBUG] Projektdateien: recent=True, archive=True, raw=True
+INFO:     127.0.0.1:60768 - "GET /projects HTTP/1.1" 200 OK
+
+[DEBUG] get_projects aufgerufen mit: archived=False, show_all=True, include_new_only=False, force_reprocess=False
+[DEBUG] Projektdateien: recent=True, archive=True, raw=True
+[DEBUG] Lade ALLE Projekte (aktuell + archiviert)
+[DEBUG] 47 aktuelle Projekte geladen
+[DEBUG] 83 archivierte Projekte geladen
+[DEBUG] 130 kombinierte Projekte nach Deduplizierung
+INFO:     127.0.0.1:60897 - "GET /projects?page=1&limit=12&search=&location=&remote=false&new=false&show_all=true HTTP/1.1" 200 OK
+
+[DEBUG] get_projects aufgerufen mit: archived=False, show_all=True, include_new_only=False, force_reprocess=False
+[DEBUG] Projektdateien: recent=True, archive=True, raw=True
+[DEBUG] Lade ALLE Projekte (aktuell + archiviert)
+[DEBUG] 47 aktuelle Projekte geladen
+[DEBUG] 83 archivierte Projekte geladen
+[DEBUG] 130 kombinierte Projekte nach Deduplizierung
+INFO:     127.0.0.1:60897 - "GET /projects?page=1&limit=12&search=&location=&remote=false&new=false&show_all=true HTTP/1.1" 200 OK
+
+[DEBUG] get_projects aufgerufen mit: archived=False, show_all=True, include_new_only=False, force_reprocess=False
+[DEBUG] Projektdateien: recent=True, archive=True, raw=True
+[DEBUG] Lade ALLE Projekte (aktuell + archiviert)
+[DEBUG] 47 aktuelle Projekte geladen
+[DEBUG] 83 archivierte Projekte geladen
+[DEBUG] 130 kombinierte Projekte nach Deduplizierung
+INFO:     127.0.0.1:60897 - "GET /projects?show_all=true&force_reprocess=true HTTP/1.1" 200 OK
+
+[DEBUG] get_projects aufgerufen mit: archived=False, show_all=True, include_new_only=False, force_reprocess=False
+[DEBUG] Projektdateien: recent=True, archive=True, raw=True
+[DEBUG] Lade ALLE Projekte (aktuell + archiviert)
+[DEBUG] 47 aktuelle Projekte geladen
+[DEBUG] 83 archivierte Projekte geladen
+[DEBUG] 130 kombinierte Projekte nach Deduplizierung
+INFO:     127.0.0.1:60897 - "GET /projects?show_all=true&force_reprocess=true HTTP/1.1" 200 OK
+INFO:     None:0 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     None:0 - "GET /logo192.png HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60957 - "GET /projects/684a7e9f8c300e5fa5d180f0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60957 - "GET /projects/684a7e9f8c300e5fa5d180f0 HTTP/1.1" 200 OK
+
+[DEBUG] get_projects aufgerufen mit: archived=False, show_all=True, include_new_only=False, force_reprocess=False
+[DEBUG] Projektdateien: recent=True, archive=True, raw=True
+[DEBUG] Lade ALLE Projekte (aktuell + archiviert)
+[DEBUG] 47 aktuelle Projekte geladen
+[DEBUG] 83 archivierte Projekte geladen
+[DEBUG] 130 kombinierte Projekte nach Deduplizierung
+INFO:     127.0.0.1:60987 - "GET /projects?page=1&limit=12&search=&location=&remote=false&new=false&show_all=true HTTP/1.1" 200 OK
+
+[DEBUG] get_projects aufgerufen mit: archived=False, show_all=True, include_new_only=False, force_reprocess=False
+[DEBUG] Projektdateien: recent=True, archive=True, raw=True
+[DEBUG] Lade ALLE Projekte (aktuell + archiviert)
+[DEBUG] 47 aktuelle Projekte geladen
+[DEBUG] 83 archivierte Projekte geladen
+[DEBUG] 130 kombinierte Projekte nach Deduplizierung
+INFO:     127.0.0.1:60987 - "GET /projects?page=1&limit=12&search=&location=&remote=false&new=false&show_all=true HTTP/1.1" 200 OK
+
+[DEBUG] get_projects aufgerufen mit: archived=False, show_all=True, include_new_only=False, force_reprocess=False
+[DEBUG] Projektdateien: recent=True, archive=True, raw=True
+[DEBUG] Lade ALLE Projekte (aktuell + archiviert)
+[DEBUG] 47 aktuelle Projekte geladen
+[DEBUG] 83 archivierte Projekte geladen
+[DEBUG] 130 kombinierte Projekte nach Deduplizierung
+INFO:     127.0.0.1:60989 - "GET /projects?show_all=true&force_reprocess=true HTTP/1.1" 200 OK
+
+[DEBUG] get_projects aufgerufen mit: archived=False, show_all=True, include_new_only=False, force_reprocess=False
+[DEBUG] Projektdateien: recent=True, archive=True, raw=True
+[DEBUG] Lade ALLE Projekte (aktuell + archiviert)
+[DEBUG] 47 aktuelle Projekte geladen
+[DEBUG] 83 archivierte Projekte geladen
+[DEBUG] 130 kombinierte Projekte nach Deduplizierung
+INFO:     127.0.0.1:60989 - "GET /projects?show_all=true&force_reprocess=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60996 - "GET /projects/684a7e9f8c300e5fa5d180f0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60996 - "GET /projects/684a7e9f8c300e5fa5d180f0 HTTP/1.1" 200 OK
+
+[DEBUG] get_projects aufgerufen mit: archived=False, show_all=True, include_new_only=False, force_reprocess=False
+[DEBUG] Projektdateien: recent=True, archive=True, raw=True
+[DEBUG] Lade ALLE Projekte (aktuell + archiviert)
+[DEBUG] 47 aktuelle Projekte geladen
+[DEBUG] 83 archivierte Projekte geladen
+[DEBUG] 130 kombinierte Projekte nach Deduplizierung
+INFO:     127.0.0.1:61006 - "GET /projects?page=1&limit=12&search=&location=&remote=false&new=false&show_all=true HTTP/1.1" 200 OK
+
+[DEBUG] get_projects aufgerufen mit: archived=False, show_all=True, include_new_only=False, force_reprocess=False
+[DEBUG] Projektdateien: recent=True, archive=True, raw=True
+[DEBUG] Lade ALLE Projekte (aktuell + archiviert)
+[DEBUG] 47 aktuelle Projekte geladen
+[DEBUG] 83 archivierte Projekte geladen
+[DEBUG] 130 kombinierte Projekte nach Deduplizierung
+INFO:     127.0.0.1:61006 - "GET /projects?show_all=true&force_reprocess=true HTTP/1.1" 200 OK
+
+[DEBUG] get_projects aufgerufen mit: archived=False, show_all=True, include_new_only=False, force_reprocess=False
+[DEBUG] Projektdateien: recent=True, archive=True, raw=True
+[DEBUG] Lade ALLE Projekte (aktuell + archiviert)
+[DEBUG] 47 aktuelle Projekte geladen
+[DEBUG] 83 archivierte Projekte geladen
+[DEBUG] 130 kombinierte Projekte nach Deduplizierung
+INFO:     127.0.0.1:61008 - "GET /projects?page=1&limit=12&search=&location=&remote=false&new=false&show_all=true HTTP/1.1" 200 OK
+
+[DEBUG] get_projects aufgerufen mit: archived=False, show_all=True, include_new_only=False, force_reprocess=False
+[DEBUG] Projektdateien: recent=True, archive=True, raw=True
+[DEBUG] Lade ALLE Projekte (aktuell + archiviert)
+[DEBUG] 47 aktuelle Projekte geladen
+[DEBUG] 83 archivierte Projekte geladen
+[DEBUG] 130 kombinierte Projekte nach Deduplizierung
+INFO:     127.0.0.1:61008 - "GET /projects?show_all=true&force_reprocess=true HTTP/1.1" 200 OK
+
+[DEBUG] get_projects aufgerufen mit: archived=False, show_all=True, include_new_only=False, force_reprocess=False
+[DEBUG] Projektdateien: recent=True, archive=True, raw=True
+[DEBUG] Lade ALLE Projekte (aktuell + archiviert)
+[DEBUG] 47 aktuelle Projekte geladen
+[DEBUG] 83 archivierte Projekte geladen
+[DEBUG] 130 kombinierte Projekte nach Deduplizierung
+INFO:     127.0.0.1:61043 - "GET /projects?page=1&limit=12&search=&location=&remote=false&new=false&show_all=true HTTP/1.1" 200 OK
+
+[DEBUG] get_projects aufgerufen mit: archived=False, show_all=True, include_new_only=False, force_reprocess=False
+[DEBUG] Projektdateien: recent=True, archive=True, raw=True
+[DEBUG] Lade ALLE Projekte (aktuell + archiviert)
+[DEBUG] 47 aktuelle Projekte geladen
+[DEBUG] 83 archivierte Projekte geladen
+[DEBUG] 130 kombinierte Projekte nach Deduplizierung
+INFO:     127.0.0.1:61045 - "GET /projects?page=1&limit=12&search=&location=&remote=false&new=false&show_all=true HTTP/1.1" 200 OK
+
+[DEBUG] get_projects aufgerufen mit: archived=False, show_all=True, include_new_only=False, force_reprocess=False
+[DEBUG] Projektdateien: recent=True, archive=True, raw=True
+[DEBUG] Lade ALLE Projekte (aktuell + archiviert)
+[DEBUG] 47 aktuelle Projekte geladen
+[DEBUG] 83 archivierte Projekte geladen
+[DEBUG] 130 kombinierte Projekte nach Deduplizierung
+INFO:     127.0.0.1:61045 - "GET /projects?show_all=true&force_reprocess=true HTTP/1.1" 200 OK
+
+[DEBUG] get_projects aufgerufen mit: archived=False, show_all=True, include_new_only=False, force_reprocess=False
+[DEBUG] Projektdateien: recent=True, archive=True, raw=True
+[DEBUG] Lade ALLE Projekte (aktuell + archiviert)
+[DEBUG] 47 aktuelle Projekte geladen
+[DEBUG] 83 archivierte Projekte geladen
+[DEBUG] 130 kombinierte Projekte nach Deduplizierung
+INFO:     127.0.0.1:61045 - "GET /projects?show_all=true&force_reprocess=true HTTP/1.1" 200 OK
+INFO:     None:0 - "GET /logo192.png HTTP/1.1" 404 Not Found
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [61832]

@@ -730,7 +730,14 @@ def configure_scheduler():
                     replace_existing=True
                 )
                 print(f"Added job {job.id} to run at {run['hour']}:{run['minute']} every {scheduler_config['interval_days']} day(s)")
-                print(f"Next run time: {job.next_run_time}")
+                # Sicher auf next_run_time zugreifen
+                try:
+                    if hasattr(job, 'next_run_time') and job.next_run_time:
+                        print(f"Next run time: {job.next_run_time}")
+                    else:
+                        print("Next run time: Not available yet")
+                except Exception as e:
+                    print(f"Error accessing next_run_time: {str(e)}")
             except Exception as e:
                 print(f"Error adding job for run at {run['hour']}:{run['minute']}: {str(e)}")
         
