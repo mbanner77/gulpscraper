@@ -898,72 +898,6 @@ async def shutdown_event():
 
 
 # ---------------------------------------------------------------------------
-# Main Entry Point
-# ---------------------------------------------------------------------------
-
-if __name__ == "__main__":
-    # Run the API server
-    uvicorn.run("scraper:app", host="0.0.0.0", port=int(os.environ.get("PORT", 8001)), log_level="info")
-@app.post("/scrape")
-async def trigger_scrape(
-    background_tasks: BackgroundTasks,
-    request: ScrapeRequest = ScrapeRequest()
-):
-    """Trigger a new scrape."""
-    global email_notification_enabled, last_scrape_time
-    
-    if is_scraping:
-        return JSONResponse(
-            status_code=409,
-            content={"error": "A scrape is already in progress"}
-        )
-    
-    print(f"\n[MANUAL SCRAPE] Manueller Scrape-Vorgang gestartet")
-        
-    # Convert the pages list to a range if provided
-    pages = PAGE_RANGE
-    if request.pages:
-        pages = range(min(request.pages), max(request.pages) + 1)
-    
-    # Aktiviere E-Mail-Benachrichtigung für diesen Scrape-Vorgang, wenn angefordert
-    if request.send_email:
-        email_notification_enabled = True
-    else:
-        email_notification_enabled = False
-    
-    # Direkter Scrape statt Hintergrundaufgabe, um sofortige Rückmeldung zu ermöglichen
-    try:
-        # Starte den Scrape-Vorgang direkt
-        print(f"[MANUAL SCRAPE] Führe Scrape direkt aus...")
-        await scrape_gulp(pages)
-        
-        # Stelle sicher, dass der letzte Scrape-Zeitpunkt aktualisiert wird
-        last_scrape_time = datetime.datetime.now().isoformat()
-        
-        # Speichere den letzten Scrape-Zeitpunkt in einer Datei für Persistenz
-        try:
-            LAST_SCRAPE_FILE.write_text(last_scrape_time, encoding="utf-8")
-            print(f"[MANUAL SCRAPE] Letzter Scrape-Zeitpunkt gespeichert: {last_scrape_time}")
-        except Exception as e:
-            print(f"[MANUAL SCRAPE] Fehler beim Speichern des letzten Scrape-Zeitpunkts: {str(e)}")
-        
-        return {
-            "message": "Scrape wurde erfolgreich durchgeführt",
-            "success": True,
-            "last_scrape": last_scrape_time,
-            "project_count": len(json.loads(OUTPUT_JSON.read_text(encoding="utf-8"))) if OUTPUT_JSON.exists() else 0,
-            "new_project_count": len(project_manager.get_new_projects()),
-            "email_notification": email_notification_enabled and email_recipient != ""
-        }
-    except Exception as e:
-        print(f"[MANUAL SCRAPE] Fehler beim Scrapen: {str(e)}")
-        return JSONResponse(
-            status_code=500,
-            content={
-                "error": f"Fehler beim Scrapen: {str(e)}",
-                "success": False
-            }
-        )
 # Datei für den letzten Scrape-Zeitpunkt
 LAST_SCRAPE_FILE = DATA_DIR / "last_scrape.txt"
 
@@ -1050,3 +984,10 @@ async def trigger_scrape(
                 "success": False
             }
         )
+
+# Main Entry Point
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    # Run the API server
+    uvicorn.run("scraper:app", host="0.0.0.0", port=int(os.environ.get("PORT", 8001)), log_level="info")
