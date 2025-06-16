@@ -50,11 +50,33 @@ class EmailService:
         # E-Mail-Template laden
         self.new_projects_template_path = EMAIL_TEMPLATE_DIR / "new_projects.html"
         try:
+            if not self.new_projects_template_path.exists():
+                print(f"E-Mail-Template nicht gefunden: {self.new_projects_template_path}")
+                print(f"Aktuelles Verzeichnis: {Path.cwd()}")
+                print(f"Template-Verzeichnis existiert: {EMAIL_TEMPLATE_DIR.exists()}")
+                print(f"Inhalt des Template-Verzeichnisses: {list(EMAIL_TEMPLATE_DIR.glob('*')) if EMAIL_TEMPLATE_DIR.exists() else 'Verzeichnis nicht gefunden'}")
+                raise FileNotFoundError(f"Template nicht gefunden: {self.new_projects_template_path}")
+                
             with open(self.new_projects_template_path, 'r', encoding='utf-8') as f:
                 self.new_projects_template = f.read()
+                print(f"E-Mail-Template erfolgreich geladen: {len(self.new_projects_template)} Zeichen")
         except Exception as e:
+            import traceback
             print(f"Fehler beim Laden des E-Mail-Templates: {str(e)}")
-            self.new_projects_template = "<h1>Neue GULP Projekte gefunden</h1><p>Es wurden {{new_projects|length}} neue Projekte gefunden.</p>"
+            print(f"Traceback: {traceback.format_exc()}")
+            # Fallback-Template für Notfälle
+            self.new_projects_template = """
+            <h1>Neue GULP Projekte gefunden</h1>
+            <p>Es wurden {{new_projects|length}} neue Projekte gefunden.</p>
+            <ul>
+            {% for project in new_projects %}
+                <li><a href="{{project.url}}">{{project.title}}</a> - {{project.companyName}}</li>
+            {% endfor %}
+            </ul>
+            <p><a href="{{frontend_url}}">Alle Projekte im GULP Scraper ansehen</a></p>
+            """
+            print("Verwende Fallback-Template für E-Mail-Benachrichtigungen.")
+
     
     def send_new_projects_notification(
         self,
@@ -102,8 +124,17 @@ class EmailService:
             
             # E-Mail senden
             # Port 465 verwendet SSL, Port 587 verwendet TLS
+            # Für andere Ports verwenden wir eine Standardkonfiguration basierend auf dem Port
             use_ssl = self.smtp_port == 465
             use_tls = self.smtp_port == 587
+            
+            # Fallback für andere Ports
+            if not use_ssl and not use_tls:
+                print(f"Weder SSL (465) noch TLS (587) Port erkannt. Port: {self.smtp_port}")
+                # Für Ports < 500 verwenden wir SSL, sonst TLS als Standardwert
+                use_ssl = self.smtp_port < 500
+                use_tls = not use_ssl
+                print(f"Verwende {'SSL' if use_ssl else 'TLS'} als Fallback für Port {self.smtp_port}")
             
             smtp_options = {
                 "host": self.smtp_host,

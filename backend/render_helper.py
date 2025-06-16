@@ -14,6 +14,13 @@ IS_CLOUD_ENV = os.environ.get('RENDER', False) or os.environ.get('CLOUD_ENV', Fa
 
 # Pfade für Daten und Debug-Ausgaben
 DATA_DIR = Path("./data")
+# Stelle sicher, dass das Datenverzeichnis existiert
+try:
+    DATA_DIR.mkdir(exist_ok=True, parents=True)
+    print(f"[RENDER_HELPER] Datenverzeichnis erstellt/überprüft: {DATA_DIR.absolute()}")
+except Exception as e:
+    print(f"[RENDER_HELPER] Fehler beim Erstellen des Datenverzeichnisses: {str(e)}")
+
 OUTPUT_JSON = DATA_DIR / "projects.json"
 LAST_SCRAPE_FILE = DATA_DIR / "last_scrape.txt"
 
@@ -56,9 +63,6 @@ def save_dummy_projects(dummy_projects: List[Dict]) -> bool:
     Speichert Dummy-Projekte in die Ausgabedatei
     """
     try:
-        # Stelle sicher, dass das Datenverzeichnis existiert
-        DATA_DIR.mkdir(exist_ok=True, parents=True)
-        
         # Speichere die Dummy-Projekte
         OUTPUT_JSON.write_text(
             json.dumps(dummy_projects, indent=2, ensure_ascii=False), 
@@ -68,6 +72,8 @@ def save_dummy_projects(dummy_projects: List[Dict]) -> bool:
         return True
     except Exception as e:
         print(f"[RENDER_HELPER] Fehler beim Speichern der Dummy-Projekte: {str(e)}")
+        import traceback
+        print(f"[RENDER_HELPER] Traceback: {traceback.format_exc()}")
         return False
 
 def update_last_scrape_time() -> str:

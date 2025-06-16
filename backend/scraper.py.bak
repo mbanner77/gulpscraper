@@ -142,8 +142,8 @@ PROJ_KEY_CANDIDATES = {"title", "jobTitle"}
 # Globale Variablen für den Scraper-Status
 is_scraping = False
 last_scrape_time = None
-email_notification_enabled = True
-email_recipient = DEFAULT_EMAIL_RECIPIENT
+email_notification_enabled = False
+email_recipient = ""
 last_used_dummy_data = False  # Neue Variable, die anzeigt, ob beim letzten Scrape Dummy-Daten verwendet wurden
 
 # ---------------------------------------------------------------------------
@@ -184,7 +184,8 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
         # Erstelle Debug-Verzeichnisse, falls sie nicht existieren
         DATA_DIR.mkdir(exist_ok=True, parents=True)
         DEBUG_DIR.mkdir(exist_ok=True, parents=True)
-        
+
+    try:
         # Besondere Debug-Ausgabe für Render-Umgebung
         if IS_CLOUD_ENV:
             print(f"\n[RENDER DEBUG] Starte Playwright in Cloud-Umgebung mit HEADLESS={HEADLESS}")
@@ -205,288 +206,204 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
             # Setze das Flag für Dummy-Daten
             last_used_dummy_data = True
             # Erstelle 10 Dummy-Projekte
-            dummy_projects = []
-            # Versuche, Dummy-Daten aus der Datei zu laden
-            dummy_file = DATA_DIR / "dummy_projects.json"
-            print(f"[SCRAPER] Looking for dummy data at: {dummy_file.absolute()}")
-            if dummy_file.exists():
-                try:
+            dummy_projects = []      # Versuche, Dummy-Daten aus der Datei zu laden
+                dummy_file = DATA_DIR / "dummy_projects.json"
+                print(f"[SCRAPER] Looking for dummy data at: {dummy_file.absolute()}")
+                if dummy_file.exists():
+                    print(f"[SCRAPER] Dummy file exists, loading data...")
                     with open(dummy_file, 'r', encoding='utf-8') as f:
-                        dummy_projects = json.load(f)
-                        print(f"[SCRAPER] Loaded {len(dummy_projects)} dummy projects from file")
-                except Exception as e:
-                    print(f"[SCRAPER] Error loading dummy data: {str(e)}")
-            
-            # Wenn keine Dummy-Daten geladen werden konnten, erstelle neue
-            if not dummy_projects:
-                print("[SCRAPER] Creating new dummy projects")
-                dummy_projects = create_dummy_projects()
-                
-            # Verarbeite die Dummy-Projekte
-            unique_projects, new_projects = project_manager.process_projects(dummy_projects)
-            
-            # Aktualisiere den Zeitstempel des letzten Scans
-            last_scrape_time = datetime.datetime.now().isoformat()
-            
-            return unique_projects
-        
-        # Ab hier beginnt der echte Scraper mit Playwright
+{{ ... }}
         print(f"[SCRAPER] Launching browser with options: {launch_options}")
         
+        # Verwende einen vollständigen try-except-finally Block
+        all_projects = []
+        try:
         # Setze das Flag für echte Daten (wird auf True gesetzt, wenn wir auf Dummy-Daten zurückfallen)
         last_used_dummy_data = False
-        
-        # Initialisiere Playwright mit vollständiger Fehlerbehandlung
-        try:
-            async with async_playwright() as pw:
+        # Initialisiere Playwright
+        print("\n[SCRAPER] Starte Playwright...")
+        async with async_playwright() as pw:
                 print("[SCRAPER] Playwright erfolgreich initialisiert")
                 
-                # Browser starten mit verbesserter Fehlerbehandlung
-                try:
-                    browser = await pw.chromium.launch(**launch_options)
-                    print("[SCRAPER] Browser erfolgreich gestartet")
-                    
-                    # Browser-Kontext erstellen mit Fehlerbehandlung
+                # Browser starten
+                print("[SCRAPER] Starte Browser...")
+                browser = await pw.chromium.launch(**launch_options)
+{{ ... }}
+                print("[SCRAPER] Browser erfolgreich gestartet")
+                
+                context = await browser.new_context(
+                    user_agent=USER_AGENT, 
+                    viewport={"width": 1280, "height": 900}
+                )
+                print("[SCRAPER] Browser-Kontext erstellt")
+                
+                page = await context.new_page()
+                print("[SCRAPER] Neue Seite geöffnet")
+
+                page.on("response", lambda resp: network_lines.append(
+                    f"{resp.status} {resp.request.method} {resp.url} [{resp.headers.get('content-type', '')}]"))
+
+                for page_idx in pages:
+                    print(f"→ Page {page_idx}: {START_URL_TEMPLATE.format(page=page_idx)}")
+                    captured: List[Tuple[str, Any]] = []
+
+                    def handle_response(resp):
+                        if API_RE.search(resp.url) and "application/json" in resp.headers.get("content-type", ""):
+                            async def _grab():
+                                try:
+                                    captured.append((resp.url, await resp.json()))
+                                except Exception:
+                                    pass
+                            asyncio.create_task(_grab())
+                    page.on("response", handle_response)
+
                     try:
-                        context = await browser.new_context(
-                            user_agent=USER_AGENT, 
-                            viewport={"width": 1280, "height": 900}
+                        await page.goto(
+                            START_URL_TEMPLATE.format(page=page_idx), 
+                            timeout=TIMEOUT_MS, 
+                            wait_until="domcontentloaded"
                         )
-                        print("[SCRAPER] Browser-Kontext erstellt")
-                        
-                        # Neue Seite öffnen mit Fehlerbehandlung
-                        try:
-                            page = await context.new_page()
-                            print("[SCRAPER] Neue Seite geöffnet")
+                    except PwTimeout:
+                        print("   ! DOMContentLoaded Timeout – skipping page")
+                        continue
 
-                            # Netzwerk-Monitoring einrichten
-                            page.on("response", lambda resp: network_lines.append(
-                                f"{resp.status} {resp.request.method} {resp.url} [{resp.headers.get('content-type', '')}]"))
-                                
-                            # Hier beginnt der Scraping-Prozess für jede Seite
-                            all_projects = []
-                            
-                            # Durchlaufe alle Seiten und extrahiere Projekte
-                            for page_idx in pages:
-                                print(f"→ Page {page_idx}: {START_URL_TEMPLATE.format(page=page_idx)}")
-                                captured: List[Tuple[str, Any]] = []
+                    for _ in range(SCROLL_STEPS):
+                        await page.mouse.wheel(0, 4000)
+                        await asyncio.sleep(SCROLL_PAUSE)
+                    await asyncio.sleep(COLLECT_SECS)
 
-                                # Handler für API-Antworten
-                                def handle_response(resp):
-                                    if API_RE.search(resp.url) and "application/json" in resp.headers.get("content-type", ""):
-                                        async def _grab():
-                                            try:
-                                                captured.append((resp.url, await resp.json()))
-                                            except Exception:
-                                                pass
-                                        asyncio.create_task(_grab())
-                                page.on("response", handle_response)
+                    if captured:
+                        feed_url, api_json = captured[0]
+                        (DEBUG_DIR / f"api_page{page_idx}.json").write_text(
+                            json.dumps(api_json, indent=2, ensure_ascii=False), 
+                            encoding="utf-8"
+                        )
+                    else:
+                        feed_url, api_json = "n/a", {}
 
-                                # Navigiere zur Seite mit Fehlerbehandlung
-                                try:
-                                    await page.goto(
-                                        START_URL_TEMPLATE.format(page=page_idx), 
-                                        timeout=TIMEOUT_MS, 
-                                        wait_until="domcontentloaded"
-                                    )
-                                except Exception as nav_error:
-                                    print(f"   ! Navigation error: {str(nav_error)} – skipping page")
-                                    continue
-                                
-                                try:
-                                    # Scroll through the page to trigger lazy loading
-                                    for _ in range(SCROLL_STEPS):
-                                        await page.mouse.wheel(0, 4000)
-                                        await asyncio.sleep(SCROLL_PAUSE)
-                                    await asyncio.sleep(COLLECT_SECS)
-                                except Exception as scroll_error:
-                                    print(f"   ! Error during scrolling: {str(scroll_error)}")
-                                
-                                # Process captured API responses
-                                if captured:
-                                    try:
-                                        feed_url, api_json = captured[0]
-                                        (DEBUG_DIR / f"api_page{page_idx}.json").write_text(
-                                            json.dumps(api_json, indent=2, ensure_ascii=False), 
-                                            encoding="utf-8"
-                                        )
-                                    except Exception as save_error:
-                                        print(f"   ! Error saving API data: {str(save_error)}")
-                                        feed_url, api_json = "n/a", {}
-                                else:
-                                    feed_url, api_json = "n/a", {}
-                                
-                                # Extract projects from API response
-                                try:
-                                    projects: List[Dict] = []
-                                    if isinstance(api_json, dict):
-                                        for key in ("content", "data", "items", "projects", "results"):
-                                            if isinstance(api_json.get(key), list):
-                                                projects = api_json[key]
-                                                break
-                                    if not projects:
-                                        projects = find_projects_recursive(api_json)
-                                    
-                                    print(f"   {len(projects)} projects found (source: {feed_url})")
-                                    all_projects.extend(projects)
-                                except Exception as extract_error:
-                                    print(f"   ! Error extracting projects: {str(extract_error)}")
-                            
-                            # Close browser resources with proper error handling
-                            try:
-                                await page.close()
-                                print("[SCRAPER] Page closed successfully")
-                            except Exception as page_close_error:
-                                print(f"[SCRAPER] Error closing page: {str(page_close_error)}")
-                                
-                            try:
-                                await context.close()
-                                print("[SCRAPER] Context closed successfully")
-                            except Exception as context_close_error:
-                                print(f"[SCRAPER] Error closing context: {str(context_close_error)}")
-                                
-                            try:
-                                await browser.close()
-                                print("[SCRAPER] Browser closed successfully")
-                            except Exception as browser_close_error:
-                                print(f"[SCRAPER] Error closing browser: {str(browser_close_error)}")
-                                
-                            print("[SCRAPER] Browser resources released")
-                            
-                            # Process collected projects
-                            if all_projects:
-                                try:
-                                    # Verarbeite die gescrapten Projekte (Duplikaterkennung und neue Projekte identifizieren)
-                                    unique_projects, new_projects = project_manager.process_projects(all_projects)
-                                    
-                                    # Speichere die eindeutigen Projekte
-                                    OUTPUT_JSON.write_text(
-                                        json.dumps(unique_projects, indent=2, ensure_ascii=False), 
-                                        encoding="utf-8"
-                                    )
-                                    NETWORK_LOG.write_text("\n".join(network_lines), encoding="utf-8")
-                                    
-                                    print(f"✓ Scraping completed at {datetime.datetime.now().isoformat()}")
-                                    print(f"  → {len(unique_projects)} unique projects saved to {OUTPUT_JSON}")
-                                    print(f"  → {len(new_projects)} new projects found")
-                                    
-                                    # Aktualisiere den Zeitstempel des letzten Scans
-                                    last_scrape_time = datetime.datetime.now().isoformat()
-                                    
-                                    # Sende E-Mail-Benachrichtigung, wenn aktiviert und neue Projekte gefunden wurden
-                                    if email_notification_enabled and email_recipient and new_projects:
-                                        print(f"\n[SCRAPER] Versuche E-Mail-Benachrichtigung zu senden...")
-                                        if not email_service:
-                                            print(f"[SCRAPER] E-Mail-Service ist nicht initialisiert!")
-                                        else:
-                                            print(f"[SCRAPER] E-Mail-Service Status: {email_service.get_config_status().get('is_configured')}")
-                                            try:
-                                                success = email_service.send_new_projects_notification(
-                                                    recipient=email_recipient,
-                                                    new_projects=new_projects,
-                                                    scan_time=datetime.datetime.now()
-                                                )
-                                                print(f"[SCRAPER] E-Mail-Versand Ergebnis: {'Erfolgreich' if success else 'Fehlgeschlagen'}")
-                                            except Exception as e:
-                                                print(f"Error sending email notification: {str(e)}")
-                                    
-                                    return unique_projects
-                                except Exception as process_error:
-                                    print(f"[SCRAPER] Error processing projects: {str(process_error)}")
-                        except Exception as page_error:
-                            print(f"[SCRAPER] Error creating page: {str(page_error)}")
-                    except Exception as context_error:
-                        print(f"[SCRAPER] Error creating browser context: {str(context_error)}")
-                except Exception as browser_error:
-                    print(f"[SCRAPER] Error launching browser: {str(browser_error)}")
-                    
-        except Exception as pw_error:
-            print(f"[SCRAPER] Error initializing Playwright: {str(pw_error)}")
-            
-    except Exception as scraper_error:
-        print(f"[SCRAPER] General scraping error: {str(scraper_error)}")
-        import traceback
-        print(f"[SCRAPER] Traceback: {traceback.format_exc()}")
-    
-    # Bei Fehlern auf Render versuchen wir, zumindest Dummy-Daten zu laden
-    fallback_success = False
-    if IS_CLOUD_ENV and USE_REAL_SCRAPER:
-        print("[RENDER DEBUG] Error with real scraper on Render, falling back to dummy data")
-        try:
-            print("[RENDER DEBUG] Versuche Fallback mit Dummy-Daten...")
-            
-            # Erstelle ein einfaches Dummy-Projekt
-            dummy_projects = [
-                {
-                    "id": "dummy-1",
-                    "title": "Dummy Projekt 1",
-                    "description": "Dies ist ein automatisch erstelltes Dummy-Projekt für Render.",
-                    "companyName": "Dummy GmbH",
-                    "location": "Berlin",
-                    "isRemoteWorkPossible": True,
-                    "publicationDate": datetime.datetime.now().strftime("%d.%m.%Y"),
-                    "originalPublicationDate": datetime.datetime.now().isoformat(),
-                    "url": "https://www.gulp.de/"
-                },
-                {
-                    "id": "dummy-2",
-                    "title": "Dummy Projekt 2",
-                    "description": "Ein weiteres automatisch erstelltes Dummy-Projekt für Render.",
-                    "companyName": "Test AG",
-                    "location": "München",
-                    "isRemoteWorkPossible": True,
-                    "publicationDate": datetime.datetime.now().strftime("%d.%m.%Y"),
-                    "originalPublicationDate": datetime.datetime.now().isoformat(),
-                    "url": "https://www.gulp.de/"
-                }
-            ]
-            
-            # Speichere die Dummy-Projekte
-            try:
-                DATA_DIR.mkdir(exist_ok=True, parents=True)
+                    projects: List[Dict] = []
+                    if isinstance(api_json, dict):
+                        for key in ("content", "data", "items", "projects", "results"):
+                            if isinstance(api_json.get(key), list):
+                                projects = api_json[key]
+                                break
+                    if not projects:
+                        projects = find_projects_recursive(api_json)
+
+                    print(f"   {len(projects)} projects found (source: {feed_url})")
+                    all_projects.extend(projects)
+
+                await page.close()
+                await context.close()
+                await browser.close()
+                print("[SCRAPER] Browser-Ressourcen erfolgreich freigegeben")
+
+                # Verarbeite die gescrapten Projekte (Duplikaterkennung und neue Projekte identifizieren)
+                unique_projects, new_projects = project_manager.process_projects(all_projects)
+        
+                # Speichere die eindeutigen Projekte
                 OUTPUT_JSON.write_text(
-                    json.dumps(dummy_projects, indent=2, ensure_ascii=False), 
+                    json.dumps(unique_projects, indent=2, ensure_ascii=False), 
                     encoding="utf-8"
                 )
-                print(f"[RENDER DEBUG] Created dummy data file with {len(dummy_projects)} projects")
-            except Exception as save_error:
-                print(f"[RENDER DEBUG] Error saving dummy data: {str(save_error)}")
-            
-            # Verarbeite die Dummy-Projekte
-            unique_projects, new_projects = project_manager.process_projects(dummy_projects)
-            print(f"[RENDER DEBUG] Processed {len(unique_projects)} unique projects, {len(new_projects)} new")
-            
-            # Aktualisiere den Zeitstempel des letzten Scans
-            last_scrape_time = datetime.datetime.now().isoformat()
-            print(f"[RENDER DEBUG] Updated last_scrape_time to {last_scrape_time}")
-            fallback_success = True
-            
-            # Sende E-Mail-Benachrichtigung, wenn aktiviert und neue Projekte gefunden wurden
-            if email_notification_enabled and email_recipient and new_projects:
-                print(f"\n[SCRAPER] Versuche E-Mail-Benachrichtigung zu senden...")
-                if not email_service:
-                    print(f"[SCRAPER] E-Mail-Service ist nicht initialisiert!")
-                else:
-                    print(f"[SCRAPER] E-Mail-Service Status: {email_service.get_config_status().get('is_configured')}")
-                    try:
-                        success = email_service.send_new_projects_notification(
-                            recipient=email_recipient,
-                            new_projects=new_projects,
-                            scan_time=datetime.datetime.now()
-                        )
-                        print(f"[SCRAPER] E-Mail-Versand Ergebnis: {'Erfolgreich' if success else 'Fehlgeschlagen'}")
-                    except Exception as e:
-                        print(f"Error sending email notification: {str(e)}")
-            
-            return unique_projects
-        except Exception as fallback_error:
-            print(f"[RENDER DEBUG] Fallback to dummy data also failed: {str(fallback_error)}")
+                NETWORK_LOG.write_text("\n".join(network_lines), encoding="utf-8")
+
+                print(f"✓ Scraping completed at {datetime.datetime.now().isoformat()}")
+                print(f"  → {len(unique_projects)} unique projects saved to {OUTPUT_JSON}")
+                print(f"  → {len(new_projects)} new projects found")
+                
+                # Aktualisiere den Zeitstempel des letzten Scans
+                last_scrape_time = datetime.datetime.now().isoformat()
+        
+                # Sende E-Mail-Benachrichtigung, wenn aktiviert und neue Projekte gefunden wurden
+                if email_notification_enabled and email_recipient and new_projects:
+                    print(f"\n[SCRAPER] Versuche E-Mail-Benachrichtigung zu senden...")
+                    if not email_service:
+                        print(f"[SCRAPER] E-Mail-Service ist nicht initialisiert!")
+                    else:
+                        print(f"[SCRAPER] E-Mail-Service Status: {email_service.get_config_status().get('is_configured')}")
+                        try:
+                            success = email_service.send_new_projects_notification(
+                                recipient=email_recipient,
+                                new_projects=new_projects,
+                                scan_time=datetime.datetime.now()
+                            )
+                            print(f"[SCRAPER] E-Mail-Versand Ergebnis: {'Erfolgreich' if success else 'Fehlgeschlagen'}")
+                        except Exception as e:
+                            print(f"Error sending email notification: {str(e)}")
+                
+                return unique_projects
     
-    # If we reach here, we couldn't get any data
-    try:
+    except Exception as e:
+        print(f"\n[SCRAPER] Error during scraping: {str(e)}")
+        import traceback
+        print(f"[SCRAPER] Traceback: {traceback.format_exc()}")
+        
+        # Bei Fehlern auf Render versuchen wir, zumindest Dummy-Daten zu laden
+        if IS_CLOUD_ENV and USE_REAL_SCRAPER:
+            print("[RENDER DEBUG] Error with real scraper on Render, falling back to dummy data")
+            # Setze USE_REAL_SCRAPER temporär auf False und rufe die Funktion erneut auf
+            global USE_REAL_SCRAPER
+            original_use_real_scraper = USE_REAL_SCRAPER
+            USE_REAL_SCRAPER = False
+            try:
+                print("[RENDER DEBUG] Versuche Fallback mit Dummy-Daten...")
+                dummy_result = []
+                
+                # Erstelle ein einfaches Dummy-Projekt
+                dummy_projects = [
+                    {
+                        "id": "dummy-1",
+                        "title": "Dummy Projekt 1",
+                        "description": "Dies ist ein automatisch erstelltes Dummy-Projekt für Render.",
+                        "companyName": "Dummy GmbH",
+                        "location": "Berlin",
+                        "isRemoteWorkPossible": True,
+                        "publicationDate": datetime.datetime.now().strftime("%d.%m.%Y"),
+                        "originalPublicationDate": datetime.datetime.now().isoformat(),
+                        "url": "https://www.gulp.de/"
+                    },
+                    {
+                        "id": "dummy-2",
+                        "title": "Dummy Projekt 2",
+                        "description": "Ein weiteres automatisch erstelltes Dummy-Projekt für Render.",
+                        "companyName": "Test AG",
+                        "location": "München",
+                        "isRemoteWorkPossible": True,
+                        "publicationDate": datetime.datetime.now().strftime("%d.%m.%Y"),
+                        "originalPublicationDate": datetime.datetime.now().isoformat(),
+                        "url": "https://www.gulp.de/"
+                    }
+                ]
+                
+                # Speichere die Dummy-Projekte
+                try:
+                    DATA_DIR.mkdir(exist_ok=True, parents=True)
+                    OUTPUT_JSON.write_text(
+                        json.dumps(dummy_projects, indent=2, ensure_ascii=False), 
+                        encoding="utf-8"
+                    )
+                    print(f"[RENDER DEBUG] Created dummy data file with {len(dummy_projects)} projects")
+                    
+                    # Verarbeite die Dummy-Projekte
+                    unique_projects, new_projects = project_manager.process_projects(dummy_projects)
+                    print(f"[RENDER DEBUG] Processed {len(unique_projects)} unique projects, {len(new_projects)} new")
+                    
+                    # Aktualisiere den Zeitstempel des letzten Scans
+                    last_scrape_time = datetime.datetime.now().isoformat()
+                    print(f"[RENDER DEBUG] Updated last_scrape_time to {last_scrape_time}")
+                    
+                    USE_REAL_SCRAPER = original_use_real_scraper
+                    return unique_projects
+                except Exception as save_error:
+                    print(f"[RENDER DEBUG] Error saving dummy data: {str(save_error)}")
+            except Exception as fallback_error:
+                print(f"[RENDER DEBUG] Fallback to dummy data also failed: {str(fallback_error)}")
+            
+            USE_REAL_SCRAPER = original_use_real_scraper
         return []
+    
     finally:
-        # Always reset the scraping flag when done
         is_scraping = False
 
 
