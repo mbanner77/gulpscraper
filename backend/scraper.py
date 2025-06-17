@@ -93,6 +93,35 @@ project_manager = None
 scraper_logs = []
 max_log_entries = 100  # Maximale Anzahl der Log-Einträge
 
+# Pfad zur Log-Datei
+SCRAPER_LOGS_FILE = Path(data_dir_path) / "scraper_logs.json"
+
+def save_logs_to_file():
+    """
+    Speichert die Scraper-Logs in einer Datei.
+    """
+    try:
+        with open(SCRAPER_LOGS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(scraper_logs, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Fehler beim Speichern der Scraper-Logs: {str(e)}")
+
+def load_logs_from_file():
+    """
+    Lädt die Scraper-Logs aus einer Datei.
+    """
+    global scraper_logs
+    try:
+        if SCRAPER_LOGS_FILE.exists():
+            with open(SCRAPER_LOGS_FILE, 'r', encoding='utf-8') as f:
+                loaded_logs = json.load(f)
+                # Stelle sicher, dass wir eine Liste haben
+                if isinstance(loaded_logs, list):
+                    scraper_logs = loaded_logs
+                    print(f"[INFO] {len(scraper_logs)} Scraper-Logs aus Datei geladen.")
+    except Exception as e:
+        print(f"Fehler beim Laden der Scraper-Logs: {str(e)}")
+
 def log_scraper_event(event_type, message, data=None):
     """
     Fügt einen neuen Log-Eintrag zu den Scraper-Logs hinzu.
@@ -118,6 +147,9 @@ def log_scraper_event(event_type, message, data=None):
     # Begrenze die Anzahl der Log-Einträge
     if len(scraper_logs) > max_log_entries:
         scraper_logs = scraper_logs[:max_log_entries]
+    
+    # Speichere die Logs in einer Datei
+    save_logs_to_file()
 
 # ---------------------------------------------------------------------------
 # Config
@@ -516,8 +548,8 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                     except Exception as context_error:
                         log_scraper_event("error", "Error creating browser context", {
                             "error": str(context_error),
-                            "browser_type": browser_type,
-                            "browser_version": browser_version
+                            "headless": HEADLESS,
+                            "traceback": traceback.format_exc()
                         })
                 except Exception as browser_error:
                     log_scraper_event("error", "Error launching browser", {
@@ -1136,6 +1168,9 @@ async def mark_projects_seen(project_ids: List[str]):
 async def startup_event():
     """Run when the API starts up."""
     global project_manager, email_service
+    
+    # Lade gespeicherte Scraper-Logs
+    load_logs_from_file()
     
     # Initialisiere den Projekt-Manager
     project_manager = ProjectManager(DATA_DIR)
