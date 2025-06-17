@@ -93,9 +93,6 @@ project_manager = None
 scraper_logs = []
 max_log_entries = 100  # Maximale Anzahl der Log-Einträge
 
-# Pfad zur Log-Datei
-SCRAPER_LOGS_FILE = Path(data_dir_path) / "scraper_logs.json"
-
 def save_logs_to_file():
     """
     Speichert die Scraper-Logs in einer Datei.
@@ -166,6 +163,9 @@ COLLECT_SECS = 8
 # Set up data directory - use environment variable if available (for cloud environments)
 data_dir_path = os.environ.get('DATA_DIR', 'data')
 DATA_DIR = Path(data_dir_path)
+
+# Pfad zur Log-Datei
+SCRAPER_LOGS_FILE = Path(data_dir_path) / "scraper_logs.json"
 DATA_DIR.mkdir(exist_ok=True)
 OUTPUT_JSON = DATA_DIR / "gulp_projekte_raw.json"
 DEBUG_DIR = DATA_DIR / "debug"
