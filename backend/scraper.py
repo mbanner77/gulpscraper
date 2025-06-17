@@ -13,6 +13,7 @@ import json
 import re
 import os
 import datetime
+import traceback
 from pathlib import Path
 from typing import List, Dict, Tuple, Any, Optional, Union
 from pydantic import BaseModel, EmailStr
@@ -164,12 +165,12 @@ def find_projects_recursive(data: Any) -> List[Dict]:
     return found
 
 
-async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
+async def scrape_gulp(pages: range = PAGE_RANGE):
     """Run the GULP scraper and return the projects."""
     global is_scraping, last_scrape_time, last_used_dummy_data, project_manager, email_service, email_notification_enabled, email_recipient
     
     if is_scraping:
-        print("Scrape already in progress, skipping...")
+        log_scraper_event("warning", "Scraper is already running, skipping")
         return []
     
     is_scraping = True
@@ -177,9 +178,12 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
     network_lines: List[str] = []
     
     try:
-        print(f"\n[SCRAPER] Starting GULP scraper at {datetime.datetime.now().isoformat()}")
-        print(f"[SCRAPER] Using real scraper: {USE_REAL_SCRAPER}")
-        print(f"[SCRAPER] Running in cloud environment: {IS_CLOUD_ENV}")
+        log_scraper_event("info", f"Starting GULP scraper", {
+            "timestamp": datetime.datetime.now().isoformat(),
+            "use_real_scraper": USE_REAL_SCRAPER,
+            "is_cloud_env": IS_CLOUD_ENV,
+            "pages": list(pages)
+        })
         
         # Erstelle Debug-Verzeichnisse, falls sie nicht existieren
         DATA_DIR.mkdir(exist_ok=True, parents=True)
@@ -187,8 +191,10 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
         
         # Besondere Debug-Ausgabe für Render-Umgebung
         if IS_CLOUD_ENV:
-            print(f"\n[RENDER DEBUG] Starte Playwright in Cloud-Umgebung mit HEADLESS={HEADLESS}")
-            print(f"[RENDER DEBUG] Datenverzeichnis: {DATA_DIR.absolute()}")
+            log_scraper_event("info", "Starting Playwright in cloud environment", {
+                "headless": HEADLESS,
+                "data_dir": str(DATA_DIR.absolute())
+            })
             print(f"[RENDER DEBUG] Ausgabedatei existiert: {OUTPUT_JSON.exists()}")
             print(f"[RENDER DEBUG] USE_REAL_SCRAPER={USE_REAL_SCRAPER}")
             if OUTPUT_JSON.exists():
@@ -201,7 +207,7 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
         
         # Wenn USE_REAL_SCRAPER auf False gesetzt ist, verwende Dummy-Daten
         if not USE_REAL_SCRAPER:
-            print("\n[SCRAPER] USE_REAL_SCRAPER ist deaktiviert, verwende Dummy-Daten")
+            log_scraper_event("info", "USE_REAL_SCRAPER is disabled, using dummy data")
             # Setze das Flag für Dummy-Daten
             last_used_dummy_data = True
             # Erstelle 10 Dummy-Projekte
@@ -214,16 +220,31 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
                     with open(dummy_file, 'r', encoding='utf-8') as f:
                         dummy_projects = json.load(f)
                         print(f"[SCRAPER] Loaded {len(dummy_projects)} dummy projects from file")
+                        log_scraper_event("info", "Loaded dummy data from file", {
+                            "dummy_projects_count": len(dummy_projects),
+                            "dummy_file": str(dummy_file.absolute())
+                        })
                 except Exception as e:
                     print(f"[SCRAPER] Error loading dummy data: {str(e)}")
+                    log_scraper_event("error", "Error loading dummy data", {
+                        "error": str(e),
+                        "dummy_file": str(dummy_file.absolute())
+                    })
             
             # Wenn keine Dummy-Daten geladen werden konnten, erstelle neue
             if not dummy_projects:
                 print("[SCRAPER] Creating new dummy projects")
                 dummy_projects = create_dummy_projects()
+                log_scraper_event("info", "Created new dummy projects", {
+                    "dummy_projects_count": len(dummy_projects)
+                })
                 
             # Verarbeite die Dummy-Projekte
             unique_projects, new_projects = project_manager.process_projects(dummy_projects)
+            log_scraper_event("success", "Dummy data processing completed", {
+                "unique_projects_count": len(unique_projects),
+                "new_projects_count": len(new_projects)
+            })
             
             # Aktualisiere den Zeitstempel des letzten Scans
             last_scrape_time = datetime.datetime.now().isoformat()
@@ -252,12 +273,15 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
                             user_agent=USER_AGENT, 
                             viewport={"width": 1280, "height": 900}
                         )
-                        print("[SCRAPER] Browser-Kontext erstellt")
+                        log_scraper_event("info", "Browser context created", {
+                            "user_agent": USER_AGENT,
+                            "viewport": {"width": 1280, "height": 900}
+                        })
                         
                         # Neue Seite öffnen mit Fehlerbehandlung
                         try:
                             page = await context.new_page()
-                            print("[SCRAPER] Neue Seite geöffnet")
+                            log_scraper_event("info", "New page opened")
 
                             # Netzwerk-Monitoring einrichten
                             page.on("response", lambda resp: network_lines.append(
@@ -268,7 +292,10 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
                             
                             # Durchlaufe alle Seiten und extrahiere Projekte
                             for page_idx in pages:
-                                print(f"→ Page {page_idx}: {START_URL_TEMPLATE.format(page=page_idx)}")
+                                current_url = START_URL_TEMPLATE.format(page=page_idx)
+                                log_scraper_event("info", f"Navigating to page {page_idx}", {
+                                    "url": current_url
+                                })
                                 captured: List[Tuple[str, Any]] = []
 
                                 # Handler für API-Antworten
@@ -284,34 +311,49 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
 
                                 # Navigiere zur Seite mit Fehlerbehandlung
                                 try:
-                                    await page.goto(
-                                        START_URL_TEMPLATE.format(page=page_idx), 
-                                        timeout=TIMEOUT_MS, 
-                                        wait_until="domcontentloaded"
-                                    )
+                                    await page.goto(current_url)
+                                    log_scraper_event("info", f"Successfully navigated to page {page_idx}")
                                 except Exception as nav_error:
-                                    print(f"   ! Navigation error: {str(nav_error)} – skipping page")
+                                    log_scraper_event("error", f"Navigation error on page {page_idx}", {
+                                        "error": str(nav_error),
+                                        "url": current_url
+                                    })
                                     continue
                                 
                                 try:
                                     # Scroll through the page to trigger lazy loading
-                                    for _ in range(SCROLL_STEPS):
+                                    log_scraper_event("info", f"Scrolling page {page_idx} to trigger lazy loading", {
+                                        "scroll_steps": SCROLL_STEPS,
+                                        "scroll_pause": SCROLL_PAUSE,
+                                        "collect_seconds": COLLECT_SECS
+                                    })
+                                    for step in range(SCROLL_STEPS):
                                         await page.mouse.wheel(0, 4000)
                                         await asyncio.sleep(SCROLL_PAUSE)
                                     await asyncio.sleep(COLLECT_SECS)
                                 except Exception as scroll_error:
-                                    print(f"   ! Error during scrolling: {str(scroll_error)}")
+                                    log_scraper_event("error", f"Error during scrolling on page {page_idx}", {
+                                        "error": str(scroll_error)
+                                    })
                                 
                                 # Process captured API responses
                                 if captured:
                                     try:
                                         feed_url, api_json = captured[0]
-                                        (DEBUG_DIR / f"api_page{page_idx}.json").write_text(
+                                        debug_file = DEBUG_DIR / f"api_page{page_idx}.json"
+                                        (debug_file).write_text(
                                             json.dumps(api_json, indent=2, ensure_ascii=False), 
                                             encoding="utf-8"
                                         )
+                                        log_scraper_event("info", f"Captured API data from page {page_idx}", {
+                                            "feed_url": feed_url,
+                                            "debug_file": str(debug_file),
+                                            "response_size": len(json.dumps(api_json))
+                                        })
                                     except Exception as save_error:
-                                        print(f"   ! Error saving API data: {str(save_error)}")
+                                        log_scraper_event("error", f"Error saving API data for page {page_idx}", {
+                                            "error": str(save_error)
+                                        })
                                         feed_url, api_json = "n/a", {}
                                 else:
                                     feed_url, api_json = "n/a", {}
@@ -327,36 +369,51 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
                                     if not projects:
                                         projects = find_projects_recursive(api_json)
                                     
-                                    print(f"   {len(projects)} projects found (source: {feed_url})")
+                                    log_scraper_event("info", f"Projects extracted from page {page_idx}", {
+                                        "count": len(projects),
+                                        "source": feed_url
+                                    })
                                     all_projects.extend(projects)
                                 except Exception as extract_error:
-                                    print(f"   ! Error extracting projects: {str(extract_error)}")
+                                    log_scraper_event("error", f"Error extracting projects from page {page_idx}", {
+                                        "error": str(extract_error),
+                                        "source": feed_url
+                                    })
                             
                             # Close browser resources with proper error handling
                             try:
                                 await page.close()
-                                print("[SCRAPER] Page closed successfully")
+                                log_scraper_event("info", "Page closed successfully")
                             except Exception as page_close_error:
-                                print(f"[SCRAPER] Error closing page: {str(page_close_error)}")
+                                log_scraper_event("warning", "Error closing page", {
+                                    "error": str(page_close_error)
+                                })
                                 
                             try:
                                 await context.close()
-                                print("[SCRAPER] Context closed successfully")
+                                log_scraper_event("info", "Browser context closed successfully")
                             except Exception as context_close_error:
-                                print(f"[SCRAPER] Error closing context: {str(context_close_error)}")
+                                log_scraper_event("warning", "Error closing browser context", {
+                                    "error": str(context_close_error)
+                                })
                                 
                             try:
                                 await browser.close()
-                                print("[SCRAPER] Browser closed successfully")
+                                log_scraper_event("info", "Browser closed successfully")
                             except Exception as browser_close_error:
-                                print(f"[SCRAPER] Error closing browser: {str(browser_close_error)}")
+                                log_scraper_event("warning", "Error closing browser", {
+                                    "error": str(browser_close_error)
+                                })
                                 
-                            print("[SCRAPER] Browser resources released")
+                            log_scraper_event("info", "Browser resources released")
                             
                             # Process collected projects
                             if all_projects:
                                 try:
                                     # Verarbeite die gescrapten Projekte (Duplikaterkennung und neue Projekte identifizieren)
+                                    log_scraper_event("info", "Processing scraped projects", {
+                                        "total_projects_found": len(all_projects)
+                                    })
                                     unique_projects, new_projects = project_manager.process_projects(all_projects)
                                     
                                     # Speichere die eindeutigen Projekte
@@ -366,47 +423,85 @@ async def scrape_gulp(pages: range = PAGE_RANGE) -> List[Dict]:
                                     )
                                     NETWORK_LOG.write_text("\n".join(network_lines), encoding="utf-8")
                                     
-                                    print(f"✓ Scraping completed at {datetime.datetime.now().isoformat()}")
-                                    print(f"  → {len(unique_projects)} unique projects saved to {OUTPUT_JSON}")
-                                    print(f"  → {len(new_projects)} new projects found")
+                                    log_scraper_event("success", "Scraping completed successfully", {
+                                        "completion_time": datetime.datetime.now().isoformat(),
+                                        "unique_projects_count": len(unique_projects),
+                                        "new_projects_count": len(new_projects),
+                                        "output_file": str(OUTPUT_JSON)
+                                    })
                                     
                                     # Aktualisiere den Zeitstempel des letzten Scans
                                     last_scrape_time = datetime.datetime.now().isoformat()
                                     
                                     # Sende E-Mail-Benachrichtigung, wenn aktiviert und neue Projekte gefunden wurden
                                     if email_notification_enabled and email_recipient and new_projects:
-                                        print(f"\n[SCRAPER] Versuche E-Mail-Benachrichtigung zu senden...")
+                                        log_scraper_event("info", "Attempting to send email notification", {
+                                            "recipient": email_recipient,
+                                            "new_projects_count": len(new_projects)
+                                        })
+                                        
                                         if not email_service:
-                                            print(f"[SCRAPER] E-Mail-Service ist nicht initialisiert!")
+                                            log_scraper_event("error", "Email service is not initialized")
                                         else:
-                                            print(f"[SCRAPER] E-Mail-Service Status: {email_service.get_config_status().get('is_configured')}")
+                                            email_config_status = email_service.get_config_status()
+                                            log_scraper_event("info", "Email service status", {
+                                                "is_configured": email_config_status.get('is_configured'),
+                                                "smtp_server": email_config_status.get('smtp_server'),
+                                                "smtp_port": email_config_status.get('smtp_port')
+                                            })
                                             try:
                                                 success = email_service.send_new_projects_notification(
                                                     recipient=email_recipient,
                                                     new_projects=new_projects,
                                                     scan_time=datetime.datetime.now()
                                                 )
-                                                print(f"[SCRAPER] E-Mail-Versand Ergebnis: {'Erfolgreich' if success else 'Fehlgeschlagen'}")
+                                                log_scraper_event("success" if success else "warning", "Email notification result", {
+                                                    "success": success,
+                                                    "recipient": email_recipient,
+                                                    "new_projects_count": len(new_projects)
+                                                })
                                             except Exception as e:
-                                                print(f"Error sending email notification: {str(e)}")
+                                                log_scraper_event("error", "Error sending email notification", {
+                                                    "error": str(e),
+                                                    "recipient": email_recipient
+                                                })
                                     
                                     return unique_projects
                                 except Exception as process_error:
-                                    print(f"[SCRAPER] Error processing projects: {str(process_error)}")
+                                    log_scraper_event("error", "Error processing projects", {
+                                        "error": str(process_error),
+                                        "projects_count": len(all_projects) if all_projects else 0
+                                    })
                         except Exception as page_error:
-                            print(f"[SCRAPER] Error creating page: {str(page_error)}")
+                            log_scraper_event("error", "Error creating page", {
+                                "error": str(page_error),
+                                "page_url": current_url,
+                                "page_index": page_idx
+                            })
                     except Exception as context_error:
-                        print(f"[SCRAPER] Error creating browser context: {str(context_error)}")
+                        log_scraper_event("error", "Error creating browser context", {
+                            "error": str(context_error),
+                            "browser_type": browser_type,
+                            "browser_version": browser_version
+                        })
                 except Exception as browser_error:
-                    print(f"[SCRAPER] Error launching browser: {str(browser_error)}")
+                    log_scraper_event("error", "Error launching browser", {
+                        "error": str(browser_error),
+                        "browser_type": browser_type,
+                        "browser_version": browser_version
+                    })
                     
         except Exception as pw_error:
-            print(f"[SCRAPER] Error initializing Playwright: {str(pw_error)}")
+            log_scraper_event("error", "Error initializing Playwright", {
+                "error": str(pw_error),
+                "playwright_version": playwright_version
+            })
             
     except Exception as scraper_error:
-        print(f"[SCRAPER] General scraping error: {str(scraper_error)}")
-        import traceback
-        print(f"[SCRAPER] Traceback: {traceback.format_exc()}")
+        log_scraper_event("error", "General scraping error", {
+            "error": str(scraper_error),
+            "traceback": traceback.format_exc()
+        })
     
     # Bei Fehlern auf Render versuchen wir, zumindest Dummy-Daten zu laden
     fallback_success = False
@@ -860,6 +955,17 @@ async def get_status():
         "archive": {
             "count": project_manager.get_archive_count()
         }
+    }
+
+
+@app.get("/api/scraper-logs", tags=["scraper"])
+async def get_scraper_logs():
+    """
+    Get the detailed scraper logs for the detailed view
+    """
+    return {
+        "logs": scraper_logs,
+        "count": len(scraper_logs)
     }
 
 

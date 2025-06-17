@@ -121,6 +121,17 @@ export const getNewProjects = async () => {
   }
 };
 
+// Get detailed scraper logs
+export const getScraperLogs = async () => {
+  try {
+    const response = await api.get('/api/scraper-logs');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching scraper logs:', error);
+    throw error;
+  }
+};
+
 // Mark projects as seen
 export const markProjectsAsSeen = async (projectIds) => {
   try {

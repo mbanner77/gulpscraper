@@ -12,11 +12,15 @@ import {
   Grid,
   Card,
   CardContent,
-  Chip
+  Chip,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import { triggerScrape, getScraperStatus } from '../services/api';
+import ScraperDetailsDialog from './ScraperDetailsDialog';
 
 const ScraperControl = () => {
   const [status, setStatus] = useState({
@@ -35,6 +39,7 @@ const ScraperControl = () => {
   });
   
   const [loading, setLoading] = useState(true);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [sendEmail, setSendEmail] = useState(false);
@@ -308,21 +313,38 @@ const ScraperControl = () => {
                     )}
                   </Box>
                   
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    startIcon={status.is_scraping ? <CircularProgress size={20} color="inherit" /> : <RefreshIcon />}
-                    endIcon={sendEmail && status.email_notification.configured ? <MailOutlineIcon /> : null}
-                    onClick={handleStartScrape}
-                    disabled={status.is_scraping}
-                    fullWidth
-                  >
-                    {status.is_scraping ? 'Scraper läuft...' : 'Scraper starten'}
-                  </Button>
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      startIcon={status.is_scraping ? <CircularProgress size={20} color="inherit" /> : <RefreshIcon />}
+                      endIcon={sendEmail && status.email_notification.configured ? <MailOutlineIcon /> : null}
+                      onClick={handleStartScrape}
+                      disabled={status.is_scraping}
+                      fullWidth
+                    >
+                      {status.is_scraping ? 'Scraper läuft...' : 'Scraper starten'}
+                    </Button>
+                    <Tooltip title="Scraper Details anzeigen">
+                      <IconButton 
+                        color="primary" 
+                        onClick={() => setDetailsDialogOpen(true)}
+                        sx={{ border: '1px solid', borderColor: 'divider' }}
+                      >
+                        <VisibilityIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
                 </CardContent>
               </Card>
             </Grid>
           </Grid>
+          
+          {/* Scraper Details Dialog */}
+          <ScraperDetailsDialog 
+            open={detailsDialogOpen} 
+            onClose={() => setDetailsDialogOpen(false)} 
+          />
         </>
       )}
     </Paper>
