@@ -52,10 +52,10 @@ IS_CLOUD_ENV = os.environ.get('RENDER', False) or os.environ.get('CLOUD_ENV', Fa
 # Determine if we should use the real scraper (default: True)
 USE_REAL_SCRAPER = os.environ.get('USE_REAL_SCRAPER', 'True').lower() in ('true', '1', 't')
 
-# Auf Render setzen wir USE_REAL_SCRAPER auf False, wenn nicht explizit angegeben
+# Auf Render verwenden wir standardmäßig den echten Scraper, außer wenn explizit deaktiviert
 if IS_CLOUD_ENV and 'USE_REAL_SCRAPER' not in os.environ:
-    print("[RENDER CONFIG] Setze USE_REAL_SCRAPER=False für Render-Umgebung (Standard-Fallback)")
-    USE_REAL_SCRAPER = False
+    print("[RENDER CONFIG] Setze USE_REAL_SCRAPER=True für Render-Umgebung (Standard)")
+    USE_REAL_SCRAPER = True
 
 # Initialize FastAPI app
 app = FastAPI(
