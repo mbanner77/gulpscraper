@@ -5,6 +5,7 @@
 pip install -r requirements.txt
 
 # Playwright installieren und Browser herunterladen
+pip install playwright
 playwright install chromium
 
 # Verzeichnisse erstellen

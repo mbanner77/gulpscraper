@@ -3488,5 +3488,77 @@
     "active": null,
     "projectKey": null,
     "isRemoteWorkPossible": true
+  },
+  {
+    "id": "C01150946",
+    "idInIndex": "C01150946",
+    "type": "AGENCY",
+    "title": "Cutover Manager for ERP implementation (m/f/d)",
+    "location": "Flensburg",
+    "description": "Our client from the energy sector is looking for a Cutover Manager (m/f/d) asap for the implementation of an ERP system - Business Central (formerly Microsoft). Start date: Asap Duration: 4 months - option to extend Location: Flensburg &amp; Hamburg + remote Workload: 3-5 days depending on project phase\n\nPlanning Cutover Strategy Creation Cutover Runbook (detailed planning) Coordination &amp; Communication Go-Live Support Hypercare Phase Knowledge Energy sector Multiple project experience as Cutover...",
+    "companyName": null,
+    "companyLogoUrl": "",
+    "url": "https://www.gulp.de/gulp2/g/projekte/agentur/C01150946",
+    "applicationDate": null,
+    "originalPublicationDate": "2025-06-16T16:00:24.196",
+    "startDate": "30.06.2025",
+    "favorite": null,
+    "hidden": null,
+    "memoText": null,
+    "duration": null,
+    "skills": [
+      "Knowledge of the energy sector Multiple project experience as Cutover Manager Knowledge of Business Central (formerly Navision) Regular on-site availability"
+    ],
+    "active": null,
+    "projectKey": null,
+    "isRemoteWorkPossible": false
+  },
+  {
+    "id": "C01150911",
+    "idInIndex": "C01150911",
+    "type": "AGENCY",
+    "title": "Marketing Consultant (m/f/d)",
+    "location": "Cologne",
+    "description": "The aim of the project is the strategic further development and content development of @o2cando's social media channels through comprehensive advice on editorial planning, creator selection and the conception of new formats and campaigns. Remote 100% possible (However, we are always happy to receive visits to one of the three major locations. Hamburg, Düsseldorf or Munich therefore an advantage) Part-time: Scope - 30 PT per quarter In order for us to consider your application, please answer the following...",
+    "companyName": null,
+    "companyLogoUrl": "",
+    "url": "https://www.gulp.de/gulp2/g/projekte/agentur/C01150911",
+    "applicationDate": null,
+    "originalPublicationDate": "2025-06-16T16:00:24.168",
+    "startDate": "01.07.2025",
+    "favorite": null,
+    "hidden": null,
+    "memoText": null,
+    "duration": null,
+    "skills": [
+      "Must-Have Skills: Sprinklr Social Media Marketing Content Creation Digital Marketing Data Analysis Facebook Business Manager English German Requirements: Proven experience in the strategic development of social media channels for premium brands Confident use of analysis tools such as Facebook Business Manager and Sprinklr Expertise in the creation of editorial plans and the development of marketing concepts In-depth knowledge of creator and influencer marketing, including the selection of suitable personalities and the creation of briefings Experience in operating relevant platforms such as Facebook, Instagram, Youtube, TikTok and Threads with suitable content Ability to analyze advertising media and continuously measure the success of social media activities Basic project management skills to monitor timings, budgets and quality"
+    ],
+    "active": null,
+    "projectKey": null,
+    "isRemoteWorkPossible": true
+  },
+  {
+    "id": "C01150877",
+    "idInIndex": "C01150877",
+    "type": "AGENCY",
+    "title": "Cloud Data Engineer (m/f/d) 100% Remote",
+    "location": "Bonn",
+    "description": "-\n\nParticipate in architectural discussions and workshops with customers, understand their business and technical requirements to create the desired technical architectures and solutions on Cloud around data engineering, data lakes, data lakehouses, BI and ML/AI. Perform requirements scoping exercises with project and use case stakeholders. Translate requirements into desired technical solution design. Carry out PoCs, prototypes and build MVPs for new innovative solutions and technology scouting...",
+    "companyName": null,
+    "companyLogoUrl": "",
+    "url": "https://www.gulp.de/gulp2/g/projekte/agentur/C01150877",
+    "applicationDate": null,
+    "originalPublicationDate": "2025-06-16T15:00:25.785",
+    "startDate": "23.06.2025",
+    "favorite": null,
+    "hidden": null,
+    "memoText": null,
+    "duration": null,
+    "skills": [
+      "Multi-year experience working (&gt;6 years) in a data engineer or software developer role previously and/or demonstrable involvements in / contributions to open-source projects. Practical experience in Python and preferably in other programming languages like Scala, Java Strong architecture and implementation experience in 3 or more of following Azure Data Services : ADLS Gen2, Azure Data Factory, Azure Databricks, Cosmos DB, Synapse Serverless or Synapse Dedicated SQL Pool, Azure Data Explorer, Stream Analytics, etc. Demonstrable experience using two or more of following Big Data Technologies and frameworks: HDFS/S3/ADLS Gen2/GCS, Apache Spark/EMR/Dataproc, Delta Lake/Iceberg, Flink, Hive/Impala, Presto/Drill, etc. Know-how and experience in performance tuning of distributed applications specifically with optimizing the big data (spark, delta lake, SQL) jobs, etc. Proficient with streaming technologies like kafka, spark structured streaming, Flink or equivalent cloud services like Azure EventHub, Azure Streaming Analytics, Confluent, etc. Comfortable understanding and writing complex SQLs in Data Analytics projects. Good know-how of cloud computing concepts and of Azure cloud platform, networking, security and monitoring aspects. Hands-on experience in using and applying IAC, CICD and DevOps practices in real Data Analytics projects, preferably using Azure DevOps and Terraform. Awareness of best practices for selecting a component mix of managed services (e. g. ADF, Databricks, Synapse, etc.) and open source components. Ability to assess pros and cons of architecture variations (e. g. Databricks vs Snowflake vs MS Fabric, Synapse vs MS Fabric Lakehouse, Spark Streaming vs Flink, Databricks vs open-source Spark, ...). Good Knowledge of MS Power BI Knowledge of Microsoft Fabric and will be added advantage. Ability to manage and control Platform Cost. Experience in customer facing role managing business stakeholders, map their requirements to suitable technical architectures, perform professional requirements management. Ability to work effectively independently as well as in a team environment."
+    ],
+    "active": null,
+    "projectKey": null,
+    "isRemoteWorkPossible": true
   }
 ]

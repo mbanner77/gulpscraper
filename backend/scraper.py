@@ -522,14 +522,14 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                 except Exception as browser_error:
                     log_scraper_event("error", "Error launching browser", {
                         "error": str(browser_error),
-                        "browser_type": browser_type,
-                        "browser_version": browser_version
+                        "headless": HEADLESS,
+                        "timeout": TIMEOUT_MS
                     })
                     
         except Exception as pw_error:
             log_scraper_event("error", "Error initializing Playwright", {
                 "error": str(pw_error),
-                "playwright_version": playwright_version
+                "traceback": traceback.format_exc()
             })
             
     except Exception as scraper_error:
