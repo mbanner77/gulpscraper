@@ -89,6 +89,36 @@ app.include_router(email_router, prefix="/api/email", tags=["email"])
 email_service = None
 project_manager = None
 
+# Globale Variable für Scraper-Logs
+scraper_logs = []
+max_log_entries = 100  # Maximale Anzahl der Log-Einträge
+
+def log_scraper_event(event_type, message, data=None):
+    """
+    Fügt einen neuen Log-Eintrag zu den Scraper-Logs hinzu.
+    
+    Args:
+        event_type (str): Art des Events (info, warning, error, success)
+        message (str): Nachricht für das Log
+        data (dict, optional): Zusätzliche Daten zum Event
+    """
+    global scraper_logs, max_log_entries
+    
+    # Erstelle einen neuen Log-Eintrag
+    log_entry = {
+        "event_type": event_type,
+        "message": message,
+        "timestamp": datetime.datetime.now().isoformat(),
+        "data": data
+    }
+    
+    # Füge den Eintrag am Anfang der Liste hinzu (neueste zuerst)
+    scraper_logs.insert(0, log_entry)
+    
+    # Begrenze die Anzahl der Log-Einträge
+    if len(scraper_logs) > max_log_entries:
+        scraper_logs = scraper_logs[:max_log_entries]
+
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
@@ -252,6 +282,11 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
             return unique_projects
         
         # Ab hier beginnt der echte Scraper mit Playwright
+        # Browser-Konfiguration für Playwright
+        launch_options = {
+            "headless": HEADLESS,
+            "timeout": TIMEOUT_MS
+        }
         print(f"[SCRAPER] Launching browser with options: {launch_options}")
         
         # Setze das Flag für echte Daten (wird auf True gesetzt, wenn wir auf Dummy-Daten zurückfallen)
