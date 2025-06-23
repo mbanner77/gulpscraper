@@ -1,6 +1,61 @@
 [
   {
     "event_type": "error",
+    "message": "Error launching browser",
+    "timestamp": "2025-06-23T14:00:01.804083",
+    "data": {
+      "error": "'str' object is not callable",
+      "headless": true,
+      "timeout": 45000
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Starte Browser",
+    "timestamp": "2025-06-23T14:00:00.980548",
+    "data": {
+      "launch_options": {
+        "headless": true,
+        "timeout": 45000
+      },
+      "executable_path": "/Users/mbanner/Library/Caches/ms-playwright/chromium-1097/chrome-mac/Chromium.app/Contents/MacOS/Chromium"
+    }
+  },
+  {
+    "event_type": "success",
+    "message": "Playwright erfolgreich initialisiert",
+    "timestamp": "2025-06-23T14:00:00.979103",
+    "data": {
+      "chromium_executable": "/Users/mbanner/CascadeProjects/gulp-job-app/.venv/bin/playwright/driver/package/chromium/chrome-linux/chrome"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Initialisiere Playwright",
+    "timestamp": "2025-06-23T14:00:00.003232",
+    "data": {
+      "headless": true,
+      "timeout": 45000,
+      "is_cloud_env": false
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Starting GULP scraper",
+    "timestamp": "2025-06-23T14:00:00.000683",
+    "data": {
+      "timestamp": "2025-06-23T14:00:00.000678",
+      "use_real_scraper": true,
+      "is_cloud_env": false,
+      "pages": [
+        1,
+        2,
+        3
+      ]
+    }
+  },
+  {
+    "event_type": "error",
     "message": "Error initializing Playwright",
     "timestamp": "2025-06-23T10:00:00.932712",
     "data": {
