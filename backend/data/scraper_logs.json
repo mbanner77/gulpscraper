@@ -1,5 +1,269 @@
 [
   {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-23T07:00:00.001006",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-22T03:00:00.000825",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-20T18:00:00.001719",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-20T04:00:00.002453",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-19T03:00:00.001643",
+    "data": null
+  },
+  {
+    "event_type": "success",
+    "message": "Email notification result",
+    "timestamp": "2025-06-18T01:00:43.761632",
+    "data": {
+      "success": true,
+      "recipient": "m.banner@realcore.de",
+      "new_projects_count": 5
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Email service status",
+    "timestamp": "2025-06-18T01:00:43.048978",
+    "data": {
+      "is_configured": true,
+      "smtp_server": null,
+      "smtp_port": 465
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Attempting to send email notification",
+    "timestamp": "2025-06-18T01:00:43.047667",
+    "data": {
+      "recipient": "m.banner@realcore.de",
+      "new_projects_count": 5
+    }
+  },
+  {
+    "event_type": "success",
+    "message": "Scraping completed successfully",
+    "timestamp": "2025-06-18T01:00:43.046796",
+    "data": {
+      "completion_time": "2025-06-18T01:00:43.046781",
+      "unique_projects_count": 60,
+      "new_projects_count": 5,
+      "output_file": "data/gulp_projekte_raw.json"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Processing scraped projects",
+    "timestamp": "2025-06-18T01:00:42.996082",
+    "data": {
+      "total_projects_found": 60
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Browser resources released",
+    "timestamp": "2025-06-18T01:00:42.989252",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Browser closed successfully",
+    "timestamp": "2025-06-18T01:00:42.988311",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Browser context closed successfully",
+    "timestamp": "2025-06-18T01:00:42.920952",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Page closed successfully",
+    "timestamp": "2025-06-18T01:00:42.894244",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Projects extracted from page 3",
+    "timestamp": "2025-06-18T01:00:42.848993",
+    "data": {
+      "count": 20,
+      "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Captured API data from page 3",
+    "timestamp": "2025-06-18T01:00:42.847544",
+    "data": {
+      "feed_url": "https://www.gulp.de/gulp2/rest/internal/projects/search",
+      "debug_file": "data/debug/api_page3.json",
+      "response_size": 25079
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Scrolling page 3 to trigger lazy loading",
+    "timestamp": "2025-06-18T01:00:29.737653",
+    "data": {
+      "scroll_steps": 6,
+      "scroll_pause": 0.8,
+      "collect_seconds": 8
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Successfully navigated to page 3",
+    "timestamp": "2025-06-18T01:00:29.736663",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Navigating to page 3",
+    "timestamp": "2025-06-18T01:00:29.514959",
+    "data": {
+      "url": "https://www.gulp.de/gulp2/g/projekte?page=3"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Projects extracted from page 2",
+    "timestamp": "2025-06-18T01:00:29.513885",
+    "data": {
+      "count": 20,
+      "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Captured API data from page 2",
+    "timestamp": "2025-06-18T01:00:29.512800",
+    "data": {
+      "feed_url": "https://www.gulp.de/gulp2/rest/internal/projects/search",
+      "debug_file": "data/debug/api_page2.json",
+      "response_size": 27858
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Scrolling page 2 to trigger lazy loading",
+    "timestamp": "2025-06-18T01:00:16.490301",
+    "data": {
+      "scroll_steps": 6,
+      "scroll_pause": 0.8,
+      "collect_seconds": 8
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Successfully navigated to page 2",
+    "timestamp": "2025-06-18T01:00:16.489453",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Navigating to page 2",
+    "timestamp": "2025-06-18T01:00:16.226720",
+    "data": {
+      "url": "https://www.gulp.de/gulp2/g/projekte?page=2"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Projects extracted from page 1",
+    "timestamp": "2025-06-18T01:00:16.224290",
+    "data": {
+      "count": 20,
+      "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Captured API data from page 1",
+    "timestamp": "2025-06-18T01:00:16.223629",
+    "data": {
+      "feed_url": "https://www.gulp.de/gulp2/rest/internal/projects/search",
+      "debug_file": "data/debug/api_page1.json",
+      "response_size": 25778
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Scrolling page 1 to trigger lazy loading",
+    "timestamp": "2025-06-18T01:00:03.191211",
+    "data": {
+      "scroll_steps": 6,
+      "scroll_pause": 0.8,
+      "collect_seconds": 8
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Successfully navigated to page 1",
+    "timestamp": "2025-06-18T01:00:03.190260",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Navigating to page 1",
+    "timestamp": "2025-06-18T01:00:02.455559",
+    "data": {
+      "url": "https://www.gulp.de/gulp2/g/projekte?page=1"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "New page opened",
+    "timestamp": "2025-06-18T01:00:02.445300",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Browser context created",
+    "timestamp": "2025-06-18T01:00:01.645192",
+    "data": {
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      }
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Starting GULP scraper",
+    "timestamp": "2025-06-18T01:00:00.000976",
+    "data": {
+      "timestamp": "2025-06-18T01:00:00.000970",
+      "use_real_scraper": true,
+      "is_cloud_env": false,
+      "pages": [
+        1,
+        2,
+        3
+      ]
+    }
+  },
+  {
     "event_type": "success",
     "message": "Email notification result",
     "timestamp": "2025-06-17T17:00:43.000516",
