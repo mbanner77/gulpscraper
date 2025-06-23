@@ -420,8 +420,9 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                             log_scraper_event("info", "New page opened")
 
                             # Netzwerk-Monitoring einrichten
-                            page.on("response", lambda resp: network_lines.append(
-                                f"{resp.status} {resp.request.method} {resp.url} [{resp.headers.get('content-type', '')}]"))
+                            async def network_monitor(resp):
+                                network_lines.append(f"{resp.status} {resp.request.method} {resp.url} [{resp.headers.get('content-type', '')}]")
+                            page.on("response", network_monitor)
                                 
                             # Hier beginnt der Scraping-Prozess für jede Seite
                             all_projects = []
@@ -435,14 +436,16 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                                 captured: List[Tuple[str, Any]] = []
 
                                 # Handler für API-Antworten
-                                def handle_response(resp):
+                                async def handle_response(resp):
                                     if API_RE.search(resp.url) and "application/json" in resp.headers.get("content-type", ""):
-                                        async def _grab():
-                                            try:
-                                                captured.append((resp.url, await resp.json()))
-                                            except Exception:
-                                                pass
-                                        asyncio.create_task(_grab())
+                                        try:
+                                            json_data = await resp.json()
+                                            captured.append((resp.url, json_data))
+                                        except Exception as e:
+                                            log_scraper_event("warning", "Error capturing API response", {
+                                                "url": resp.url,
+                                                "error": str(e)
+                                            })
                                 page.on("response", handle_response)
 
                                 # Navigiere zur Seite mit Fehlerbehandlung
