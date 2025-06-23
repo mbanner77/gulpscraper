@@ -357,7 +357,7 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                                     import subprocess
                                     try:
                                         result = subprocess.run(
-                                            [sys.executable, "-m", "playwright", "install", "chromium", "--with-deps"],
+                                            [sys.executable, "-m", "playwright", "install", "chromium"],
                                             capture_output=True,
                                             text=True,
                                             check=True
