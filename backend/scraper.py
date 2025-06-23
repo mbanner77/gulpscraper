@@ -341,9 +341,43 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                 
                 # Browser starten mit verbesserter Fehlerbehandlung
                 try:
+                    # Überprüfe, ob der Browser-Executable existiert
+                    executable_path = None
+                    try:
+                        if hasattr(pw.chromium, "executable_path"):
+                            executable_path = str(pw.chromium.executable_path)
+                            # Überprüfe, ob die Datei existiert
+                            if not Path(executable_path).exists():
+                                log_scraper_event("warning", "Chromium executable nicht gefunden", {
+                                    "path": executable_path
+                                })
+                                # Versuche, Playwright-Browser zu installieren
+                                if IS_CLOUD_ENV:
+                                    log_scraper_event("info", "Versuche Playwright-Browser zu installieren")
+                                    import subprocess
+                                    try:
+                                        result = subprocess.run(
+                                            [sys.executable, "-m", "playwright", "install", "chromium", "--with-deps"],
+                                            capture_output=True,
+                                            text=True,
+                                            check=True
+                                        )
+                                        log_scraper_event("success", "Playwright-Browser installiert", {
+                                            "stdout": result.stdout,
+                                            "stderr": result.stderr
+                                        })
+                                    except subprocess.CalledProcessError as e:
+                                        log_scraper_event("error", "Fehler bei der Installation des Playwright-Browsers", {
+                                            "stdout": e.stdout,
+                                            "stderr": e.stderr,
+                                            "returncode": e.returncode
+                                        })
+                    except Exception as path_error:
+                        log_scraper_event("warning", "Fehler beim Überprüfen des Browser-Pfads", {"error": str(path_error)})
+                    
                     log_scraper_event("info", "Starte Browser", {
                         "launch_options": launch_options,
-                        "executable_path": str(pw.chromium.executable_path) if hasattr(pw.chromium, "executable_path") else "unknown"
+                        "executable_path": executable_path or "unknown"
                     })
                     
                     # Versuche den Browser zu starten
