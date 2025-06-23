@@ -326,13 +326,37 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
         
         # Initialisiere Playwright mit vollständiger Fehlerbehandlung
         try:
+            log_scraper_event("info", "Initialisiere Playwright", {
+                "headless": HEADLESS,
+                "timeout": TIMEOUT_MS,
+                "is_cloud_env": IS_CLOUD_ENV
+            })
+            
             async with async_playwright() as pw:
                 print("[SCRAPER] Playwright erfolgreich initialisiert")
+                log_scraper_event("success", "Playwright erfolgreich initialisiert", {
+                    "chromium_executable": str(Path(sys.executable).parent / "playwright" / "driver" / "package" / "chromium" / "chrome-linux" / "chrome")
+                })
                 
                 # Browser starten mit verbesserter Fehlerbehandlung
                 try:
+                    log_scraper_event("info", "Starte Browser", {
+                        "launch_options": launch_options,
+                        "executable_path": str(pw.chromium.executable_path) if hasattr(pw.chromium, "executable_path") else "unknown"
+                    })
+                    
+                    # Versuche den Browser zu starten
                     browser = await pw.chromium.launch(**launch_options)
+                    
+                    # Log Browser-Version und andere Infos
+                    version = await browser.version()
+                    user_agent = await browser.new_context().then(lambda context: context.new_page()).then(lambda page: page.evaluate("navigator.userAgent"))
+                    
                     print("[SCRAPER] Browser erfolgreich gestartet")
+                    log_scraper_event("success", "Browser erfolgreich gestartet", {
+                        "browser_version": version,
+                        "user_agent": user_agent
+                    })
                     
                     # Browser-Kontext erstellen mit Fehlerbehandlung
                     try:
@@ -1317,7 +1341,6 @@ async def shutdown_event():
 
 # ---------------------------------------------------------------------------
 # Datei für den letzten Scrape-Zeitpunkt
-LAST_SCRAPE_FILE = DATA_DIR / "last_scrape.txt"
 
 @app.post("/scrape")
 async def trigger_scrape(
@@ -1354,7 +1377,7 @@ async def trigger_scrape(
         print(f"[MANUAL SCRAPE] Führe Scrape direkt aus...")
         
         # Auf Render verwenden wir immer Dummy-Daten, wenn nicht explizit anders konfiguriert
-        if IS_CLOUD_ENV and not os.environ.get('USE_REAL_SCRAPER'):
+        if IS_CLOUD_ENV and not USE_REAL_SCRAPER:
             print(f"[MANUAL SCRAPE] Render-Umgebung erkannt, verwende Dummy-Daten")
             # Erstelle ein einfaches Dummy-Projekt
             dummy_projects = [
@@ -1432,10 +1455,29 @@ async def trigger_scrape(
                 print(f"[RENDER DEBUG] Traceback: {traceback.format_exc()}")
         
         # Normaler Scrape-Vorgang (nicht Render oder explizit USE_REAL_SCRAPER=True)
-        await scrape_gulp(pages)
+        print(f"[MANUAL SCRAPE] Starte echten Scraper mit USE_REAL_SCRAPER={USE_REAL_SCRAPER}")
+        log_scraper_event("info", "Starte echten Scraper", {
+            "is_cloud_env": IS_CLOUD_ENV,
+            "use_real_scraper": USE_REAL_SCRAPER,
+            "pages": str(pages)
+        })
+        
+        try:
+            projects = await scrape_gulp(pages)
+            print(f"[MANUAL SCRAPE] Scraper abgeschlossen, {len(projects)} Projekte gefunden")
+            log_scraper_event("success", "Scraper abgeschlossen", {"projects_count": len(projects)})
+        except Exception as e:
+            error_msg = f"Fehler beim Ausführen des Scrapers: {str(e)}"
+            print(f"[MANUAL SCRAPE ERROR] {error_msg}")
+            log_scraper_event("error", error_msg, {"traceback": traceback.format_exc()})
+            return JSONResponse(
+                status_code=500,
+                content={"error": error_msg}
+            )
         
         # Stelle sicher, dass der letzte Scrape-Zeitpunkt aktualisiert wird
         last_scrape_time = datetime.datetime.now().isoformat()
+        log_scraper_event("info", "Letzter Scrape-Zeitpunkt aktualisiert", {"timestamp": last_scrape_time})
         
         # Speichere den letzten Scrape-Zeitpunkt in einer Datei für Persistenz
         try:

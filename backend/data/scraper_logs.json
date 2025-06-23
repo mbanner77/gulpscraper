@@ -1,5 +1,39 @@
 [
   {
+    "event_type": "error",
+    "message": "Error initializing Playwright",
+    "timestamp": "2025-06-23T10:00:00.932712",
+    "data": {
+      "error": "name 'sys' is not defined",
+      "traceback": "Traceback (most recent call last):\n  File \"/Users/mbanner/CascadeProjects/gulp-job-app/backend/scraper.py\", line 338, in scrape_gulp\n    \"chromium_executable\": str(Path(sys.executable).parent / \"playwright\" / \"driver\" / \"package\" / \"chromium\" / \"chrome-linux\" / \"chrome\")\nNameError: name 'sys' is not defined\n"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Initialisiere Playwright",
+    "timestamp": "2025-06-23T10:00:00.004686",
+    "data": {
+      "headless": true,
+      "timeout": 45000,
+      "is_cloud_env": false
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Starting GULP scraper",
+    "timestamp": "2025-06-23T10:00:00.001929",
+    "data": {
+      "timestamp": "2025-06-23T10:00:00.001923",
+      "use_real_scraper": true,
+      "is_cloud_env": false,
+      "pages": [
+        1,
+        2,
+        3
+      ]
+    }
+  },
+  {
     "event_type": "warning",
     "message": "Scraper is already running, skipping",
     "timestamp": "2025-06-23T07:00:00.001006",
