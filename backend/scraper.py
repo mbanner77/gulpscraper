@@ -380,22 +380,87 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                         "executable_path": executable_path or "unknown"
                     })
                     
-                    # Versuche den Browser zu starten
-                    browser = await pw.chromium.launch(**launch_options)
+                    # Detaillierte Logging vor dem Browser-Start
+                    log_scraper_event("info", "Browser-Start-Details", {
+                        "launch_options": launch_options,
+                        "executable_path": executable_path or "unknown",
+                        "playwright_version": pw.__version__ if hasattr(pw, "__version__") else "unknown",
+                        "python_version": sys.version,
+                        "platform": sys.platform,
+                        "env_vars": {
+                            "PATH": os.environ.get("PATH", "not set"),
+                            "PLAYWRIGHT_BROWSERS_PATH": os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "not set"),
+                            "DISPLAY": os.environ.get("DISPLAY", "not set")
+                        }
+                    })
                     
-                    # Log Browser-Version und andere Infos
-                    version = await browser.version()
-                    
-                    # Verwende korrektes async/await statt .then() Verkettung
+                    # Versuche den Browser zu starten mit ausführlichem Error-Handling
                     try:
-                        context = await browser.new_context()
-                        page = await context.new_page()
-                        user_agent = await page.evaluate("navigator.userAgent")
-                        await page.close()
-                        await context.close()
-                    except Exception as e:
-                        user_agent = f"Error getting user agent: {str(e)}"
-                        log_scraper_event("warning", "Konnte User-Agent nicht ermitteln", {"error": str(e)})
+                        # Verwende explizite Argumente statt **launch_options für bessere Fehlerdiagnose
+                        browser = await pw.chromium.launch(
+                            headless=launch_options.get("headless", True),
+                            timeout=launch_options.get("timeout", 30000),
+                            args=launch_options.get("args", [])
+                        )
+                        log_scraper_event("success", "Browser erfolgreich gestartet")
+                        
+                        # Log Browser-Version und andere Infos
+                        try:
+                            version = await browser.version()
+                            log_scraper_event("info", "Browser-Version", {"version": version})
+                        except Exception as ver_error:
+                            version = f"Error getting version: {str(ver_error)}"
+                            log_scraper_event("warning", "Konnte Browser-Version nicht ermitteln", {"error": str(ver_error)})
+                        
+                        # Verwende korrektes async/await statt .then() Verkettung
+                        try:
+                            context = await browser.new_context()
+                            log_scraper_event("info", "Browser-Kontext erstellt")
+                            
+                            try:
+                                page = await context.new_page()
+                                log_scraper_event("info", "Browser-Seite erstellt")
+                                
+                                try:
+                                    user_agent = await page.evaluate("navigator.userAgent")
+                                    log_scraper_event("info", "User-Agent ermittelt", {"user_agent": user_agent})
+                                except Exception as ua_error:
+                                    user_agent = f"Error getting user agent: {str(ua_error)}"
+                                    log_scraper_event("warning", "Konnte User-Agent nicht ermitteln", {"error": str(ua_error)})
+                                
+                                await page.close()
+                                log_scraper_event("info", "Test-Seite geschlossen")
+                            except Exception as page_error:
+                                user_agent = f"Error creating page: {str(page_error)}"
+                                log_scraper_event("warning", "Konnte Browser-Seite nicht erstellen", {"error": str(page_error)})
+                            
+                            await context.close()
+                            log_scraper_event("info", "Test-Kontext geschlossen")
+                        except Exception as ctx_error:
+                            user_agent = f"Error creating context: {str(ctx_error)}"
+                            log_scraper_event("warning", "Konnte Browser-Kontext nicht erstellen", {"error": str(ctx_error)})
+                    except Exception as launch_error:
+                        # Detaillierte Fehlerinformationen sammeln
+                        error_details = {
+                            "error_type": type(launch_error).__name__,
+                            "error_message": str(launch_error),
+                            "traceback": traceback.format_exc(),
+                            "launch_options": launch_options
+                        }
+                        
+                        # Prüfe auf spezifische Fehlertypen für bessere Diagnose
+                        if "executable doesn't exist" in str(launch_error).lower():
+                            error_details["error_category"] = "executable_not_found"
+                            error_details["suggested_fix"] = "Run 'playwright install chromium' or check browser path"
+                        elif "timed out" in str(launch_error).lower():
+                            error_details["error_category"] = "timeout"
+                            error_details["suggested_fix"] = "Increase timeout value or check system resources"
+                        elif "str" in str(launch_error).lower() and "callable" in str(launch_error).lower():
+                            error_details["error_category"] = "str_not_callable"
+                            error_details["suggested_fix"] = "Check for JavaScript-style .then() calls or event handlers"
+                        
+                        log_scraper_event("error", "Error launching Browser", error_details)
+                        raise launch_error
                     
                     print("[SCRAPER] Browser erfolgreich gestartet")
                     log_scraper_event("success", "Browser erfolgreich gestartet", {
