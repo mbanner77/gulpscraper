@@ -351,7 +351,17 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                     
                     # Log Browser-Version und andere Infos
                     version = await browser.version()
-                    user_agent = await browser.new_context().then(lambda context: context.new_page()).then(lambda page: page.evaluate("navigator.userAgent"))
+                    
+                    # Verwende korrektes async/await statt .then() Verkettung
+                    try:
+                        context = await browser.new_context()
+                        page = await context.new_page()
+                        user_agent = await page.evaluate("navigator.userAgent")
+                        await page.close()
+                        await context.close()
+                    except Exception as e:
+                        user_agent = f"Error getting user agent: {str(e)}"
+                        log_scraper_event("warning", "Konnte User-Agent nicht ermitteln", {"error": str(e)})
                     
                     print("[SCRAPER] Browser erfolgreich gestartet")
                     log_scraper_event("success", "Browser erfolgreich gestartet", {
