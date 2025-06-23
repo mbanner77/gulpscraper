@@ -315,11 +315,59 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
             return unique_projects
         
         # Ab hier beginnt der echte Scraper mit Playwright
-        # Browser-Konfiguration für Playwright
+        # Browser-Konfiguration
         launch_options = {
             "headless": HEADLESS,
             "timeout": TIMEOUT_MS
         }
+        
+        # Render-spezifische Konfiguration
+        if IS_CLOUD_ENV:
+            log_scraper_event("info", "Verwende Render-spezifische Browser-Konfiguration")
+            # Zusätzliche Argumente für Render
+            render_args = [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--single-process',
+                '--disable-gpu'
+            ]
+            launch_options["args"] = render_args
+            
+            # Setze explizit den Browser-Pfad, wenn wir auf Render sind
+            render_chromium_path = '/opt/render/.cache/ms-playwright/chromium-1091/chrome-linux/chrome'
+            if os.path.exists(render_chromium_path):
+                log_scraper_event("info", "Render Chromium executable gefunden", {
+                    "path": render_chromium_path
+                })
+                # Setze den Executable-Pfad direkt in den Launch-Optionen
+                launch_options["executable_path"] = render_chromium_path
+            else:
+                log_scraper_event("warning", "Render Chromium executable nicht gefunden", {
+                    "path": render_chromium_path,
+                    "directories_found": str(os.listdir('/opt/render/.cache/ms-playwright')) if os.path.exists('/opt/render/.cache/ms-playwright') else "ms-playwright directory not found"
+                })
+                
+                # Versuche, alternative Chromium-Versionen zu finden
+                try:
+                    import glob
+                    chromium_dirs = glob.glob('/opt/render/.cache/ms-playwright/chromium-*')
+                    if chromium_dirs:
+                        latest_dir = max(chromium_dirs)
+                        chrome_path = os.path.join(latest_dir, 'chrome-linux', 'chrome')
+                        if os.path.exists(chrome_path):
+                            log_scraper_event("info", "Alternative Chromium-Version gefunden", {
+                                "path": chrome_path
+                            })
+                            launch_options["executable_path"] = chrome_path
+                except Exception as e:
+                    log_scraper_event("error", "Fehler beim Suchen nach alternativen Chromium-Versionen", {
+                        "error": str(e)
+                    })
+        
         print(f"[SCRAPER] Launching browser with options: {launch_options}")
         
         # Setze das Flag für echte Daten (wird auf True gesetzt, wenn wir auf Dummy-Daten zurückfallen)
