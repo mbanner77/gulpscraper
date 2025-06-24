@@ -2,6 +2,780 @@
   {
     "event_type": "success",
     "message": "Email notification result",
+    "timestamp": "2025-06-24T10:00:49.666581",
+    "data": {
+      "success": true,
+      "recipient": "m.banner@realcore.de",
+      "new_projects_count": 18
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Email service status",
+    "timestamp": "2025-06-24T10:00:49.277798",
+    "data": {
+      "is_configured": true,
+      "smtp_server": null,
+      "smtp_port": 465
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Attempting to send email notification",
+    "timestamp": "2025-06-24T10:00:49.275142",
+    "data": {
+      "recipient": "m.banner@realcore.de",
+      "new_projects_count": 18
+    }
+  },
+  {
+    "event_type": "success",
+    "message": "Scraping completed successfully",
+    "timestamp": "2025-06-24T10:00:49.273457",
+    "data": {
+      "completion_time": "2025-06-24T10:00:49.273432",
+      "unique_projects_count": 60,
+      "new_projects_count": 18,
+      "output_file": "data/gulp_projekte_raw.json"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Processing scraped projects",
+    "timestamp": "2025-06-24T10:00:49.244499",
+    "data": {
+      "total_projects_found": 60
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Browser resources released",
+    "timestamp": "2025-06-24T10:00:49.242379",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Browser closed successfully",
+    "timestamp": "2025-06-24T10:00:49.240549",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Browser context closed successfully",
+    "timestamp": "2025-06-24T10:00:49.186907",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Page closed successfully",
+    "timestamp": "2025-06-24T10:00:49.166391",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Projects extracted from page 3",
+    "timestamp": "2025-06-24T10:00:49.146782",
+    "data": {
+      "count": 20,
+      "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Captured API data from page 3",
+    "timestamp": "2025-06-24T10:00:49.145096",
+    "data": {
+      "feed_url": "https://www.gulp.de/gulp2/rest/internal/projects/search",
+      "debug_file": "data/debug/api_page3.json",
+      "response_size": 27510
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Scrolling page 3 to trigger lazy loading",
+    "timestamp": "2025-06-24T10:00:36.038234",
+    "data": {
+      "scroll_steps": 6,
+      "scroll_pause": 0.8,
+      "collect_seconds": 8
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Successfully navigated to page 3",
+    "timestamp": "2025-06-24T10:00:36.036762",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Navigating to page 3",
+    "timestamp": "2025-06-24T10:00:35.788355",
+    "data": {
+      "url": "https://www.gulp.de/gulp2/g/projekte?page=3"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Projects extracted from page 2",
+    "timestamp": "2025-06-24T10:00:35.785551",
+    "data": {
+      "count": 20,
+      "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Captured API data from page 2",
+    "timestamp": "2025-06-24T10:00:35.782495",
+    "data": {
+      "feed_url": "https://www.gulp.de/gulp2/rest/internal/projects/search",
+      "debug_file": "data/debug/api_page2.json",
+      "response_size": 26825
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Scrolling page 2 to trigger lazy loading",
+    "timestamp": "2025-06-24T10:00:22.611740",
+    "data": {
+      "scroll_steps": 6,
+      "scroll_pause": 0.8,
+      "collect_seconds": 8
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Successfully navigated to page 2",
+    "timestamp": "2025-06-24T10:00:22.609839",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Navigating to page 2",
+    "timestamp": "2025-06-24T10:00:22.303271",
+    "data": {
+      "url": "https://www.gulp.de/gulp2/g/projekte?page=2"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Projects extracted from page 1",
+    "timestamp": "2025-06-24T10:00:22.301386",
+    "data": {
+      "count": 20,
+      "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Captured API data from page 1",
+    "timestamp": "2025-06-24T10:00:22.299972",
+    "data": {
+      "feed_url": "https://www.gulp.de/gulp2/rest/internal/projects/search",
+      "debug_file": "data/debug/api_page1.json",
+      "response_size": 29532
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Scrolling page 1 to trigger lazy loading",
+    "timestamp": "2025-06-24T10:00:09.057833",
+    "data": {
+      "scroll_steps": 6,
+      "scroll_pause": 0.8,
+      "collect_seconds": 8
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Successfully navigated to page 1",
+    "timestamp": "2025-06-24T10:00:09.055735",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Navigating to page 1",
+    "timestamp": "2025-06-24T10:00:08.393936",
+    "data": {
+      "url": "https://www.gulp.de/gulp2/g/projekte?page=1"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "New page opened",
+    "timestamp": "2025-06-24T10:00:08.379118",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Browser context created",
+    "timestamp": "2025-06-24T10:00:08.264524",
+    "data": {
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      }
+    }
+  },
+  {
+    "event_type": "success",
+    "message": "Browser erfolgreich gestartet",
+    "timestamp": "2025-06-24T10:00:08.240335",
+    "data": {
+      "browser_version": "Error getting version: 'str' object is not callable",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/121.0.6167.57 Safari/537.36"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Test-Kontext geschlossen",
+    "timestamp": "2025-06-24T10:00:08.237958",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Test-Seite geschlossen",
+    "timestamp": "2025-06-24T10:00:08.179714",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "User-Agent ermittelt",
+    "timestamp": "2025-06-24T10:00:08.162340",
+    "data": {
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/121.0.6167.57 Safari/537.36"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Browser-Seite erstellt",
+    "timestamp": "2025-06-24T10:00:08.074778",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Browser-Kontext erstellt",
+    "timestamp": "2025-06-24T10:00:07.845606",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Konnte Browser-Version nicht ermitteln",
+    "timestamp": "2025-06-24T10:00:07.820678",
+    "data": {
+      "error": "'str' object is not callable"
+    }
+  },
+  {
+    "event_type": "success",
+    "message": "Browser erfolgreich gestartet",
+    "timestamp": "2025-06-24T10:00:07.561434",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Browser-Start-Details",
+    "timestamp": "2025-06-24T10:00:01.865963",
+    "data": {
+      "launch_options": {
+        "headless": true,
+        "timeout": 45000
+      },
+      "executable_path": "/Users/mbanner/Library/Caches/ms-playwright/chromium-1097/chrome-mac/Chromium.app/Contents/MacOS/Chromium",
+      "playwright_version": "unknown",
+      "python_version": "3.9.6 (default, Nov 10 2023, 13:38:27) \n[Clang 15.0.0 (clang-1500.1.0.2.5)]",
+      "platform": "darwin",
+      "env_vars": {
+        "PATH": "/Users/mbanner/CascadeProjects/gulp-job-app/.venv/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Users/mbanner/.windsurf/extensions/ms-python.debugpy-2025.6.0-darwin-x64/bundled/scripts/noConfigScripts",
+        "PLAYWRIGHT_BROWSERS_PATH": "not set",
+        "DISPLAY": "not set"
+      }
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Starte Browser",
+    "timestamp": "2025-06-24T10:00:01.863940",
+    "data": {
+      "launch_options": {
+        "headless": true,
+        "timeout": 45000
+      },
+      "executable_path": "/Users/mbanner/Library/Caches/ms-playwright/chromium-1097/chrome-mac/Chromium.app/Contents/MacOS/Chromium"
+    }
+  },
+  {
+    "event_type": "success",
+    "message": "Playwright erfolgreich initialisiert",
+    "timestamp": "2025-06-24T10:00:01.861750",
+    "data": {
+      "chromium_executable": "/Users/mbanner/CascadeProjects/gulp-job-app/.venv/bin/playwright/driver/package/chromium/chrome-linux/chrome"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Initialisiere Playwright",
+    "timestamp": "2025-06-24T10:00:00.014983",
+    "data": {
+      "headless": true,
+      "timeout": 45000,
+      "is_cloud_env": false
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Starting GULP scraper",
+    "timestamp": "2025-06-24T10:00:00.006254",
+    "data": {
+      "timestamp": "2025-06-24T10:00:00.006249",
+      "use_real_scraper": true,
+      "is_cloud_env": false,
+      "pages": [
+        1,
+        2,
+        3
+      ]
+    }
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-24T09:00:00.002313",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-24T08:00:00.098576",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-24T07:00:00.002348",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-24T06:00:00.010847",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-24T05:00:00.050588",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-24T04:00:00.001153",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-24T03:00:00.001672",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-24T02:00:00.002581",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-24T01:00:00.093081",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-24T00:00:00.002712",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-23T23:00:00.041961",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-23T22:00:00.001897",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-23T21:00:00.000950",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-23T20:00:00.025067",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-23T19:00:00.007449",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Scraper is already running, skipping",
+    "timestamp": "2025-06-23T18:00:00.027158",
+    "data": null
+  },
+  {
+    "event_type": "success",
+    "message": "Email notification result",
+    "timestamp": "2025-06-23T17:00:44.619219",
+    "data": {
+      "success": true,
+      "recipient": "m.banner@realcore.de",
+      "new_projects_count": 7
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Email service status",
+    "timestamp": "2025-06-23T17:00:43.798727",
+    "data": {
+      "is_configured": true,
+      "smtp_server": null,
+      "smtp_port": 465
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Attempting to send email notification",
+    "timestamp": "2025-06-23T17:00:43.796628",
+    "data": {
+      "recipient": "m.banner@realcore.de",
+      "new_projects_count": 7
+    }
+  },
+  {
+    "event_type": "success",
+    "message": "Scraping completed successfully",
+    "timestamp": "2025-06-23T17:00:43.794925",
+    "data": {
+      "completion_time": "2025-06-23T17:00:43.794911",
+      "unique_projects_count": 60,
+      "new_projects_count": 7,
+      "output_file": "data/gulp_projekte_raw.json"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Processing scraped projects",
+    "timestamp": "2025-06-23T17:00:43.679618",
+    "data": {
+      "total_projects_found": 60
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Browser resources released",
+    "timestamp": "2025-06-23T17:00:43.646124",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Browser closed successfully",
+    "timestamp": "2025-06-23T17:00:43.644643",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Browser context closed successfully",
+    "timestamp": "2025-06-23T17:00:43.581047",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Page closed successfully",
+    "timestamp": "2025-06-23T17:00:43.560528",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Projects extracted from page 3",
+    "timestamp": "2025-06-23T17:00:43.541132",
+    "data": {
+      "count": 20,
+      "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Captured API data from page 3",
+    "timestamp": "2025-06-23T17:00:43.539403",
+    "data": {
+      "feed_url": "https://www.gulp.de/gulp2/rest/internal/projects/search",
+      "debug_file": "data/debug/api_page3.json",
+      "response_size": 27179
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Scrolling page 3 to trigger lazy loading",
+    "timestamp": "2025-06-23T17:00:30.547542",
+    "data": {
+      "scroll_steps": 6,
+      "scroll_pause": 0.8,
+      "collect_seconds": 8
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Successfully navigated to page 3",
+    "timestamp": "2025-06-23T17:00:30.546100",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Navigating to page 3",
+    "timestamp": "2025-06-23T17:00:30.161005",
+    "data": {
+      "url": "https://www.gulp.de/gulp2/g/projekte?page=3"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Projects extracted from page 2",
+    "timestamp": "2025-06-23T17:00:30.156694",
+    "data": {
+      "count": 20,
+      "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Captured API data from page 2",
+    "timestamp": "2025-06-23T17:00:30.154353",
+    "data": {
+      "feed_url": "https://www.gulp.de/gulp2/rest/internal/projects/search",
+      "debug_file": "data/debug/api_page2.json",
+      "response_size": 27446
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Scrolling page 2 to trigger lazy loading",
+    "timestamp": "2025-06-23T17:00:17.221509",
+    "data": {
+      "scroll_steps": 6,
+      "scroll_pause": 0.8,
+      "collect_seconds": 8
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Successfully navigated to page 2",
+    "timestamp": "2025-06-23T17:00:17.219893",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Navigating to page 2",
+    "timestamp": "2025-06-23T17:00:16.884359",
+    "data": {
+      "url": "https://www.gulp.de/gulp2/g/projekte?page=2"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Projects extracted from page 1",
+    "timestamp": "2025-06-23T17:00:16.868552",
+    "data": {
+      "count": 20,
+      "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Captured API data from page 1",
+    "timestamp": "2025-06-23T17:00:16.866801",
+    "data": {
+      "feed_url": "https://www.gulp.de/gulp2/rest/internal/projects/search",
+      "debug_file": "data/debug/api_page1.json",
+      "response_size": 28288
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Scrolling page 1 to trigger lazy loading",
+    "timestamp": "2025-06-23T17:00:03.762429",
+    "data": {
+      "scroll_steps": 6,
+      "scroll_pause": 0.8,
+      "collect_seconds": 8
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Successfully navigated to page 1",
+    "timestamp": "2025-06-23T17:00:03.760539",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Navigating to page 1",
+    "timestamp": "2025-06-23T17:00:03.106715",
+    "data": {
+      "url": "https://www.gulp.de/gulp2/g/projekte?page=1"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "New page opened",
+    "timestamp": "2025-06-23T17:00:03.094217",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Browser context created",
+    "timestamp": "2025-06-23T17:00:02.992182",
+    "data": {
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      }
+    }
+  },
+  {
+    "event_type": "success",
+    "message": "Browser erfolgreich gestartet",
+    "timestamp": "2025-06-23T17:00:02.938157",
+    "data": {
+      "browser_version": "Error getting version: 'str' object is not callable",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/121.0.6167.57 Safari/537.36"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Test-Kontext geschlossen",
+    "timestamp": "2025-06-23T17:00:02.936695",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Test-Seite geschlossen",
+    "timestamp": "2025-06-23T17:00:02.918127",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "User-Agent ermittelt",
+    "timestamp": "2025-06-23T17:00:02.898817",
+    "data": {
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/121.0.6167.57 Safari/537.36"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Browser-Seite erstellt",
+    "timestamp": "2025-06-23T17:00:02.864406",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Browser-Kontext erstellt",
+    "timestamp": "2025-06-23T17:00:01.919422",
+    "data": null
+  },
+  {
+    "event_type": "warning",
+    "message": "Konnte Browser-Version nicht ermitteln",
+    "timestamp": "2025-06-23T17:00:01.773095",
+    "data": {
+      "error": "'str' object is not callable"
+    }
+  },
+  {
+    "event_type": "success",
+    "message": "Browser erfolgreich gestartet",
+    "timestamp": "2025-06-23T17:00:01.771162",
+    "data": null
+  },
+  {
+    "event_type": "info",
+    "message": "Browser-Start-Details",
+    "timestamp": "2025-06-23T17:00:01.032218",
+    "data": {
+      "launch_options": {
+        "headless": true,
+        "timeout": 45000
+      },
+      "executable_path": "/Users/mbanner/Library/Caches/ms-playwright/chromium-1097/chrome-mac/Chromium.app/Contents/MacOS/Chromium",
+      "playwright_version": "unknown",
+      "python_version": "3.9.6 (default, Nov 10 2023, 13:38:27) \n[Clang 15.0.0 (clang-1500.1.0.2.5)]",
+      "platform": "darwin",
+      "env_vars": {
+        "PATH": "/Users/mbanner/CascadeProjects/gulp-job-app/.venv/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Users/mbanner/.windsurf/extensions/ms-python.debugpy-2025.6.0-darwin-x64/bundled/scripts/noConfigScripts",
+        "PLAYWRIGHT_BROWSERS_PATH": "not set",
+        "DISPLAY": "not set"
+      }
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Starte Browser",
+    "timestamp": "2025-06-23T17:00:01.027799",
+    "data": {
+      "launch_options": {
+        "headless": true,
+        "timeout": 45000
+      },
+      "executable_path": "/Users/mbanner/Library/Caches/ms-playwright/chromium-1097/chrome-mac/Chromium.app/Contents/MacOS/Chromium"
+    }
+  },
+  {
+    "event_type": "success",
+    "message": "Playwright erfolgreich initialisiert",
+    "timestamp": "2025-06-23T17:00:01.025275",
+    "data": {
+      "chromium_executable": "/Users/mbanner/CascadeProjects/gulp-job-app/.venv/bin/playwright/driver/package/chromium/chrome-linux/chrome"
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Initialisiere Playwright",
+    "timestamp": "2025-06-23T17:00:00.006262",
+    "data": {
+      "headless": true,
+      "timeout": 45000,
+      "is_cloud_env": false
+    }
+  },
+  {
+    "event_type": "info",
+    "message": "Starting GULP scraper",
+    "timestamp": "2025-06-23T17:00:00.003557",
+    "data": {
+      "timestamp": "2025-06-23T17:00:00.003547",
+      "use_real_scraper": true,
+      "is_cloud_env": false,
+      "pages": [
+        1,
+        2,
+        3
+      ]
+    }
+  },
+  {
+    "event_type": "success",
+    "message": "Email notification result",
     "timestamp": "2025-06-23T16:00:45.276151",
     "data": {
       "success": true,
@@ -52,832 +826,5 @@
     "message": "Browser resources released",
     "timestamp": "2025-06-23T16:00:44.500785",
     "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Browser closed successfully",
-    "timestamp": "2025-06-23T16:00:44.498373",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Browser context closed successfully",
-    "timestamp": "2025-06-23T16:00:44.432441",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Page closed successfully",
-    "timestamp": "2025-06-23T16:00:44.404130",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Projects extracted from page 3",
-    "timestamp": "2025-06-23T16:00:44.384065",
-    "data": {
-      "count": 20,
-      "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Captured API data from page 3",
-    "timestamp": "2025-06-23T16:00:44.382570",
-    "data": {
-      "feed_url": "https://www.gulp.de/gulp2/rest/internal/projects/search",
-      "debug_file": "data/debug/api_page3.json",
-      "response_size": 27770
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Scrolling page 3 to trigger lazy loading",
-    "timestamp": "2025-06-23T16:00:30.994438",
-    "data": {
-      "scroll_steps": 6,
-      "scroll_pause": 0.8,
-      "collect_seconds": 8
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Successfully navigated to page 3",
-    "timestamp": "2025-06-23T16:00:30.993009",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Navigating to page 3",
-    "timestamp": "2025-06-23T16:00:30.697041",
-    "data": {
-      "url": "https://www.gulp.de/gulp2/g/projekte?page=3"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Projects extracted from page 2",
-    "timestamp": "2025-06-23T16:00:30.695051",
-    "data": {
-      "count": 20,
-      "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Captured API data from page 2",
-    "timestamp": "2025-06-23T16:00:30.693357",
-    "data": {
-      "feed_url": "https://www.gulp.de/gulp2/rest/internal/projects/search",
-      "debug_file": "data/debug/api_page2.json",
-      "response_size": 26513
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Scrolling page 2 to trigger lazy loading",
-    "timestamp": "2025-06-23T16:00:17.392211",
-    "data": {
-      "scroll_steps": 6,
-      "scroll_pause": 0.8,
-      "collect_seconds": 8
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Successfully navigated to page 2",
-    "timestamp": "2025-06-23T16:00:17.390540",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Navigating to page 2",
-    "timestamp": "2025-06-23T16:00:16.820508",
-    "data": {
-      "url": "https://www.gulp.de/gulp2/g/projekte?page=2"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Projects extracted from page 1",
-    "timestamp": "2025-06-23T16:00:16.797122",
-    "data": {
-      "count": 20,
-      "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Captured API data from page 1",
-    "timestamp": "2025-06-23T16:00:16.795757",
-    "data": {
-      "feed_url": "https://www.gulp.de/gulp2/rest/internal/projects/search",
-      "debug_file": "data/debug/api_page1.json",
-      "response_size": 27642
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Scrolling page 1 to trigger lazy loading",
-    "timestamp": "2025-06-23T16:00:03.537247",
-    "data": {
-      "scroll_steps": 6,
-      "scroll_pause": 0.8,
-      "collect_seconds": 8
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Successfully navigated to page 1",
-    "timestamp": "2025-06-23T16:00:03.535402",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Navigating to page 1",
-    "timestamp": "2025-06-23T16:00:02.768960",
-    "data": {
-      "url": "https://www.gulp.de/gulp2/g/projekte?page=1"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "New page opened",
-    "timestamp": "2025-06-23T16:00:02.759147",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Browser context created",
-    "timestamp": "2025-06-23T16:00:02.638101",
-    "data": {
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
-      "viewport": {
-        "width": 1280,
-        "height": 900
-      }
-    }
-  },
-  {
-    "event_type": "success",
-    "message": "Browser erfolgreich gestartet",
-    "timestamp": "2025-06-23T16:00:02.610646",
-    "data": {
-      "browser_version": "Error getting version: 'str' object is not callable",
-      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/121.0.6167.57 Safari/537.36"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Test-Kontext geschlossen",
-    "timestamp": "2025-06-23T16:00:02.609222",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Test-Seite geschlossen",
-    "timestamp": "2025-06-23T16:00:02.590311",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "User-Agent ermittelt",
-    "timestamp": "2025-06-23T16:00:02.571657",
-    "data": {
-      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/121.0.6167.57 Safari/537.36"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Browser-Seite erstellt",
-    "timestamp": "2025-06-23T16:00:02.535290",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Browser-Kontext erstellt",
-    "timestamp": "2025-06-23T16:00:01.756065",
-    "data": null
-  },
-  {
-    "event_type": "warning",
-    "message": "Konnte Browser-Version nicht ermitteln",
-    "timestamp": "2025-06-23T16:00:01.582596",
-    "data": {
-      "error": "'str' object is not callable"
-    }
-  },
-  {
-    "event_type": "success",
-    "message": "Browser erfolgreich gestartet",
-    "timestamp": "2025-06-23T16:00:01.581102",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Browser-Start-Details",
-    "timestamp": "2025-06-23T16:00:00.910229",
-    "data": {
-      "launch_options": {
-        "headless": true,
-        "timeout": 45000
-      },
-      "executable_path": "/Users/mbanner/Library/Caches/ms-playwright/chromium-1097/chrome-mac/Chromium.app/Contents/MacOS/Chromium",
-      "playwright_version": "unknown",
-      "python_version": "3.9.6 (default, Nov 10 2023, 13:38:27) \n[Clang 15.0.0 (clang-1500.1.0.2.5)]",
-      "platform": "darwin",
-      "env_vars": {
-        "PATH": "/Users/mbanner/CascadeProjects/gulp-job-app/.venv/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Users/mbanner/.windsurf/extensions/ms-python.debugpy-2025.6.0-darwin-x64/bundled/scripts/noConfigScripts",
-        "PLAYWRIGHT_BROWSERS_PATH": "not set",
-        "DISPLAY": "not set"
-      }
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Starte Browser",
-    "timestamp": "2025-06-23T16:00:00.907067",
-    "data": {
-      "launch_options": {
-        "headless": true,
-        "timeout": 45000
-      },
-      "executable_path": "/Users/mbanner/Library/Caches/ms-playwright/chromium-1097/chrome-mac/Chromium.app/Contents/MacOS/Chromium"
-    }
-  },
-  {
-    "event_type": "success",
-    "message": "Playwright erfolgreich initialisiert",
-    "timestamp": "2025-06-23T16:00:00.905348",
-    "data": {
-      "chromium_executable": "/Users/mbanner/CascadeProjects/gulp-job-app/.venv/bin/playwright/driver/package/chromium/chrome-linux/chrome"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Initialisiere Playwright",
-    "timestamp": "2025-06-23T16:00:00.004030",
-    "data": {
-      "headless": true,
-      "timeout": 45000,
-      "is_cloud_env": false
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Starting GULP scraper",
-    "timestamp": "2025-06-23T16:00:00.001683",
-    "data": {
-      "timestamp": "2025-06-23T16:00:00.001677",
-      "use_real_scraper": true,
-      "is_cloud_env": false,
-      "pages": [
-        1,
-        2,
-        3
-      ]
-    }
-  },
-  {
-    "event_type": "error",
-    "message": "Error launching browser",
-    "timestamp": "2025-06-23T15:00:01.685637",
-    "data": {
-      "error": "'str' object is not callable",
-      "headless": true,
-      "timeout": 45000
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Starte Browser",
-    "timestamp": "2025-06-23T15:00:00.868712",
-    "data": {
-      "launch_options": {
-        "headless": true,
-        "timeout": 45000
-      },
-      "executable_path": "/Users/mbanner/Library/Caches/ms-playwright/chromium-1097/chrome-mac/Chromium.app/Contents/MacOS/Chromium"
-    }
-  },
-  {
-    "event_type": "success",
-    "message": "Playwright erfolgreich initialisiert",
-    "timestamp": "2025-06-23T15:00:00.866935",
-    "data": {
-      "chromium_executable": "/Users/mbanner/CascadeProjects/gulp-job-app/.venv/bin/playwright/driver/package/chromium/chrome-linux/chrome"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Initialisiere Playwright",
-    "timestamp": "2025-06-23T15:00:00.015066",
-    "data": {
-      "headless": true,
-      "timeout": 45000,
-      "is_cloud_env": false
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Starting GULP scraper",
-    "timestamp": "2025-06-23T15:00:00.011573",
-    "data": {
-      "timestamp": "2025-06-23T15:00:00.011569",
-      "use_real_scraper": true,
-      "is_cloud_env": false,
-      "pages": [
-        1,
-        2,
-        3
-      ]
-    }
-  },
-  {
-    "event_type": "error",
-    "message": "Error launching browser",
-    "timestamp": "2025-06-23T14:00:01.804083",
-    "data": {
-      "error": "'str' object is not callable",
-      "headless": true,
-      "timeout": 45000
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Starte Browser",
-    "timestamp": "2025-06-23T14:00:00.980548",
-    "data": {
-      "launch_options": {
-        "headless": true,
-        "timeout": 45000
-      },
-      "executable_path": "/Users/mbanner/Library/Caches/ms-playwright/chromium-1097/chrome-mac/Chromium.app/Contents/MacOS/Chromium"
-    }
-  },
-  {
-    "event_type": "success",
-    "message": "Playwright erfolgreich initialisiert",
-    "timestamp": "2025-06-23T14:00:00.979103",
-    "data": {
-      "chromium_executable": "/Users/mbanner/CascadeProjects/gulp-job-app/.venv/bin/playwright/driver/package/chromium/chrome-linux/chrome"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Initialisiere Playwright",
-    "timestamp": "2025-06-23T14:00:00.003232",
-    "data": {
-      "headless": true,
-      "timeout": 45000,
-      "is_cloud_env": false
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Starting GULP scraper",
-    "timestamp": "2025-06-23T14:00:00.000683",
-    "data": {
-      "timestamp": "2025-06-23T14:00:00.000678",
-      "use_real_scraper": true,
-      "is_cloud_env": false,
-      "pages": [
-        1,
-        2,
-        3
-      ]
-    }
-  },
-  {
-    "event_type": "error",
-    "message": "Error initializing Playwright",
-    "timestamp": "2025-06-23T10:00:00.932712",
-    "data": {
-      "error": "name 'sys' is not defined",
-      "traceback": "Traceback (most recent call last):\n  File \"/Users/mbanner/CascadeProjects/gulp-job-app/backend/scraper.py\", line 338, in scrape_gulp\n    \"chromium_executable\": str(Path(sys.executable).parent / \"playwright\" / \"driver\" / \"package\" / \"chromium\" / \"chrome-linux\" / \"chrome\")\nNameError: name 'sys' is not defined\n"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Initialisiere Playwright",
-    "timestamp": "2025-06-23T10:00:00.004686",
-    "data": {
-      "headless": true,
-      "timeout": 45000,
-      "is_cloud_env": false
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Starting GULP scraper",
-    "timestamp": "2025-06-23T10:00:00.001929",
-    "data": {
-      "timestamp": "2025-06-23T10:00:00.001923",
-      "use_real_scraper": true,
-      "is_cloud_env": false,
-      "pages": [
-        1,
-        2,
-        3
-      ]
-    }
-  },
-  {
-    "event_type": "warning",
-    "message": "Scraper is already running, skipping",
-    "timestamp": "2025-06-23T07:00:00.001006",
-    "data": null
-  },
-  {
-    "event_type": "warning",
-    "message": "Scraper is already running, skipping",
-    "timestamp": "2025-06-22T03:00:00.000825",
-    "data": null
-  },
-  {
-    "event_type": "warning",
-    "message": "Scraper is already running, skipping",
-    "timestamp": "2025-06-20T18:00:00.001719",
-    "data": null
-  },
-  {
-    "event_type": "warning",
-    "message": "Scraper is already running, skipping",
-    "timestamp": "2025-06-20T04:00:00.002453",
-    "data": null
-  },
-  {
-    "event_type": "warning",
-    "message": "Scraper is already running, skipping",
-    "timestamp": "2025-06-19T03:00:00.001643",
-    "data": null
-  },
-  {
-    "event_type": "success",
-    "message": "Email notification result",
-    "timestamp": "2025-06-18T01:00:43.761632",
-    "data": {
-      "success": true,
-      "recipient": "m.banner@realcore.de",
-      "new_projects_count": 5
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Email service status",
-    "timestamp": "2025-06-18T01:00:43.048978",
-    "data": {
-      "is_configured": true,
-      "smtp_server": null,
-      "smtp_port": 465
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Attempting to send email notification",
-    "timestamp": "2025-06-18T01:00:43.047667",
-    "data": {
-      "recipient": "m.banner@realcore.de",
-      "new_projects_count": 5
-    }
-  },
-  {
-    "event_type": "success",
-    "message": "Scraping completed successfully",
-    "timestamp": "2025-06-18T01:00:43.046796",
-    "data": {
-      "completion_time": "2025-06-18T01:00:43.046781",
-      "unique_projects_count": 60,
-      "new_projects_count": 5,
-      "output_file": "data/gulp_projekte_raw.json"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Processing scraped projects",
-    "timestamp": "2025-06-18T01:00:42.996082",
-    "data": {
-      "total_projects_found": 60
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Browser resources released",
-    "timestamp": "2025-06-18T01:00:42.989252",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Browser closed successfully",
-    "timestamp": "2025-06-18T01:00:42.988311",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Browser context closed successfully",
-    "timestamp": "2025-06-18T01:00:42.920952",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Page closed successfully",
-    "timestamp": "2025-06-18T01:00:42.894244",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Projects extracted from page 3",
-    "timestamp": "2025-06-18T01:00:42.848993",
-    "data": {
-      "count": 20,
-      "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Captured API data from page 3",
-    "timestamp": "2025-06-18T01:00:42.847544",
-    "data": {
-      "feed_url": "https://www.gulp.de/gulp2/rest/internal/projects/search",
-      "debug_file": "data/debug/api_page3.json",
-      "response_size": 25079
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Scrolling page 3 to trigger lazy loading",
-    "timestamp": "2025-06-18T01:00:29.737653",
-    "data": {
-      "scroll_steps": 6,
-      "scroll_pause": 0.8,
-      "collect_seconds": 8
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Successfully navigated to page 3",
-    "timestamp": "2025-06-18T01:00:29.736663",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Navigating to page 3",
-    "timestamp": "2025-06-18T01:00:29.514959",
-    "data": {
-      "url": "https://www.gulp.de/gulp2/g/projekte?page=3"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Projects extracted from page 2",
-    "timestamp": "2025-06-18T01:00:29.513885",
-    "data": {
-      "count": 20,
-      "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Captured API data from page 2",
-    "timestamp": "2025-06-18T01:00:29.512800",
-    "data": {
-      "feed_url": "https://www.gulp.de/gulp2/rest/internal/projects/search",
-      "debug_file": "data/debug/api_page2.json",
-      "response_size": 27858
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Scrolling page 2 to trigger lazy loading",
-    "timestamp": "2025-06-18T01:00:16.490301",
-    "data": {
-      "scroll_steps": 6,
-      "scroll_pause": 0.8,
-      "collect_seconds": 8
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Successfully navigated to page 2",
-    "timestamp": "2025-06-18T01:00:16.489453",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Navigating to page 2",
-    "timestamp": "2025-06-18T01:00:16.226720",
-    "data": {
-      "url": "https://www.gulp.de/gulp2/g/projekte?page=2"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Projects extracted from page 1",
-    "timestamp": "2025-06-18T01:00:16.224290",
-    "data": {
-      "count": 20,
-      "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Captured API data from page 1",
-    "timestamp": "2025-06-18T01:00:16.223629",
-    "data": {
-      "feed_url": "https://www.gulp.de/gulp2/rest/internal/projects/search",
-      "debug_file": "data/debug/api_page1.json",
-      "response_size": 25778
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Scrolling page 1 to trigger lazy loading",
-    "timestamp": "2025-06-18T01:00:03.191211",
-    "data": {
-      "scroll_steps": 6,
-      "scroll_pause": 0.8,
-      "collect_seconds": 8
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Successfully navigated to page 1",
-    "timestamp": "2025-06-18T01:00:03.190260",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Navigating to page 1",
-    "timestamp": "2025-06-18T01:00:02.455559",
-    "data": {
-      "url": "https://www.gulp.de/gulp2/g/projekte?page=1"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "New page opened",
-    "timestamp": "2025-06-18T01:00:02.445300",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Browser context created",
-    "timestamp": "2025-06-18T01:00:01.645192",
-    "data": {
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
-      "viewport": {
-        "width": 1280,
-        "height": 900
-      }
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Starting GULP scraper",
-    "timestamp": "2025-06-18T01:00:00.000976",
-    "data": {
-      "timestamp": "2025-06-18T01:00:00.000970",
-      "use_real_scraper": true,
-      "is_cloud_env": false,
-      "pages": [
-        1,
-        2,
-        3
-      ]
-    }
-  },
-  {
-    "event_type": "success",
-    "message": "Email notification result",
-    "timestamp": "2025-06-17T17:00:43.000516",
-    "data": {
-      "success": true,
-      "recipient": "m.banner@realcore.de",
-      "new_projects_count": 5
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Email service status",
-    "timestamp": "2025-06-17T17:00:42.632834",
-    "data": {
-      "is_configured": true,
-      "smtp_server": null,
-      "smtp_port": 465
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Attempting to send email notification",
-    "timestamp": "2025-06-17T17:00:42.631527",
-    "data": {
-      "recipient": "m.banner@realcore.de",
-      "new_projects_count": 5
-    }
-  },
-  {
-    "event_type": "success",
-    "message": "Scraping completed successfully",
-    "timestamp": "2025-06-17T17:00:42.631049",
-    "data": {
-      "completion_time": "2025-06-17T17:00:42.631031",
-      "unique_projects_count": 60,
-      "new_projects_count": 5,
-      "output_file": "data/gulp_projekte_raw.json"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Processing scraped projects",
-    "timestamp": "2025-06-17T17:00:42.594986",
-    "data": {
-      "total_projects_found": 60
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Browser resources released",
-    "timestamp": "2025-06-17T17:00:42.589972",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Browser closed successfully",
-    "timestamp": "2025-06-17T17:00:42.589361",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Browser context closed successfully",
-    "timestamp": "2025-06-17T17:00:42.528605",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Page closed successfully",
-    "timestamp": "2025-06-17T17:00:42.501265",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Projects extracted from page 3",
-    "timestamp": "2025-06-17T17:00:42.479368",
-    "data": {
-      "count": 20,
-      "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Captured API data from page 3",
-    "timestamp": "2025-06-17T17:00:42.478280",
-    "data": {
-      "feed_url": "https://www.gulp.de/gulp2/rest/internal/projects/search",
-      "debug_file": "data/debug/api_page3.json",
-      "response_size": 28240
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Scrolling page 3 to trigger lazy loading",
-    "timestamp": "2025-06-17T17:00:29.526624",
-    "data": {
-      "scroll_steps": 6,
-      "scroll_pause": 0.8,
-      "collect_seconds": 8
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Successfully navigated to page 3",
-    "timestamp": "2025-06-17T17:00:29.526119",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Navigating to page 3",
-    "timestamp": "2025-06-17T17:00:29.259687",
-    "data": {
-      "url": "https://www.gulp.de/gulp2/g/projekte?page=3"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Projects extracted from page 2",
-    "timestamp": "2025-06-17T17:00:29.258576",
-    "data": {
-      "count": 20,
-      "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Captured API data from page 2",
-    "timestamp": "2025-06-17T17:00:29.258225",
-    "data": {
-      "feed_url": "https://www.gulp.de/gulp2/rest/internal/projects/search",
-      "debug_file": "data/debug/api_page2.json",
-      "response_size": 27940
-    }
   }
 ]

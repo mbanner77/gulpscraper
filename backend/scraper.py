@@ -727,8 +727,7 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                         except Exception as page_error:
                             log_scraper_event("error", "Error creating page", {
                                 "error": str(page_error),
-                                "page_url": current_url,
-                                "page_index": page_idx
+                                "traceback": traceback.format_exc()
                             })
                     except Exception as context_error:
                         log_scraper_event("error", "Error creating browser context", {
