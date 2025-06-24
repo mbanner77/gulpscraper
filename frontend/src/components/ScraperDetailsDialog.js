@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -23,7 +23,15 @@ import {
   Grid,
   Card,
   CardContent,
-  Stack
+  Stack,
+  TextField,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  IconButton,
+  Tooltip,
+  Badge
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InfoIcon from '@mui/icons-material/Info';
@@ -36,6 +44,12 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import WebIcon from '@mui/icons-material/Web';
 import EmailIcon from '@mui/icons-material/Email';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import ClearIcon from '@mui/icons-material/Clear';
+import SearchIcon from '@mui/icons-material/Search';
+import LinkIcon from '@mui/icons-material/Link';
+import MemoryIcon from '@mui/icons-material/Memory';
+import SpeedIcon from '@mui/icons-material/Speed';
 import { formatDate } from '../utils/dateUtils';
 import { getScraperLogs } from '../services/api';
 
@@ -45,6 +59,16 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
   const [error, setError] = useState(null);
   const [tabValue, setTabValue] = useState(0);
   const [statistics, setStatistics] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    eventType: '',
+    logLevel: '',
+    correlationId: '',
+    search: '',
+    limit: 100
+  });
+  const [correlationIds, setCorrelationIds] = useState([]);
+  const [logLevels, setLogLevels] = useState({});
   
   // Calculate statistics from logs
   const calculateStatistics = (logs) => {
@@ -124,15 +148,46 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
     return stats;
   };
   
+  // Handle filter changes
+  const handleFilterChange = (field) => (event) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: event.target.value
+    }));
+  };
+  
+  // Clear all filters
+  const clearFilters = () => {
+    setFilters({
+      eventType: '',
+      logLevel: '',
+      correlationId: '',
+      search: '',
+      limit: 100
+    });
+  };
+  
   // Fetch logs from the API
   const fetchLogs = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const data = await getScraperLogs();
+      // Convert filters to API parameters
+      const apiFilters = {};
+      if (filters.eventType) apiFilters.event_type = filters.eventType;
+      if (filters.logLevel) apiFilters.log_level = filters.logLevel;
+      if (filters.correlationId) apiFilters.correlation_id = filters.correlationId;
+      if (filters.search) apiFilters.search = filters.search;
+      if (filters.limit) apiFilters.limit = filters.limit;
+      
+      const data = await getScraperLogs(apiFilters);
       const logData = data.logs || [];
       setLogs(logData);
+      
+      // Store correlation IDs and log levels
+      setCorrelationIds(data.correlation_ids || []);
+      setLogLevels(data.log_levels || {});
       
       // Calculate statistics
       const stats = calculateStatistics(logData);
@@ -145,12 +200,23 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
     }
   };
   
-  // Fetch logs when the dialog opens
+  // Fetch logs when the dialog opens or filters change
   useEffect(() => {
     if (open) {
       fetchLogs();
     }
-  }, [open]);
+  }, [open, filters.eventType, filters.logLevel, filters.correlationId, filters.limit]);
+  
+  // Debounce search input
+  useEffect(() => {
+    if (!open) return;
+    
+    const handler = setTimeout(() => {
+      fetchLogs();
+    }, 500);
+    
+    return () => clearTimeout(handler);
+  }, [filters.search, open]);
   
   // Handle tab change
   const handleTabChange = (event, newValue) => {
@@ -229,10 +295,126 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
       
       <DialogContent>
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-          <Tabs value={tabValue} onChange={handleTabChange}>
-            <Tab label="Logs" />
-            <Tab label="Statistiken" />
-          </Tabs>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Tabs value={tabValue} onChange={handleTabChange}>
+              <Tab label="Logs" />
+              <Tab label="Statistiken" />
+            </Tabs>
+            
+            {tabValue === 0 && (
+              <Tooltip title={showFilters ? "Filter ausblenden" : "Filter anzeigen"}>
+                <IconButton onClick={() => setShowFilters(!showFilters)}>
+                  <FilterListIcon />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
+          
+          {/* Filters Panel */}
+          {tabValue === 0 && showFilters && (
+            <Paper variant="outlined" sx={{ p: 2, mb: 2, mt: 1 }}>
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12} md={3}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Event-Typ</InputLabel>
+                    <Select
+                      value={filters.eventType}
+                      onChange={handleFilterChange('eventType')}
+                      label="Event-Typ"
+                    >
+                      <MenuItem value="">Alle</MenuItem>
+                      <MenuItem value="info">Info</MenuItem>
+                      <MenuItem value="success">Success</MenuItem>
+                      <MenuItem value="warning">Warning</MenuItem>
+                      <MenuItem value="error">Error</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                
+                <Grid item xs={12} md={3}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Log-Level</InputLabel>
+                    <Select
+                      value={filters.logLevel}
+                      onChange={handleFilterChange('logLevel')}
+                      label="Log-Level"
+                    >
+                      <MenuItem value="">Alle</MenuItem>
+                      <MenuItem value="DEBUG">DEBUG</MenuItem>
+                      <MenuItem value="INFO">INFO</MenuItem>
+                      <MenuItem value="WARNING">WARNING</MenuItem>
+                      <MenuItem value="ERROR">ERROR</MenuItem>
+                      <MenuItem value="CRITICAL">CRITICAL</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                
+                <Grid item xs={12} md={3}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Correlation ID</InputLabel>
+                    <Select
+                      value={filters.correlationId}
+                      onChange={handleFilterChange('correlationId')}
+                      label="Correlation ID"
+                    >
+                      <MenuItem value="">Alle</MenuItem>
+                      {correlationIds.map((id) => (
+                        <MenuItem key={id} value={id}>
+                          {id.substring(0, 15)}...
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                
+                <Grid item xs={12} md={3}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Limit</InputLabel>
+                    <Select
+                      value={filters.limit}
+                      onChange={handleFilterChange('limit')}
+                      label="Limit"
+                    >
+                      <MenuItem value={25}>25</MenuItem>
+                      <MenuItem value={50}>50</MenuItem>
+                      <MenuItem value={100}>100</MenuItem>
+                      <MenuItem value={200}>200</MenuItem>
+                      <MenuItem value={500}>500</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Suche in Logs"
+                    value={filters.search}
+                    onChange={handleFilterChange('search')}
+                    InputProps={{
+                      startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
+                      endAdornment: filters.search ? (
+                        <IconButton size="small" onClick={() => setFilters(prev => ({ ...prev, search: '' }))}>
+                          <ClearIcon fontSize="small" />
+                        </IconButton>
+                      ) : null
+                    }}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button 
+                    variant="outlined" 
+                    size="small" 
+                    startIcon={<ClearIcon />}
+                    onClick={clearFilters}
+                  >
+                    Filter zurücksetzen
+                  </Button>
+                </Grid>
+              </Grid>
+            </Paper>
+          )}
         </Box>
         
         {/* Logs Tab */}
@@ -272,17 +454,32 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
                         </Typography>
                       </Grid>
                       <Grid item>
-                        <Chip 
-                          label={log.event_type} 
-                          size="small" 
-                          color={
-                            log.event_type === 'error' ? 'error' : 
-                            log.event_type === 'warning' ? 'warning' : 
-                            log.event_type === 'success' ? 'success' : 
-                            'default'
-                          }
-                          variant="outlined"
-                        />
+                        <Stack direction="row" spacing={1}>
+                          <Chip 
+                            label={log.event_type} 
+                            size="small" 
+                            color={
+                              log.event_type === 'error' ? 'error' : 
+                              log.event_type === 'warning' ? 'warning' : 
+                              log.event_type === 'success' ? 'success' : 
+                              'default'
+                            }
+                            variant="outlined"
+                          />
+                          {log.log_level && (
+                            <Chip 
+                              label={log.log_level} 
+                              size="small" 
+                              color={
+                                log.log_level === 'ERROR' ? 'error' : 
+                                log.log_level === 'WARNING' ? 'warning' : 
+                                log.log_level === 'CRITICAL' ? 'error' : 
+                                log.log_level === 'DEBUG' ? 'info' : 
+                                'default'
+                              }
+                            />
+                          )}
+                        </Stack>
                       </Grid>
                       <Grid item>
                         <Typography variant="caption" color="text.secondary">
@@ -292,14 +489,88 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
                     </Grid>
                   </AccordionSummary>
                   <AccordionDetails>
-                    {log.data && (
-                      <Box sx={{ mt: 1 }}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          Details:
-                        </Typography>
-                        {renderJsonData(log.data)}
-                      </Box>
-                    )}
+                    <Grid container spacing={2}>
+                      {/* Correlation ID */}
+                      {log.correlation_id && (
+                        <Grid item xs={12}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                            <LinkIcon fontSize="small" sx={{ mr: 1 }} color="primary" />
+                            <Typography variant="body2" color="text.secondary">
+                              Correlation ID: 
+                              <Chip 
+                                label={log.correlation_id} 
+                                size="small" 
+                                sx={{ ml: 1 }}
+                                onClick={() => {
+                                  setFilters(prev => ({ ...prev, correlationId: log.correlation_id }));
+                                  setShowFilters(true);
+                                }}
+                              />
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      )}
+                      
+                      {/* Performance Metrics */}
+                      {log.performance && (
+                        <Grid item xs={12} md={6}>
+                          <Paper variant="outlined" sx={{ p: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                              <SpeedIcon fontSize="small" sx={{ mr: 1 }} color="primary" />
+                              <Typography variant="subtitle2">
+                                Performance Metrics
+                              </Typography>
+                            </Box>
+                            {renderJsonData(log.performance)}
+                          </Paper>
+                        </Grid>
+                      )}
+                      
+                      {/* Environment Info */}
+                      {log.environment && (
+                        <Grid item xs={12} md={6}>
+                          <Paper variant="outlined" sx={{ p: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                              <WebIcon fontSize="small" sx={{ mr: 1 }} color="primary" />
+                              <Typography variant="subtitle2">
+                                Environment
+                              </Typography>
+                            </Box>
+                            {renderJsonData(log.environment)}
+                          </Paper>
+                        </Grid>
+                      )}
+                      
+                      {/* Tags */}
+                      {log.tags && log.tags.length > 0 && (
+                        <Grid item xs={12}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                            {log.tags.map((tag, tagIndex) => (
+                              <Chip 
+                                key={tagIndex}
+                                label={tag} 
+                                size="small" 
+                                variant="outlined"
+                                onClick={() => {
+                                  setFilters(prev => ({ ...prev, tag }));
+                                  setShowFilters(true);
+                                }}
+                              />
+                            ))}
+                          </Box>
+                        </Grid>
+                      )}
+                      
+                      {/* Main Data */}
+                      {log.data && (
+                        <Grid item xs={12}>
+                          <Typography variant="subtitle2" gutterBottom>
+                            Details:
+                          </Typography>
+                          {renderJsonData(log.data)}
+                        </Grid>
+                      )}
+                    </Grid>
                   </AccordionDetails>
                 </Accordion>
               ))}

@@ -322,8 +322,16 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
     """Run the GULP scraper and return the projects."""
     global is_scraping, last_scrape_time, last_used_dummy_data, project_manager, email_service, email_notification_enabled, email_recipient
     
+    # Generate a unique correlation ID for this scraping session
+    correlation_id = f"scrape-{int(time.time())}-{uuid.uuid4().hex[:8]}"
+    
     if is_scraping:
-        log_scraper_event("warning", "Scraper is already running, skipping")
+        log_scraper_event(
+            "warning", 
+            "Scraper is already running, skipping", 
+            correlation_id=correlation_id,
+            tags=["scraper_busy"]
+        )
         return []
     
     is_scraping = True
@@ -331,12 +339,26 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
     network_lines: List[str] = []
     
     try:
-        log_scraper_event("info", f"Starting GULP scraper", {
-            "timestamp": datetime.datetime.now().isoformat(),
-            "use_real_scraper": USE_REAL_SCRAPER,
-            "is_cloud_env": IS_CLOUD_ENV,
-            "pages": list(pages)
-        })
+        log_scraper_event(
+            "info", 
+            f"Starting GULP scraper", 
+            {
+                "timestamp": datetime.datetime.now().isoformat(),
+                "use_real_scraper": USE_REAL_SCRAPER,
+                "is_cloud_env": IS_CLOUD_ENV,
+                "pages": list(pages)
+            },
+            correlation_id=correlation_id,
+            tags=["scraper_start", "gulp"]
+        )
+    except Exception as e:
+        log_scraper_event(
+            "error", 
+            "Error logging scraper start", 
+            {"error": str(e)},
+            correlation_id=correlation_id,
+            tags=["error", "logging_error"]
+        )
         
         # Erstelle Debug-Verzeichnisse, falls sie nicht existieren
         DATA_DIR.mkdir(exist_ok=True, parents=True)
@@ -360,7 +382,12 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
         
         # Wenn USE_REAL_SCRAPER auf False gesetzt ist, verwende Dummy-Daten
         if not USE_REAL_SCRAPER:
-            log_scraper_event("info", "USE_REAL_SCRAPER is disabled, using dummy data")
+            log_scraper_event(
+                "info", 
+                "USE_REAL_SCRAPER is disabled, using dummy data",
+                correlation_id=correlation_id,
+                tags=["dummy_data"]
+            )
             # Setze das Flag für Dummy-Daten
             last_used_dummy_data = True
             # Erstelle 10 Dummy-Projekte
@@ -373,31 +400,55 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                     with open(dummy_file, 'r', encoding='utf-8') as f:
                         dummy_projects = json.load(f)
                         print(f"[SCRAPER] Loaded {len(dummy_projects)} dummy projects from file")
-                        log_scraper_event("info", "Loaded dummy data from file", {
-                            "dummy_projects_count": len(dummy_projects),
-                            "dummy_file": str(dummy_file.absolute())
-                        })
+                        log_scraper_event(
+                            "info", 
+                            "Loaded dummy data from file", 
+                            {
+                                "dummy_projects_count": len(dummy_projects),
+                                "dummy_file": str(dummy_file.absolute())
+                            },
+                            correlation_id=correlation_id,
+                            tags=["dummy_data", "file_loaded"]
+                        )
                 except Exception as e:
                     print(f"[SCRAPER] Error loading dummy data: {str(e)}")
-                    log_scraper_event("error", "Error loading dummy data", {
-                        "error": str(e),
-                        "dummy_file": str(dummy_file.absolute())
-                    })
+                    log_scraper_event(
+                        "error", 
+                        "Error loading dummy data", 
+                        {
+                            "error": str(e),
+                            "dummy_file": str(dummy_file.absolute())
+                        },
+                        correlation_id=correlation_id,
+                        tags=["dummy_data", "error", "file_error"]
+                    )
             
             # Wenn keine Dummy-Daten geladen werden konnten, erstelle neue
             if not dummy_projects:
                 print("[SCRAPER] Creating new dummy projects")
                 dummy_projects = create_dummy_projects()
-                log_scraper_event("info", "Created new dummy projects", {
-                    "dummy_projects_count": len(dummy_projects)
-                })
+                log_scraper_event(
+                    "info", 
+                    "Created new dummy projects", 
+                    {
+                        "dummy_projects_count": len(dummy_projects)
+                    },
+                    correlation_id=correlation_id,
+                    tags=["dummy_data", "generated"]
+                )
                 
             # Verarbeite die Dummy-Projekte
             unique_projects, new_projects = project_manager.process_projects(dummy_projects)
-            log_scraper_event("success", "Dummy data processing completed", {
-                "unique_projects_count": len(unique_projects),
-                "new_projects_count": len(new_projects)
-            })
+            log_scraper_event(
+                "success", 
+                "Dummy data processing completed", 
+                {
+                    "unique_projects_count": len(unique_projects),
+                    "new_projects_count": len(new_projects)
+                },
+                correlation_id=correlation_id,
+                tags=["dummy_data", "processing_complete"]
+            )
             
             # Aktualisiere den Zeitstempel des letzten Scans
             last_scrape_time = datetime.datetime.now().isoformat()
@@ -413,7 +464,12 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
         
         # Render-spezifische Konfiguration
         if IS_CLOUD_ENV:
-            log_scraper_event("info", "Verwende Render-spezifische Browser-Konfiguration")
+            log_scraper_event(
+                "info", 
+                "Verwende Render-spezifische Browser-Konfiguration",
+                correlation_id=correlation_id,
+                tags=["render", "browser_config"]
+            )
             # Zusätzliche Argumente für Render
             render_args = [
                 '--no-sandbox',
@@ -430,16 +486,28 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
             # Setze explizit den Browser-Pfad, wenn wir auf Render sind
             render_chromium_path = '/opt/render/.cache/ms-playwright/chromium-1091/chrome-linux/chrome'
             if os.path.exists(render_chromium_path):
-                log_scraper_event("info", "Render Chromium executable gefunden", {
-                    "path": render_chromium_path
-                })
+                log_scraper_event(
+                    "info", 
+                    "Render Chromium executable gefunden", 
+                    {
+                        "path": render_chromium_path
+                    },
+                    correlation_id=correlation_id,
+                    tags=["render", "chromium", "executable_found"]
+                )
                 # Setze den Executable-Pfad direkt in den Launch-Optionen
                 launch_options["executable_path"] = render_chromium_path
             else:
-                log_scraper_event("warning", "Render Chromium executable nicht gefunden", {
-                    "path": render_chromium_path,
-                    "directories_found": str(os.listdir('/opt/render/.cache/ms-playwright')) if os.path.exists('/opt/render/.cache/ms-playwright') else "ms-playwright directory not found"
-                })
+                log_scraper_event(
+                    "warning", 
+                    "Render Chromium executable nicht gefunden", 
+                    {
+                        "path": render_chromium_path,
+                        "directories_found": str(os.listdir('/opt/render/.cache/ms-playwright')) if os.path.exists('/opt/render/.cache/ms-playwright') else "ms-playwright directory not found"
+                    },
+                    correlation_id=correlation_id,
+                    tags=["render", "chromium", "executable_missing", "warning"]
+                )
                 
                 # Versuche, alternative Chromium-Versionen zu finden
                 try:
@@ -449,33 +517,74 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                         latest_dir = max(chromium_dirs)
                         chrome_path = os.path.join(latest_dir, 'chrome-linux', 'chrome')
                         if os.path.exists(chrome_path):
-                            log_scraper_event("info", "Alternative Chromium-Version gefunden", {
-                                "path": chrome_path
-                            })
+                            log_scraper_event(
+                                "info", 
+                                "Alternative Chromium-Version gefunden", 
+                                {
+                                    "path": chrome_path
+                                },
+                                correlation_id=correlation_id,
+                                tags=["render", "chromium", "alternative_found"]
+                            )
                             launch_options["executable_path"] = chrome_path
                 except Exception as e:
-                    log_scraper_event("error", "Fehler beim Suchen nach alternativen Chromium-Versionen", {
-                        "error": str(e)
-                    })
+                    log_scraper_event(
+                        "error", 
+                        "Fehler beim Suchen nach alternativen Chromium-Versionen", 
+                        {
+                            "error": str(e)
+                        },
+                        correlation_id=correlation_id,
+                        tags=["render", "chromium", "error", "alternative_search"]
+                    )
         
-        print(f"[SCRAPER] Launching browser with options: {launch_options}")
+        try:
+            print(f"[SCRAPER] Launching browser with options: {launch_options}")
+        except Exception as e:
+            log_scraper_event(
+                "error", 
+                "Error printing browser launch options", 
+                {"error": str(e)},
+                correlation_id=correlation_id,
+                tags=["error", "browser_launch"]
+            )
         
         # Setze das Flag für echte Daten (wird auf True gesetzt, wenn wir auf Dummy-Daten zurückfallen)
         last_used_dummy_data = False
         
         # Initialisiere Playwright mit vollständiger Fehlerbehandlung
         try:
-            log_scraper_event("info", "Initialisiere Playwright", {
-                "headless": HEADLESS,
-                "timeout": TIMEOUT_MS,
-                "is_cloud_env": IS_CLOUD_ENV
-            })
+            log_scraper_event(
+                "info", 
+                "Initialisiere Playwright", 
+                {
+                    "headless": HEADLESS,
+                    "timeout": TIMEOUT_MS,
+                    "is_cloud_env": IS_CLOUD_ENV
+                },
+                correlation_id=correlation_id,
+                tags=["playwright", "initialization"]
+            )
+        except Exception as e:
+            log_scraper_event(
+                "error", 
+                "Error initializing Playwright logging", 
+                {"error": str(e)},
+                correlation_id=correlation_id,
+                tags=["error", "playwright", "initialization_error"]
+            )
             
             async with async_playwright() as pw:
                 print("[SCRAPER] Playwright erfolgreich initialisiert")
-                log_scraper_event("success", "Playwright erfolgreich initialisiert", {
-                    "chromium_executable": str(Path(sys.executable).parent / "playwright" / "driver" / "package" / "chromium" / "chrome-linux" / "chrome")
-                })
+                log_scraper_event(
+                    "success", 
+                    "Playwright erfolgreich initialisiert", 
+                    {
+                        "chromium_executable": str(Path(sys.executable).parent / "playwright" / "driver" / "package" / "chromium" / "chrome-linux" / "chrome")
+                    },
+                    correlation_id=correlation_id,
+                    tags=["playwright", "initialization_success"]
+                )
                 
                 # Browser starten mit verbesserter Fehlerbehandlung
                 try:
@@ -486,12 +595,23 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                             executable_path = str(pw.chromium.executable_path)
                             # Überprüfe, ob die Datei existiert
                             if not Path(executable_path).exists():
-                                log_scraper_event("warning", "Chromium executable nicht gefunden", {
-                                    "path": executable_path
-                                })
+                                log_scraper_event(
+                                    "warning", 
+                                    "Chromium executable nicht gefunden", 
+                                    {
+                                        "path": executable_path
+                                    },
+                                    correlation_id=correlation_id,
+                                    tags=["chromium", "executable_missing", "warning"]
+                                )
                                 # Versuche, Playwright-Browser zu installieren
                                 if IS_CLOUD_ENV:
-                                    log_scraper_event("info", "Versuche Playwright-Browser zu installieren")
+                                    log_scraper_event(
+                                        "info", 
+                                        "Versuche Playwright-Browser zu installieren",
+                                        correlation_id=correlation_id,
+                                        tags=["playwright", "browser_install"]
+                                    )
                                     import subprocess
                                     try:
                                         result = subprocess.run(
@@ -500,37 +620,67 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                                             text=True,
                                             check=True
                                         )
-                                        log_scraper_event("success", "Playwright-Browser installiert", {
-                                            "stdout": result.stdout,
-                                            "stderr": result.stderr
-                                        })
+                                        log_scraper_event(
+                                            "success", 
+                                            "Playwright-Browser installiert", 
+                                            {
+                                                "stdout": result.stdout,
+                                                "stderr": result.stderr
+                                            },
+                                            correlation_id=correlation_id,
+                                            tags=["playwright", "browser_install_success"]
+                                        )
                                     except subprocess.CalledProcessError as e:
-                                        log_scraper_event("error", "Fehler bei der Installation des Playwright-Browsers", {
-                                            "stdout": e.stdout,
-                                            "stderr": e.stderr,
-                                            "returncode": e.returncode
-                                        })
+                                        log_scraper_event(
+                                            "error", 
+                                            "Fehler bei der Installation des Playwright-Browsers", 
+                                            {
+                                                "stdout": e.stdout,
+                                                "stderr": e.stderr,
+                                                "returncode": e.returncode
+                                            },
+                                            correlation_id=correlation_id,
+                                            tags=["playwright", "browser_install_error", "error"]
+                                        )
                     except Exception as path_error:
-                        log_scraper_event("warning", "Fehler beim Überprüfen des Browser-Pfads", {"error": str(path_error)})
+                        log_scraper_event(
+                            "warning", 
+                            "Fehler beim Überprüfen des Browser-Pfads", 
+                            {"error": str(path_error)},
+                            correlation_id=correlation_id,
+                            tags=["browser", "path_error", "warning"]
+                        )
                     
-                    log_scraper_event("info", "Starte Browser", {
-                        "launch_options": launch_options,
-                        "executable_path": executable_path or "unknown"
-                    })
+                    log_scraper_event(
+                        "info", 
+                        "Starte Browser", 
+                        {
+                            "launch_options": launch_options,
+                            "executable_path": executable_path or "unknown"
+                        },
+                        correlation_id=correlation_id,
+                        tags=["browser", "launch"]
+                    )
                     
                     # Detaillierte Logging vor dem Browser-Start
-                    log_scraper_event("info", "Browser-Start-Details", {
-                        "launch_options": launch_options,
-                        "executable_path": executable_path or "unknown",
-                        "playwright_version": pw.__version__ if hasattr(pw, "__version__") else "unknown",
-                        "python_version": sys.version,
-                        "platform": sys.platform,
-                        "env_vars": {
-                            "PATH": os.environ.get("PATH", "not set"),
-                            "PLAYWRIGHT_BROWSERS_PATH": os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "not set"),
-                            "DISPLAY": os.environ.get("DISPLAY", "not set")
-                        }
-                    })
+                    log_scraper_event(
+                        "info", 
+                        "Browser-Start-Details", 
+                        {
+                            "launch_options": launch_options,
+                            "executable_path": executable_path or "unknown",
+                            "playwright_version": pw.__version__ if hasattr(pw, "__version__") else "unknown",
+                            "python_version": sys.version,
+                            "platform": sys.platform,
+                            "env_vars": {
+                                "PATH": os.environ.get("PATH", "not set"),
+                                "PLAYWRIGHT_BROWSERS_PATH": os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "not set"),
+                                "DISPLAY": os.environ.get("DISPLAY", "not set")
+                            }
+                        },
+                        correlation_id=correlation_id,
+                        tags=["browser", "launch_details"]
+                    )
                     
                     # Versuche den Browser zu starten mit ausführlichem Error-Handling
                     try:
@@ -540,50 +690,112 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                             timeout=launch_options.get("timeout", 30000),
                             args=launch_options.get("args", [])
                         )
-                        log_scraper_event("success", "Browser erfolgreich gestartet")
+                        log_scraper_event(
+                            "success", 
+                            "Browser erfolgreich gestartet",
+                            correlation_id=correlation_id,
+                            tags=["browser", "launch_success"]
+                        )
                         
                         # Log Browser-Version und andere Infos
                         try:
                             version = await browser.version()
-                            log_scraper_event("info", "Browser-Version", {"version": version})
+                            log_scraper_event(
+                                "info", 
+                                "Browser-Version", 
+                                {"version": version},
+                                correlation_id=correlation_id,
+                                tags=["browser", "version_info"]
+                            )
                         except Exception as ver_error:
                             version = f"Error getting version: {str(ver_error)}"
-                            log_scraper_event("warning", "Konnte Browser-Version nicht ermitteln", {"error": str(ver_error)})
+                            log_scraper_event(
+                                "warning", 
+                                "Konnte Browser-Version nicht ermitteln", 
+                                {"error": str(ver_error)},
+                                correlation_id=correlation_id,
+                                tags=["browser", "version_error", "warning"]
+                            )
                         
                         # Verwende korrektes async/await statt .then() Verkettung
                         try:
                             context = await browser.new_context()
-                            log_scraper_event("info", "Browser-Kontext erstellt")
+                            log_scraper_event(
+                                "info", 
+                                "Browser-Kontext erstellt",
+                                correlation_id=correlation_id,
+                                tags=["browser", "context_created"]
+                            )
                             
                             try:
                                 page = await context.new_page()
-                                log_scraper_event("info", "Browser-Seite erstellt")
+                                log_scraper_event(
+                                    "info", 
+                                    "Browser-Seite erstellt",
+                                    correlation_id=correlation_id,
+                                    tags=["browser", "page_created"]
+                                )
                                 
                                 try:
                                     user_agent = await page.evaluate("navigator.userAgent")
-                                    log_scraper_event("info", "User-Agent ermittelt", {"user_agent": user_agent})
+                                    log_scraper_event(
+                                        "info", 
+                                        "User-Agent ermittelt", 
+                                        {"user_agent": user_agent},
+                                        correlation_id=correlation_id,
+                                        tags=["browser", "user_agent"]
+                                    )
                                 except Exception as ua_error:
                                     user_agent = f"Error getting user agent: {str(ua_error)}"
-                                    log_scraper_event("warning", "Konnte User-Agent nicht ermitteln", {"error": str(ua_error)})
+                                    log_scraper_event(
+                                        "warning", 
+                                        "Konnte User-Agent nicht ermitteln", 
+                                        {"error": str(ua_error)},
+                                        correlation_id=correlation_id,
+                                        tags=["browser", "user_agent_error", "warning"]
+                                    )
                                 
                                 await page.close()
-                                log_scraper_event("info", "Test-Seite geschlossen")
+                                log_scraper_event(
+                                    "info", 
+                                    "Test-Seite geschlossen",
+                                    correlation_id=correlation_id,
+                                    tags=["browser", "test_page_closed"]
+                                )
                             except Exception as page_error:
                                 user_agent = f"Error creating page: {str(page_error)}"
-                                log_scraper_event("warning", "Konnte Browser-Seite nicht erstellen", {"error": str(page_error)})
+                                log_scraper_event(
+                                    "warning", 
+                                    "Konnte Browser-Seite nicht erstellen", 
+                                    {"error": str(page_error)},
+                                    correlation_id=correlation_id,
+                                    tags=["browser", "page_creation_error", "warning"]
+                                )
                             
                             await context.close()
-                            log_scraper_event("info", "Test-Kontext geschlossen")
+                            log_scraper_event(
+                                "info", 
+                                "Test-Kontext geschlossen",
+                                correlation_id=correlation_id,
+                                tags=["browser", "test_context_closed"]
+                            )
                         except Exception as ctx_error:
                             user_agent = f"Error creating context: {str(ctx_error)}"
-                            log_scraper_event("warning", "Konnte Browser-Kontext nicht erstellen", {"error": str(ctx_error)})
+                            log_scraper_event(
+                                "warning", 
+                                "Konnte Browser-Kontext nicht erstellen", 
+                                {"error": str(ctx_error)},
+                                correlation_id=correlation_id,
+                                tags=["browser", "context_creation_error", "warning"]
+                            )
                     except Exception as launch_error:
                         # Detaillierte Fehlerinformationen sammeln
                         error_details = {
                             "error_type": type(launch_error).__name__,
                             "error_message": str(launch_error),
                             "traceback": traceback.format_exc(),
-                            "launch_options": launch_options
+                            "launch_options": launch_options,
+                            "correlation_id": correlation_id  # Include correlation ID in error details
                         }
                         
                         # Prüfe auf spezifische Fehlertypen für bessere Diagnose
@@ -597,14 +809,26 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                             error_details["error_category"] = "str_not_callable"
                             error_details["suggested_fix"] = "Check for JavaScript-style .then() calls or event handlers"
                         
-                        log_scraper_event("error", "Error launching Browser", error_details)
+                        log_scraper_event(
+                            "error", 
+                            "Error launching Browser", 
+                            error_details,
+                            correlation_id=correlation_id,
+                            tags=["browser", "launch_error", "error"]
+                        )
                         raise launch_error
                     
                     print("[SCRAPER] Browser erfolgreich gestartet")
-                    log_scraper_event("success", "Browser erfolgreich gestartet", {
-                        "browser_version": version,
-                        "user_agent": user_agent
-                    })
+                    log_scraper_event(
+                        "success", 
+                        "Browser erfolgreich gestartet", 
+                        {
+                            "browser_version": version,
+                            "user_agent": user_agent
+                        },
+                        correlation_id=correlation_id,
+                        tags=["browser", "start_success"]
+                    )
                     
                     # Browser-Kontext erstellen mit Fehlerbehandlung
                     try:
@@ -612,18 +836,34 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                             user_agent=USER_AGENT, 
                             viewport={"width": 1280, "height": 900}
                         )
-                        log_scraper_event("info", "Browser context created", {
-                            "user_agent": USER_AGENT,
-                            "viewport": {"width": 1280, "height": 900}
-                        })
+                        log_scraper_event(
+                            "info", 
+                            "Browser context created", 
+                            {
+                                "user_agent": USER_AGENT,
+                                "viewport": {"width": 1280, "height": 900}
+                            },
+                            correlation_id=correlation_id,
+                            tags=["browser", "context_created"]
+                        )
                         
                         # Neue Seite öffnen mit Fehlerbehandlung
                         try:
                             page = await context.new_page()
-                            log_scraper_event("info", "New page opened")
+                            log_scraper_event(
+                                "info", 
+                                "New page opened",
+                                correlation_id=correlation_id,
+                                tags=["browser", "page_opened"]
+                            )
 
                             # Verwende eine komplett andere Herangehensweise ohne Event-Handler
-                            log_scraper_event("info", "Setting up network monitoring without event handlers")
+                            log_scraper_event(
+                                "info", 
+                                "Setting up network monitoring without event handlers",
+                                correlation_id=correlation_id,
+                                tags=["network", "monitoring_setup"]
+                            )
                             
                             # Verwende eine Liste, um die Antworten zu speichern
                             responses = []
@@ -636,7 +876,13 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                                         method = resp.request.method if hasattr(resp, 'request') and hasattr(resp.request, 'method') else 'UNKNOWN'
                                         network_lines.append(f"{resp.status} {method} {resp.url} [{content_type}]")
                                 except Exception as e:
-                                    log_scraper_event("warning", "Error logging response", {"error": str(e)})
+                                    log_scraper_event(
+                                        "warning", 
+                                        "Error logging response", 
+                                        {"error": str(e)},
+                                        correlation_id=correlation_id,
+                                        tags=["network", "response_logging_error", "warning"]
+                                    )
                             
                             # Wir verwenden keine Event-Handler mehr, sondern sammeln Antworten manuell
                                 
@@ -646,13 +892,24 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                             # Durchlaufe alle Seiten und extrahiere Projekte
                             for page_idx in pages:
                                 current_url = START_URL_TEMPLATE.format(page=page_idx)
-                                log_scraper_event("info", f"Navigating to page {page_idx}", {
-                                    "url": current_url
-                                })
+                                log_scraper_event(
+                                    "info", 
+                                    f"Navigating to page {page_idx}", 
+                                    {
+                                        "url": current_url
+                                    },
+                                    correlation_id=correlation_id,
+                                    tags=["navigation", f"page_{page_idx}"]
+                                )
                                 captured: List[Tuple[str, Any]] = []
 
                                 # Wir verwenden keinen Event-Handler mehr für API-Antworten
-                                log_scraper_event("info", "Setting up API response capture without event handlers")
+                                log_scraper_event(
+                                "info", 
+                                "Setting up API response capture without event handlers",
+                                correlation_id=correlation_id,
+                                tags=["api", "response_capture_setup"]
+                            )
                                 
                                 # Diese Funktion wird später direkt aufgerufen
                                 async def process_api_response(resp):
@@ -661,222 +918,217 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                                             try:
                                                 json_data = await resp.json()
                                                 captured.append((resp.url, json_data))
-                                                log_scraper_event("info", "Captured API response", {"url": resp.url})
+                                                log_scraper_event(
+                                                    "info", 
+                                                    "Captured API response", 
+                                                    {"url": resp.url},
+                                                    correlation_id=correlation_id,
+                                                    tags=["api", "response_captured"]
+                                                )
                                             except Exception as e:
-                                                log_scraper_event("warning", "Error capturing API response", {
-                                                    "url": resp.url,
-                                                    "error": str(e)
-                                                })
+                                                log_scraper_event(
+                                                    "warning", 
+                                                    "Error capturing API response", 
+                                                    {
+                                                        "url": resp.url,
+                                                        "error": str(e)
+                                                    },
+                                                    correlation_id=correlation_id,
+                                                    tags=["api", "response_capture_error", "warning"]
+                                                )
                                 
                                 # Kein Event-Handler-Registrierung mehr mit page.on()
 
                                 # Navigiere zur Seite mit Fehlerbehandlung und manueller Erfassung der Antworten
                                 try:
                                     # Detaillierte Logging vor der Navigation
-                                    log_scraper_event("info", f"Navigating to page {page_idx}", {
-                                        "url": current_url,
-                                        "browser_info": {
-                                            "version": version if 'version' in locals() else "unknown",
-                                            "user_agent": user_agent if 'user_agent' in locals() else "unknown"
+                                    log_scraper_event(
+                                        "info", 
+                                        f"Navigating to page {page_idx}", 
+                                        {
+                                            "url": current_url,
+                                            "browser_info": {
+                                                "version": version if 'version' in locals() else "unknown",
+                                                "user_agent": user_agent if 'user_agent' in locals() else "unknown"
+                                            },
+                                            "page_state": "pre-navigation"
                                         },
-                                        "page_state": "pre-navigation"
-                                    })
+                                        correlation_id=correlation_id,
+                                        tags=["navigation", f"page_{page_idx}", "pre_navigation"]
+                                    )
                                     
                                     # Verwende CDP Session, um Netzwerkanfragen zu überwachen
                                     try:
                                         cdp_session = await page.context.new_cdp_session(page)
                                         await cdp_session.send('Network.enable')
-                                        log_scraper_event("info", "CDP session established for network monitoring")
+                                        log_scraper_event(
+                                            "info", 
+                                            "CDP session established for network monitoring",
+                                            correlation_id=correlation_id,
+                                            tags=["network", "cdp_session"]
+                                        )
                                     except Exception as cdp_error:
-                                        log_scraper_event("warning", "Could not establish CDP session", {
-                                            "error": str(cdp_error),
-                                            "traceback": traceback.format_exc()
-                                        })
+                                        log_scraper_event(
+                                            "warning", 
+                                            "Could not establish CDP session", 
+                                            {
+                                                "error": str(cdp_error),
+                                                "traceback": traceback.format_exc()
+                                            },
+                                            correlation_id=correlation_id,
+                                            tags=["network", "cdp_session_error", "warning"]
+                                        )
                                     
                                     # Navigiere zur Seite mit Timeout-Handling
                                     try:
                                         start_time = time.time()
                                         response = await page.goto(current_url, timeout=60000)  # 60 Sekunden Timeout
                                         navigation_time = time.time() - start_time
-                                        log_scraper_event("info", f"Successfully navigated to page {page_idx}", {
-                                            "navigation_time_seconds": round(navigation_time, 2),
-                                            "status": response.status if response else "unknown",
-                                            "url": current_url
-                                        })
+                                        log_scraper_event(
+                                            "info", 
+                                            f"Successfully navigated to page {page_idx}", 
+                                            {
+                                                "navigation_time_seconds": round(navigation_time, 2),
+                                                "status": response.status if response else "unknown",
+                                                "url": current_url
+                                            },
+                                            correlation_id=correlation_id,
+                                            tags=["navigation", "page_load_success"]
+                                        )
                                     except Exception as goto_error:
-                                        log_scraper_event("error", f"Navigation timeout or error on page {page_idx}", {
-                                            "error": str(goto_error),
-                                            "url": current_url,
-                                            "traceback": traceback.format_exc()
-                                        })
+                                        log_scraper_event(
+                                            "error", 
+                                            f"Navigation timeout or error on page {page_idx}", 
+                                            {
+                                                "error": str(goto_error),
+                                                "url": current_url,
+                                                "traceback": traceback.format_exc()
+                                            },
+                                            correlation_id=correlation_id,
+                                            tags=["navigation", "page_load_error", "error"]
+                                        )
                                         # Versuche trotzdem fortzufahren
                                         response = None
-                                    
-                                    # Manuell die Hauptantwort protokollieren
-                                    if response:
-                                        log_response(response)
-                                        # Prüfe, ob es sich um eine API-Antwort handelt
-                                        await process_api_response(response)
                                         
-                                        # Protokolliere HTTP-Status und Header
-                                        log_scraper_event("info", "Main response details", {
-                                            "status": response.status,
-                                            "status_text": response.status_text,
-                                            "headers": dict(response.headers),
-                                            "content_type": response.headers.get("content-type", "unknown")
-                                        })
-                                    
-                                    # Warte auf weitere Netzwerkanfragen mit Timeout-Handling
+                                    # Sammle Ressourcen und Performance-Metriken
+                                    resources = []
                                     try:
-                                        log_scraper_event("info", "Waiting for network requests to complete")
-                                        await page.wait_for_load_state("networkidle", timeout=30000)  # 30 Sekunden Timeout
-                                        log_scraper_event("info", "Network is idle")
-                                    except Exception as wait_error:
-                                        log_scraper_event("warning", "Timeout waiting for network idle", {
-                                            "error": str(wait_error)
-                                        })
-                                    
-                                    # Sammle Seiteninformationen für Diagnose
-                                    try:
-                                        page_metrics = await page.evaluate("""
-                                            () => {
-                                                return {
-                                                    title: document.title,
-                                                    url: window.location.href,
-                                                    resourceCount: performance.getEntriesByType('resource').length,
-                                                    domContentLoaded: performance.timing.domContentLoadedEventEnd - performance.timing.navigationStart,
-                                                    load: performance.timing.loadEventEnd - performance.timing.navigationStart,
-                                                    documentHeight: document.documentElement.scrollHeight,
-                                                    documentWidth: document.documentElement.scrollWidth
-                                                };
-                                            }
-                                        """)
-                                        log_scraper_event("info", "Page metrics collected", page_metrics)
-                                    except Exception as metrics_error:
-                                        log_scraper_event("warning", "Could not collect page metrics", {
-                                            "error": str(metrics_error)
-                                        })
-                                    
-                                    # Sammle alle Ressourcen, die geladen wurden
-                                    try:
-                                        resources = await page.evaluate("""
-                                            () => {
-                                                return performance.getEntriesByType('resource').map(r => ({
-                                                    name: r.name,
-                                                    type: r.initiatorType,
-                                                    duration: r.duration,
-                                                    size: r.transferSize
-                                                }));
-                                            }
-                                        """)
-                                        
-                                        log_scraper_event("info", f"Collected {len(resources)} resources", {
-                                            "resource_types": {r["type"]: sum(1 for res in resources if res["type"] == r["type"]) 
+                                        # Sammle Netzwerk-Ressourcen für Performance-Analyse
+                                        resources = await page.evaluate("() => JSON.parse(JSON.stringify(performance.getEntriesByType('resource')))")
+                                        log_scraper_event(
+                                            "info", 
+                                            "Collected resource timing data", 
+                                            {
+                                                "resource_count": len(resources),
+                                                "resource_types": {r["type"]: sum(1 for res in resources if res["type"] == r["type"]) 
                                                             for r in resources if "type" in r},
-                                            "total_transfer_size_kb": round(sum(r["size"] for r in resources if "size" in r) / 1024, 2) if resources else 0
-                                        })
+                                                "total_transfer_size_kb": round(sum(r["size"] for r in resources if "size" in r) / 1024, 2) if resources else 0
+                                            },
+                                            correlation_id=correlation_id,
+                                            tags=["resources", "timing_data"]
+                                        )
                                     except Exception as res_error:
-                                        log_scraper_event("warning", "Could not collect resources", {
-                                            "error": str(res_error)
-                                        })
+                                        log_scraper_event(
+                                            "info", 
+                                            "Collected resource timing data", 
+                                            {
+                                                "resource_count": len(resources)
+                                            },
+                                            correlation_id=correlation_id,
+                                            tags=["resources", "timing_data"]
+                                        )
                                         resources = []
                                     
                                     # Prüfe auf API-Anfragen in den gesammelten Ressourcen
                                     try:
                                         api_resources = [r for r in resources if "name" in r and API_RE.search(r["name"])]
                                         if api_resources:
-                                            log_scraper_event("info", f"Found {len(api_resources)} API resources", {
-                                                "urls": [r["name"] for r in api_resources[:5]],
-                                                "types": [r["type"] for r in api_resources[:5] if "type" in r]
-                                            })
+                                            log_scraper_event(
+                                                "info", 
+                                                "Found API resources", 
+                                                {"api_resource_count": len(api_resources)},
+                                                correlation_id=correlation_id,
+                                                tags=["api", "resources"]
+                                            )
                                     except Exception as api_error:
-                                        log_scraper_event("warning", "Error processing API resources", {
-                                            "error": str(api_error)
-                                        })
-                                except Exception as nav_error:
-                                    log_scraper_event("error", f"Navigation error on page {page_idx}", {
-                                        "error": str(nav_error),
-                                        "traceback": traceback.format_exc(),
-                                        "url": current_url
-                                    })
-                                    continue
+                                        log_scraper_event(
+                                            "error", 
+                                            "Error processing API resources", 
+                                            {"error": str(api_error)},
+                                            correlation_id=correlation_id,
+                                            tags=["api", "resources", "error"]
+                                        )
+                                        continue
                                 
                                 try:
                                     # Scroll through the page to trigger lazy loading
-                                    log_scraper_event("info", f"Scrolling page {page_idx} to trigger lazy loading", {
-                                        "scroll_steps": SCROLL_STEPS,
-                                        "scroll_pause": SCROLL_PAUSE,
-                                        "collect_seconds": COLLECT_SECS
-                                    })
-                                    for step in range(SCROLL_STEPS):
-                                        await page.mouse.wheel(0, 4000)
-                                        await asyncio.sleep(SCROLL_PAUSE)
-                                    await asyncio.sleep(COLLECT_SECS)
-                                except Exception as scroll_error:
-                                    log_scraper_event("error", f"Error during scrolling on page {page_idx}", {
-                                        "error": str(scroll_error)
-                                    })
+                                    log_scraper_event(
+                                        "info", 
+                                        f"Scrolling page {page_idx} to trigger lazy loading", 
+                                        {
+                                            "scroll_steps": SCROLL_STEPS,
+                                            "scroll_pause": SCROLL_PAUSE,
+                                            "collect_seconds": COLLECT_SECS
+                                        },
+                                        correlation_id=correlation_id,
+                                        tags=["browser", "page_scrolling"]
+                                    )
+                                except Exception as scroll_log_error:
+                                    log_scraper_event(
+                                        "error", 
+                                        "Error logging scroll operation", 
+                                        {"error": str(scroll_log_error)},
+                                        correlation_id=correlation_id,
+                                        tags=["error", "logging_error", "scrolling"]
+                                    )
                                 
-                                # Process captured API responses
-                                if captured:
-                                    try:
-                                        feed_url, api_json = captured[0]
-                                        debug_file = DEBUG_DIR / f"api_page{page_idx}.json"
-                                        (debug_file).write_text(
-                                            json.dumps(api_json, indent=2, ensure_ascii=False), 
-                                            encoding="utf-8"
-                                        )
-                                        log_scraper_event("info", f"Captured API data from page {page_idx}", {
-                                            "feed_url": feed_url,
-                                            "debug_file": str(debug_file),
-                                            "response_size": len(json.dumps(api_json))
-                                        })
-                                    except Exception as save_error:
-                                        log_scraper_event("error", f"Error saving API data for page {page_idx}", {
-                                            "error": str(save_error)
-                                        })
-                                        feed_url, api_json = "n/a", {}
-                                else:
-                                    feed_url, api_json = "n/a", {}
-                                
-                                # Extract projects from API response
                                 try:
-                                    projects: List[Dict] = []
-                                    if isinstance(api_json, dict):
-                                        for key in ("content", "data", "items", "projects", "results"):
-                                            if isinstance(api_json.get(key), list):
-                                                projects = api_json[key]
-                                                break
-                                    if not projects:
-                                        projects = find_projects_recursive(api_json)
-                                    
-                                    log_scraper_event("info", f"Projects extracted from page {page_idx}", {
-                                        "count": len(projects),
-                                        "source": feed_url
-                                    })
-                                    all_projects.extend(projects)
-                                except Exception as extract_error:
-                                    log_scraper_event("error", f"Error extracting projects from page {page_idx}", {
-                                        "error": str(extract_error),
-                                        "source": feed_url
-                                    })
-                            
+                                    for step in range(SCROLL_STEPS):
+                                        # Scroll down
+                                        await page.evaluate(f"window.scrollTo(0, {step * 1000})")
+                                        await page.wait_for_timeout(SCROLL_PAUSE)
+                                except Exception as scroll_error:
+                                    log_scraper_event(
+                                        "error", 
+                                        "Error during page scrolling", 
+                                        {"error": str(scroll_error)},
+                                        correlation_id=correlation_id,
+                                        tags=["error", "browser", "scrolling"]
+                                    )
                             # Close browser resources with proper error handling
                             try:
                                 await page.close()
-                                log_scraper_event("info", "Page closed successfully")
+                                log_scraper_event(
+                                    "info", 
+                                    "Page closed successfully",
+                                    correlation_id=correlation_id,
+                                    tags=["browser", "cleanup"]
+                                )
                             except Exception as page_close_error:
-                                log_scraper_event("warning", "Error closing page", {
-                                    "error": str(page_close_error)
-                                })
+                                log_scraper_event(
+                                    "error", 
+                                    "Error closing page", 
+                                    {"error": str(page_close_error)},
+                                    correlation_id=correlation_id,
+                                    tags=["browser", "page_closing_error", "warning"]
+                                )
                                 
                             try:
                                 await context.close()
-                                log_scraper_event("info", "Browser context closed successfully")
+                                log_scraper_event(
+                                    "info", 
+                                    "Browser context closed successfully",
+                                    correlation_id=correlation_id,
+                                    tags=["browser", "context_closing"]
+                                )
                             except Exception as context_close_error:
-                                log_scraper_event("warning", "Error closing browser context", {
-                                    "error": str(context_close_error)
-                                })
+                                log_scraper_event(
+                                    "error", 
+                                    "Error closing browser context", 
+                                    {"error": str(context_close_error)},
+                                    correlation_id=correlation_id,
+                                    tags=["error", "browser", "context_closing"]
+                                )
                                 
                             try:
                                 await browser.close()
@@ -892,9 +1144,22 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                             if all_projects:
                                 try:
                                     # Verarbeite die gescrapten Projekte (Duplikaterkennung und neue Projekte identifizieren)
-                                    log_scraper_event("info", "Processing scraped projects", {
-                                        "total_projects_found": len(all_projects)
-                                    })
+                                    log_scraper_event(
+                                        "info", 
+                                        "Processing API responses", 
+                                        {"count": len(captured)},
+                                        correlation_id=correlation_id,
+                                        tags=["api", "processing_responses"]
+                                    )
+                                    log_scraper_event(
+                                        "info", 
+                                        "Processing scraped projects", 
+                                        {
+                                            "total_projects_found": len(all_projects)
+                                        },
+                                        correlation_id=correlation_id,
+                                        tags=["data", "processing"]
+                                    )
                                     unique_projects, new_projects = project_manager.process_projects(all_projects)
                                     
                                     # Speichere die eindeutigen Projekte
@@ -916,10 +1181,16 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                                     
                                     # Sende E-Mail-Benachrichtigung, wenn aktiviert und neue Projekte gefunden wurden
                                     if email_notification_enabled and email_recipient and new_projects:
-                                        log_scraper_event("info", "Attempting to send email notification", {
-                                            "recipient": email_recipient,
-                                            "new_projects_count": len(new_projects)
-                                        })
+                                        log_scraper_event(
+                                            "info", 
+                                            "Attempting to send email notification", 
+                                            {
+                                                "recipient": email_recipient,
+                                                "new_projects_count": len(new_projects)
+                                            },
+                                            correlation_id=correlation_id,
+                                            tags=["email", "notification_attempt"]
+                                        )
                                         
                                         if not email_service:
                                             log_scraper_event("error", "Email service is not initialized")
@@ -936,11 +1207,17 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                                                     new_projects=new_projects,
                                                     scan_time=datetime.datetime.now()
                                                 )
-                                                log_scraper_event("success" if success else "warning", "Email notification result", {
-                                                    "success": success,
-                                                    "recipient": email_recipient,
-                                                    "new_projects_count": len(new_projects)
-                                                })
+                                                log_scraper_event(
+                                                    "success" if success else "warning", 
+                                                    "Email notification result", 
+                                                    {
+                                                        "success": success,
+                                                        "recipient": email_recipient,
+                                                        "new_projects_count": len(new_projects)
+                                                    },
+                                                    correlation_id=correlation_id,
+                                                    tags=["email", "notification_result"]
+                                                )
                                             except Exception as e:
                                                 log_scraper_event("error", "Error sending email notification", {
                                                     "error": str(e),
@@ -1024,12 +1301,36 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                     encoding="utf-8"
                 )
                 print(f"[RENDER DEBUG] Created dummy data file with {len(dummy_projects)} projects")
+                log_scraper_event(
+                    "info", 
+                    "Created dummy data file", 
+                    {"project_count": len(dummy_projects)},
+                    correlation_id=correlation_id,
+                    tags=["dummy_data", "file_creation"]
+                )
             except Exception as save_error:
                 print(f"[RENDER DEBUG] Error saving dummy data: {str(save_error)}")
+                log_scraper_event(
+                    "error", 
+                    "Error saving dummy data", 
+                    {"error": str(save_error)},
+                    correlation_id=correlation_id,
+                    tags=["dummy_data", "file_error", "error"]
+                )
             
             # Verarbeite die Dummy-Projekte
             unique_projects, new_projects = project_manager.process_projects(dummy_projects)
             print(f"[RENDER DEBUG] Processed {len(unique_projects)} unique projects, {len(new_projects)} new")
+            log_scraper_event(
+                "info", 
+                "Processed dummy projects", 
+                {
+                    "unique_count": len(unique_projects),
+                    "new_count": len(new_projects)
+                },
+                correlation_id=correlation_id,
+                tags=["dummy_data", "processing"]
+            )
             
             # Aktualisiere den Zeitstempel des letzten Scans
             last_scrape_time = datetime.datetime.now().isoformat()
