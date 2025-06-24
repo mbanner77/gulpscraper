@@ -532,10 +532,23 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                             page = await context.new_page()
                             log_scraper_event("info", "New page opened")
 
-                            # Netzwerk-Monitoring einrichten
-                            async def network_monitor(resp):
-                                network_lines.append(f"{resp.status} {resp.request.method} {resp.url} [{resp.headers.get('content-type', '')}]")
-                            page.on("response", network_monitor)
+                            # Verwende eine komplett andere Herangehensweise ohne Event-Handler
+                            log_scraper_event("info", "Setting up network monitoring without event handlers")
+                            
+                            # Verwende eine Liste, um die Antworten zu speichern
+                            responses = []
+                            
+                            # Definiere eine synchrone Funktion zum Protokollieren von Netzwerkantworten
+                            def log_response(resp):
+                                try:
+                                    if resp and hasattr(resp, 'status') and hasattr(resp, 'url'):
+                                        content_type = resp.headers.get('content-type', '') if hasattr(resp, 'headers') else ''
+                                        method = resp.request.method if hasattr(resp, 'request') and hasattr(resp.request, 'method') else 'UNKNOWN'
+                                        network_lines.append(f"{resp.status} {method} {resp.url} [{content_type}]")
+                                except Exception as e:
+                                    log_scraper_event("warning", "Error logging response", {"error": str(e)})
+                            
+                            # Wir verwenden keine Event-Handler mehr, sondern sammeln Antworten manuell
                                 
                             # Hier beginnt der Scraping-Prozess für jede Seite
                             all_projects = []
@@ -548,26 +561,62 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                                 })
                                 captured: List[Tuple[str, Any]] = []
 
-                                # Handler für API-Antworten
-                                async def handle_response(resp):
-                                    if API_RE.search(resp.url) and "application/json" in resp.headers.get("content-type", ""):
-                                        try:
-                                            json_data = await resp.json()
-                                            captured.append((resp.url, json_data))
-                                        except Exception as e:
-                                            log_scraper_event("warning", "Error capturing API response", {
-                                                "url": resp.url,
-                                                "error": str(e)
-                                            })
-                                page.on("response", handle_response)
+                                # Wir verwenden keinen Event-Handler mehr für API-Antworten
+                                log_scraper_event("info", "Setting up API response capture without event handlers")
+                                
+                                # Diese Funktion wird später direkt aufgerufen
+                                async def process_api_response(resp):
+                                    if resp and hasattr(resp, 'url') and hasattr(resp, 'headers'):
+                                        if API_RE.search(resp.url) and "application/json" in resp.headers.get("content-type", ""):
+                                            try:
+                                                json_data = await resp.json()
+                                                captured.append((resp.url, json_data))
+                                                log_scraper_event("info", "Captured API response", {"url": resp.url})
+                                            except Exception as e:
+                                                log_scraper_event("warning", "Error capturing API response", {
+                                                    "url": resp.url,
+                                                    "error": str(e)
+                                                })
+                                
+                                # Kein Event-Handler-Registrierung mehr mit page.on()
 
-                                # Navigiere zur Seite mit Fehlerbehandlung
+                                # Navigiere zur Seite mit Fehlerbehandlung und manueller Erfassung der Antworten
                                 try:
-                                    await page.goto(current_url)
+                                    # Verwende CDP Session, um Netzwerkanfragen zu überwachen
+                                    cdp_session = await page.context.new_cdp_session(page)
+                                    await cdp_session.send('Network.enable')
+                                    
+                                    # Navigiere zur Seite
+                                    response = await page.goto(current_url)
                                     log_scraper_event("info", f"Successfully navigated to page {page_idx}")
+                                    
+                                    # Manuell die Hauptantwort protokollieren
+                                    if response:
+                                        log_response(response)
+                                        # Prüfe, ob es sich um eine API-Antwort handelt
+                                        await process_api_response(response)
+                                    
+                                    # Warte auf weitere Netzwerkanfragen
+                                    log_scraper_event("info", "Waiting for network requests to complete")
+                                    await page.wait_for_load_state("networkidle")
+                                    
+                                    # Sammle alle Ressourcen, die geladen wurden
+                                    resources = await page.evaluate("""
+                                        () => {
+                                            return performance.getEntriesByType('resource').map(r => r.name);
+                                        }
+                                    """)
+                                    
+                                    log_scraper_event("info", f"Collected {len(resources)} resources")
+                                    
+                                    # Prüfe auf API-Anfragen in den gesammelten Ressourcen
+                                    api_resources = [r for r in resources if API_RE.search(r)]
+                                    if api_resources:
+                                        log_scraper_event("info", f"Found {len(api_resources)} API resources", {"urls": api_resources[:5]})
                                 except Exception as nav_error:
                                     log_scraper_event("error", f"Navigation error on page {page_idx}", {
                                         "error": str(nav_error),
+                                        "traceback": traceback.format_exc(),
                                         "url": current_url
                                     })
                                     continue
