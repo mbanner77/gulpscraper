@@ -129,22 +129,67 @@ def log_scraper_event(event_type, message, data=None):
         message (str): Nachricht für das Log
         data (dict, optional): Zusätzliche Daten zum Event
     """
-    global scraper_logs, max_log_entries
+    global SCRAPER_LOGS
     
-    # Erstelle einen neuen Log-Eintrag
-    log_entry = {
-        "event_type": event_type,
-        "message": message,
-        "timestamp": datetime.datetime.now().isoformat(),
-        "data": data
+    if data is None:
+        data = {}
+    
+    # Füge zusätzliche Kontextinformationen hinzu
+    timestamp = datetime.datetime.now().isoformat()
+    
+    # Füge Umgebungsinformationen hinzu
+    env_info = {
+        "is_cloud": IS_CLOUD_ENV,
+        "use_real_scraper": USE_REAL_SCRAPER,
+        "headless": HEADLESS
     }
     
-    # Füge den Eintrag am Anfang der Liste hinzu (neueste zuerst)
-    scraper_logs.insert(0, log_entry)
+    # Erweitere die Daten für bessere Diagnose
+    enhanced_data = data.copy()
     
-    # Begrenze die Anzahl der Log-Einträge
-    if len(scraper_logs) > max_log_entries:
-        scraper_logs = scraper_logs[:max_log_entries]
+    # Füge Stack-Trace für Fehler hinzu
+    if event_type == "error" or event_type == "warning":
+        if "traceback" not in enhanced_data:
+            trace = traceback.format_exc()
+            if trace != "NoneType: None\n":
+                enhanced_data["traceback"] = trace
+            else:
+                enhanced_data["traceback"] = "No traceback available"
+        
+        # Füge Speichernutzung hinzu
+        try:
+            import psutil
+            process = psutil.Process()
+            memory_info = process.memory_info()
+            enhanced_data["memory_usage"] = {
+                "rss_mb": round(memory_info.rss / 1024 / 1024, 2),  # MB
+                "vms_mb": round(memory_info.vms / 1024 / 1024, 2)   # MB
+            }
+        except ImportError:
+            enhanced_data["memory_usage"] = "psutil not available"
+        except Exception as e:
+            enhanced_data["memory_usage"] = f"Error getting memory usage: {str(e)}"
+    
+    # Erstelle den Log-Eintrag mit erweiterten Informationen
+    log_entry = {
+        "timestamp": timestamp,
+        "event_type": event_type,
+        "message": message,
+        "data": enhanced_data,
+        "environment": env_info,
+        "process_id": os.getpid()
+    }
+    
+    # Ausgabe in der Konsole für bessere Sichtbarkeit
+    print(f"[SCRAPER LOG] [{event_type.upper()}] {message}")
+    if event_type == "error":
+        print(f"[SCRAPER ERROR DETAILS] {json.dumps(enhanced_data, default=str)}")
+    
+    SCRAPER_LOGS.append(log_entry)
+    
+    # Begrenze die Anzahl der Logs
+    if len(SCRAPER_LOGS) > MAX_LOG_ENTRIES:
+        SCRAPER_LOGS = SCRAPER_LOGS[-MAX_LOG_ENTRIES:]
     
     # Speichere die Logs in einer Datei
     save_logs_to_file()
@@ -582,37 +627,127 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
 
                                 # Navigiere zur Seite mit Fehlerbehandlung und manueller Erfassung der Antworten
                                 try:
-                                    # Verwende CDP Session, um Netzwerkanfragen zu überwachen
-                                    cdp_session = await page.context.new_cdp_session(page)
-                                    await cdp_session.send('Network.enable')
+                                    # Detaillierte Logging vor der Navigation
+                                    log_scraper_event("info", f"Navigating to page {page_idx}", {
+                                        "url": current_url,
+                                        "browser_info": {
+                                            "version": version if 'version' in locals() else "unknown",
+                                            "user_agent": user_agent if 'user_agent' in locals() else "unknown"
+                                        },
+                                        "page_state": "pre-navigation"
+                                    })
                                     
-                                    # Navigiere zur Seite
-                                    response = await page.goto(current_url)
-                                    log_scraper_event("info", f"Successfully navigated to page {page_idx}")
+                                    # Verwende CDP Session, um Netzwerkanfragen zu überwachen
+                                    try:
+                                        cdp_session = await page.context.new_cdp_session(page)
+                                        await cdp_session.send('Network.enable')
+                                        log_scraper_event("info", "CDP session established for network monitoring")
+                                    except Exception as cdp_error:
+                                        log_scraper_event("warning", "Could not establish CDP session", {
+                                            "error": str(cdp_error),
+                                            "traceback": traceback.format_exc()
+                                        })
+                                    
+                                    # Navigiere zur Seite mit Timeout-Handling
+                                    try:
+                                        start_time = time.time()
+                                        response = await page.goto(current_url, timeout=60000)  # 60 Sekunden Timeout
+                                        navigation_time = time.time() - start_time
+                                        log_scraper_event("info", f"Successfully navigated to page {page_idx}", {
+                                            "navigation_time_seconds": round(navigation_time, 2),
+                                            "status": response.status if response else "unknown",
+                                            "url": current_url
+                                        })
+                                    except Exception as goto_error:
+                                        log_scraper_event("error", f"Navigation timeout or error on page {page_idx}", {
+                                            "error": str(goto_error),
+                                            "url": current_url,
+                                            "traceback": traceback.format_exc()
+                                        })
+                                        # Versuche trotzdem fortzufahren
+                                        response = None
                                     
                                     # Manuell die Hauptantwort protokollieren
                                     if response:
                                         log_response(response)
                                         # Prüfe, ob es sich um eine API-Antwort handelt
                                         await process_api_response(response)
+                                        
+                                        # Protokolliere HTTP-Status und Header
+                                        log_scraper_event("info", "Main response details", {
+                                            "status": response.status,
+                                            "status_text": response.status_text,
+                                            "headers": dict(response.headers),
+                                            "content_type": response.headers.get("content-type", "unknown")
+                                        })
                                     
-                                    # Warte auf weitere Netzwerkanfragen
-                                    log_scraper_event("info", "Waiting for network requests to complete")
-                                    await page.wait_for_load_state("networkidle")
+                                    # Warte auf weitere Netzwerkanfragen mit Timeout-Handling
+                                    try:
+                                        log_scraper_event("info", "Waiting for network requests to complete")
+                                        await page.wait_for_load_state("networkidle", timeout=30000)  # 30 Sekunden Timeout
+                                        log_scraper_event("info", "Network is idle")
+                                    except Exception as wait_error:
+                                        log_scraper_event("warning", "Timeout waiting for network idle", {
+                                            "error": str(wait_error)
+                                        })
+                                    
+                                    # Sammle Seiteninformationen für Diagnose
+                                    try:
+                                        page_metrics = await page.evaluate("""
+                                            () => {
+                                                return {
+                                                    title: document.title,
+                                                    url: window.location.href,
+                                                    resourceCount: performance.getEntriesByType('resource').length,
+                                                    domContentLoaded: performance.timing.domContentLoadedEventEnd - performance.timing.navigationStart,
+                                                    load: performance.timing.loadEventEnd - performance.timing.navigationStart,
+                                                    documentHeight: document.documentElement.scrollHeight,
+                                                    documentWidth: document.documentElement.scrollWidth
+                                                };
+                                            }
+                                        """)
+                                        log_scraper_event("info", "Page metrics collected", page_metrics)
+                                    except Exception as metrics_error:
+                                        log_scraper_event("warning", "Could not collect page metrics", {
+                                            "error": str(metrics_error)
+                                        })
                                     
                                     # Sammle alle Ressourcen, die geladen wurden
-                                    resources = await page.evaluate("""
-                                        () => {
-                                            return performance.getEntriesByType('resource').map(r => r.name);
-                                        }
-                                    """)
-                                    
-                                    log_scraper_event("info", f"Collected {len(resources)} resources")
+                                    try:
+                                        resources = await page.evaluate("""
+                                            () => {
+                                                return performance.getEntriesByType('resource').map(r => ({
+                                                    name: r.name,
+                                                    type: r.initiatorType,
+                                                    duration: r.duration,
+                                                    size: r.transferSize
+                                                }));
+                                            }
+                                        """)
+                                        
+                                        log_scraper_event("info", f"Collected {len(resources)} resources", {
+                                            "resource_types": {r["type"]: sum(1 for res in resources if res["type"] == r["type"]) 
+                                                            for r in resources if "type" in r},
+                                            "total_transfer_size_kb": round(sum(r["size"] for r in resources if "size" in r) / 1024, 2) if resources else 0
+                                        })
+                                    except Exception as res_error:
+                                        log_scraper_event("warning", "Could not collect resources", {
+                                            "error": str(res_error)
+                                        })
+                                        resources = []
                                     
                                     # Prüfe auf API-Anfragen in den gesammelten Ressourcen
-                                    api_resources = [r for r in resources if API_RE.search(r)]
-                                    if api_resources:
-                                        log_scraper_event("info", f"Found {len(api_resources)} API resources", {"urls": api_resources[:5]})
+                                    try:
+                                        api_resources = [r for r in resources if "name" in r and API_RE.search(r["name"])]
+                                        if api_resources:
+                                            log_scraper_event("info", f"Found {len(api_resources)} API resources", {
+                                                "urls": [r["name"] for r in api_resources[:5]],
+                                                "types": [r["type"] for r in api_resources[:5] if "type" in r]
+                                            })
+                                    except Exception as api_error:
+                                        log_scraper_event("warning", "Error processing API resources", {
+                                            "error": str(api_error)
+                                        })
                                 except Exception as nav_error:
                                     log_scraper_event("error", f"Navigation error on page {page_idx}", {
                                         "error": str(nav_error),
