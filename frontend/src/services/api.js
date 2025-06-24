@@ -121,10 +121,11 @@ export const getNewProjects = async () => {
   }
 };
 
-// Get detailed scraper logs
-export const getScraperLogs = async () => {
+// Get detailed scraper logs with optional filtering
+export const getScraperLogs = async (filters = {}) => {
   try {
-    const response = await api.get('/api/scraper-logs');
+    // Supported filters: eventType, logLevel, startTime, endTime, correlationId, tag, limit, search
+    const response = await api.get('/api/scraper-logs', { params: filters });
     return response.data;
   } catch (error) {
     console.error('Error fetching scraper logs:', error);

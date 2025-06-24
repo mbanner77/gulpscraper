@@ -18,6 +18,8 @@ import traceback
 from pathlib import Path
 from typing import List, Dict, Tuple, Any, Optional, Union
 from pydantic import BaseModel, EmailStr
+import uuid
+import time
 
 import uvicorn
 from fastapi import FastAPI, BackgroundTasks, Form, HTTPException, Request
@@ -120,7 +122,7 @@ def load_logs_from_file():
     except Exception as e:
         print(f"Fehler beim Laden der Scraper-Logs: {str(e)}")
 
-def log_scraper_event(event_type, message, data=None):
+def log_scraper_event(event_type, message, data=None, log_level=None, correlation_id=None, tags=None):
     """
     Fügt einen neuen Log-Eintrag zu den Scraper-Logs hinzu.
     
@@ -128,6 +130,9 @@ def log_scraper_event(event_type, message, data=None):
         event_type (str): Art des Events (info, warning, error, success)
         message (str): Nachricht für das Log
         data (dict, optional): Zusätzliche Daten zum Event
+        log_level (str, optional): Log-Level (debug, info, warning, error, critical)
+        correlation_id (str, optional): ID zur Korrelation zusammengehöriger Log-Einträge
+        tags (list, optional): Tags zur Kategorisierung des Log-Eintrags
     """
     global SCRAPER_LOGS
     
@@ -170,14 +175,54 @@ def log_scraper_event(event_type, message, data=None):
         except Exception as e:
             enhanced_data["memory_usage"] = f"Error getting memory usage: {str(e)}"
     
+    # Map event_type to log_level if not provided
+    if log_level is None:
+        log_level_map = {
+            "info": "INFO",
+            "warning": "WARNING",
+            "error": "ERROR",
+            "success": "INFO"
+        }
+        log_level = log_level_map.get(event_type, "INFO")
+    else:
+        log_level = log_level.upper()
+    
+    # Generate correlation ID if not provided
+    if correlation_id is None:
+        correlation_id = f"scrape-{int(time.time())}-{os.getpid()}-{uuid.uuid4().hex[:8]}"
+    
+    # Add performance metrics
+    performance_metrics = {}
+    try:
+        # CPU usage
+        import psutil
+        process = psutil.Process()
+        performance_metrics["cpu_percent"] = process.cpu_percent(interval=0.1)
+        
+        # Memory usage
+        memory_info = process.memory_info()
+        performance_metrics["memory_usage"] = {
+            "rss_mb": round(memory_info.rss / 1024 / 1024, 2),  # MB
+            "vms_mb": round(memory_info.vms / 1024 / 1024, 2)   # MB
+        }
+        
+        # System load
+        performance_metrics["system_load"] = os.getloadavg()
+    except Exception as e:
+        performance_metrics["error"] = f"Error getting performance metrics: {str(e)}"
+    
     # Erstelle den Log-Eintrag mit erweiterten Informationen
     log_entry = {
         "timestamp": timestamp,
         "event_type": event_type,
+        "log_level": log_level,
         "message": message,
         "data": enhanced_data,
         "environment": env_info,
-        "process_id": os.getpid()
+        "process_id": os.getpid(),
+        "correlation_id": correlation_id,
+        "tags": tags or [],
+        "performance": performance_metrics
     }
     
     # Ausgabe in der Konsole für bessere Sichtbarkeit
@@ -1393,14 +1438,97 @@ async def get_status():
     }
 
 
+class LogFilterParams(BaseModel):
+    event_type: Optional[str] = None
+    log_level: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    correlation_id: Optional[str] = None
+    tags: Optional[List[str]] = None
+    limit: Optional[int] = None
+    search_query: Optional[str] = None
+
 @app.get("/api/scraper-logs", tags=["scraper"])
-async def get_scraper_logs():
+async def get_scraper_logs(
+    event_type: Optional[str] = None,
+    log_level: Optional[str] = None,
+    start_time: Optional[str] = None,
+    end_time: Optional[str] = None,
+    correlation_id: Optional[str] = None,
+    tag: Optional[str] = None,
+    limit: Optional[int] = None,
+    search: Optional[str] = None
+):
     """
-    Get the detailed scraper logs for the detailed view
+    Get the detailed scraper logs for the detailed view with filtering options
+    
+    - **event_type**: Filter by event type (info, warning, error, success)
+    - **log_level**: Filter by log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    - **start_time**: Filter logs after this ISO timestamp
+    - **end_time**: Filter logs before this ISO timestamp
+    - **correlation_id**: Filter logs by correlation ID
+    - **tag**: Filter logs by tag
+    - **limit**: Limit the number of returned logs
+    - **search**: Search logs by message content
     """
+    filtered_logs = scraper_logs.copy()
+    
+    # Apply filters
+    if event_type:
+        filtered_logs = [log for log in filtered_logs if log.get("event_type") == event_type]
+    
+    if log_level:
+        filtered_logs = [log for log in filtered_logs if log.get("log_level") == log_level.upper()]
+    
+    if start_time:
+        try:
+            start_dt = datetime.datetime.fromisoformat(start_time)
+            filtered_logs = [log for log in filtered_logs if datetime.datetime.fromisoformat(log.get("timestamp", "")) >= start_dt]
+        except (ValueError, TypeError):
+            pass
+    
+    if end_time:
+        try:
+            end_dt = datetime.datetime.fromisoformat(end_time)
+            filtered_logs = [log for log in filtered_logs if datetime.datetime.fromisoformat(log.get("timestamp", "")) <= end_dt]
+        except (ValueError, TypeError):
+            pass
+    
+    if correlation_id:
+        filtered_logs = [log for log in filtered_logs if log.get("correlation_id") == correlation_id]
+    
+    if tag:
+        filtered_logs = [log for log in filtered_logs if tag in log.get("tags", [])]
+    
+    if search:
+        search = search.lower()
+        filtered_logs = [log for log in filtered_logs if 
+                        search in log.get("message", "").lower() or 
+                        any(search in str(v).lower() for v in log.get("data", {}).values())]
+    
+    # Sort by timestamp (newest first)
+    filtered_logs = sorted(filtered_logs, key=lambda x: x.get("timestamp", ""), reverse=True)
+    
+    # Apply limit
+    if limit and limit > 0:
+        filtered_logs = filtered_logs[:limit]
+    
+    # Get unique correlation IDs for grouping
+    correlation_ids = list(set(log.get("correlation_id") for log in filtered_logs if log.get("correlation_id")))
+    
+    # Get unique log levels for statistics
+    log_levels = {}
+    for log in filtered_logs:
+        level = log.get("log_level")
+        if level:
+            log_levels[level] = log_levels.get(level, 0) + 1
+    
     return {
-        "logs": scraper_logs,
-        "count": len(scraper_logs)
+        "logs": filtered_logs,
+        "count": len(filtered_logs),
+        "total_count": len(scraper_logs),
+        "correlation_ids": correlation_ids,
+        "log_levels": log_levels
     }
 
 
