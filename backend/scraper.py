@@ -359,100 +359,102 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
             correlation_id=correlation_id,
             tags=["error", "logging_error"]
         )
-        
-        # Erstelle Debug-Verzeichnisse, falls sie nicht existieren
-        DATA_DIR.mkdir(exist_ok=True, parents=True)
-        DEBUG_DIR.mkdir(exist_ok=True, parents=True)
-        
-        # Besondere Debug-Ausgabe für Render-Umgebung
-        if IS_CLOUD_ENV:
-            log_scraper_event("info", "Starting Playwright in cloud environment", {
-                "headless": HEADLESS,
-                "data_dir": str(DATA_DIR.absolute())
-            })
-            print(f"[RENDER DEBUG] Ausgabedatei existiert: {OUTPUT_JSON.exists()}")
-            print(f"[RENDER DEBUG] USE_REAL_SCRAPER={USE_REAL_SCRAPER}")
-            if OUTPUT_JSON.exists():
-                try:
-                    with open(OUTPUT_JSON, 'r', encoding='utf-8') as f:
-                        project_count = len(json.load(f))
-                        print(f"[RENDER DEBUG] Anzahl Projekte in Datei: {project_count}")
-                except Exception as e:
-                    print(f"[RENDER DEBUG] Fehler beim Lesen der Projektdatei: {str(e)}")
-        
-        # Wenn USE_REAL_SCRAPER auf False gesetzt ist, verwende Dummy-Daten
-        if not USE_REAL_SCRAPER:
-            log_scraper_event(
-                "info", 
-                "USE_REAL_SCRAPER is disabled, using dummy data",
-                correlation_id=correlation_id,
-                tags=["dummy_data"]
-            )
-            # Setze das Flag für Dummy-Daten
-            last_used_dummy_data = True
-            # Erstelle 10 Dummy-Projekte
-            dummy_projects = []
-            # Versuche, Dummy-Daten aus der Datei zu laden
-            dummy_file = DATA_DIR / "dummy_projects.json"
-            print(f"[SCRAPER] Looking for dummy data at: {dummy_file.absolute()}")
-            if dummy_file.exists():
-                try:
-                    with open(dummy_file, 'r', encoding='utf-8') as f:
-                        dummy_projects = json.load(f)
-                        print(f"[SCRAPER] Loaded {len(dummy_projects)} dummy projects from file")
-                        log_scraper_event(
-                            "info", 
-                            "Loaded dummy data from file", 
-                            {
-                                "dummy_projects_count": len(dummy_projects),
-                                "dummy_file": str(dummy_file.absolute())
-                            },
-                            correlation_id=correlation_id,
-                            tags=["dummy_data", "file_loaded"]
-                        )
-                except Exception as e:
-                    print(f"[SCRAPER] Error loading dummy data: {str(e)}")
+    
+    # Erstelle Debug-Verzeichnisse, falls sie nicht existieren
+    DATA_DIR.mkdir(exist_ok=True, parents=True)
+    DEBUG_DIR.mkdir(exist_ok=True, parents=True)
+    
+    # Besondere Debug-Ausgabe für Render-Umgebung
+    if IS_CLOUD_ENV:
+        log_scraper_event("info", "Starting Playwright in cloud environment", {
+            "headless": HEADLESS,
+            "data_dir": str(DATA_DIR.absolute())
+        })
+        print(f"[RENDER DEBUG] Ausgabedatei existiert: {OUTPUT_JSON.exists()}")
+        print(f"[RENDER DEBUG] USE_REAL_SCRAPER={USE_REAL_SCRAPER}")
+        if OUTPUT_JSON.exists():
+            try:
+                with open(OUTPUT_JSON, 'r', encoding='utf-8') as f:
+                    project_count = len(json.load(f))
+                    print(f"[RENDER DEBUG] Anzahl Projekte in Datei: {project_count}")
+            except Exception as e:
+                print(f"[RENDER DEBUG] Fehler beim Lesen der Projektdatei: {str(e)}")
+    
+    # Wenn USE_REAL_SCRAPER auf False gesetzt ist, verwende Dummy-Daten
+    if not USE_REAL_SCRAPER:
+        log_scraper_event(
+            "info", 
+            "USE_REAL_SCRAPER is disabled, using dummy data",
+            correlation_id=correlation_id,
+            tags=["dummy_data"]
+        )
+        # Setze das Flag für Dummy-Daten
+        last_used_dummy_data = True
+        # Erstelle 10 Dummy-Projekte
+        dummy_projects = []
+        # Versuche, Dummy-Daten aus der Datei zu laden
+        dummy_file = DATA_DIR / "dummy_projects.json"
+        print(f"[SCRAPER] Looking for dummy data at: {dummy_file.absolute()}")
+        if dummy_file.exists():
+            try:
+                with open(dummy_file, 'r', encoding='utf-8') as f:
+                    dummy_projects = json.load(f)
+                    print(f"[SCRAPER] Loaded {len(dummy_projects)} dummy projects from file")
                     log_scraper_event(
-                        "error", 
-                        "Error loading dummy data", 
+                        "info", 
+                        "Loaded dummy data from file", 
                         {
-                            "error": str(e),
+                            "dummy_projects_count": len(dummy_projects),
                             "dummy_file": str(dummy_file.absolute())
                         },
                         correlation_id=correlation_id,
-                        tags=["dummy_data", "error", "file_error"]
+                        tags=["dummy_data", "file_loaded"]
                     )
-            
-            # Wenn keine Dummy-Daten geladen werden konnten, erstelle neue
-            if not dummy_projects:
-                print("[SCRAPER] Creating new dummy projects")
-                dummy_projects = create_dummy_projects()
+            except Exception as e:
+                print(f"[SCRAPER] Error loading dummy data: {str(e)}")
                 log_scraper_event(
-                    "info", 
-                    "Created new dummy projects", 
+                    "error", 
+                    "Error loading dummy data", 
                     {
-                        "dummy_projects_count": len(dummy_projects)
+                        "error": str(e),
+                        "dummy_file": str(dummy_file.absolute())
                     },
                     correlation_id=correlation_id,
-                    tags=["dummy_data", "generated"]
+                    tags=["dummy_data", "error", "file_error"]
                 )
-                
-            # Verarbeite die Dummy-Projekte
-            unique_projects, new_projects = project_manager.process_projects(dummy_projects)
+        
+        # Wenn keine Dummy-Daten geladen werden konnten, erstelle neue
+        if not dummy_projects:
+            print("[SCRAPER] Creating new dummy projects")
+            dummy_projects = create_dummy_projects()
             log_scraper_event(
-                "success", 
-                "Dummy data processing completed", 
+                "info", 
+                "Created new dummy projects", 
                 {
-                    "unique_projects_count": len(unique_projects),
-                    "new_projects_count": len(new_projects)
+                    "dummy_projects_count": len(dummy_projects)
                 },
                 correlation_id=correlation_id,
-                tags=["dummy_data", "processing_complete"]
+                tags=["dummy_data", "generated"]
             )
             
-            # Aktualisiere den Zeitstempel des letzten Scans
-            last_scrape_time = datetime.datetime.now().isoformat()
-            
+        # Verarbeite die Dummy-Projekte
+        unique_projects, new_projects = project_manager.process_projects(dummy_projects)
+        log_scraper_event(
+            "success", 
+            "Dummy data processing completed", 
+            {
+                "unique_projects_count": len(unique_projects),
+                "new_projects_count": len(new_projects)
+            },
+            correlation_id=correlation_id,
+            tags=["dummy_data", "processing_complete"]
+        )
+        
+        # Aktualisiere den Zeitstempel des letzten Scans
+        last_scrape_time = datetime.datetime.now().isoformat()
+        
+        # Wenn wir Dummy-Daten verwenden, geben wir hier zurück
+        if not USE_REAL_SCRAPER:
             return unique_projects
         
         # Ab hier beginnt der echte Scraper mit Playwright
@@ -956,110 +958,119 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                                         correlation_id=correlation_id,
                                         tags=["navigation", f"page_{page_idx}", "pre_navigation"]
                                     )
-                                    
-                                    # Verwende CDP Session, um Netzwerkanfragen zu überwachen
-                                    try:
-                                        cdp_session = await page.context.new_cdp_session(page)
-                                        await cdp_session.send('Network.enable')
-                                        log_scraper_event(
-                                            "info", 
-                                            "CDP session established for network monitoring",
-                                            correlation_id=correlation_id,
-                                            tags=["network", "cdp_session"]
-                                        )
-                                    except Exception as cdp_error:
-                                        log_scraper_event(
-                                            "warning", 
-                                            "Could not establish CDP session", 
-                                            {
-                                                "error": str(cdp_error),
-                                                "traceback": traceback.format_exc()
-                                            },
-                                            correlation_id=correlation_id,
-                                            tags=["network", "cdp_session_error", "warning"]
-                                        )
-                                    
-                                    # Navigiere zur Seite mit Timeout-Handling
-                                    try:
-                                        start_time = time.time()
-                                        response = await page.goto(current_url, timeout=60000)  # 60 Sekunden Timeout
-                                        navigation_time = time.time() - start_time
-                                        log_scraper_event(
-                                            "info", 
-                                            f"Successfully navigated to page {page_idx}", 
-                                            {
-                                                "navigation_time_seconds": round(navigation_time, 2),
-                                                "status": response.status if response else "unknown",
-                                                "url": current_url
-                                            },
-                                            correlation_id=correlation_id,
-                                            tags=["navigation", "page_load_success"]
-                                        )
-                                    except Exception as goto_error:
-                                        log_scraper_event(
-                                            "error", 
-                                            f"Navigation timeout or error on page {page_idx}", 
-                                            {
-                                                "error": str(goto_error),
-                                                "url": current_url,
-                                                "traceback": traceback.format_exc()
-                                            },
-                                            correlation_id=correlation_id,
-                                            tags=["navigation", "page_load_error", "error"]
-                                        )
-                                        # Versuche trotzdem fortzufahren
-                                        response = None
-                                        
-                                    # Sammle Ressourcen und Performance-Metriken
-                                    resources = []
-                                    try:
-                                        # Sammle Netzwerk-Ressourcen für Performance-Analyse
-                                        resources = await page.evaluate("() => JSON.parse(JSON.stringify(performance.getEntriesByType('resource')))")
-                                        log_scraper_event(
-                                            "info", 
-                                            "Collected resource timing data", 
-                                            {
-                                                "resource_count": len(resources),
-                                                "resource_types": {r["type"]: sum(1 for res in resources if res["type"] == r["type"]) 
-                                                            for r in resources if "type" in r},
-                                                "total_transfer_size_kb": round(sum(r["size"] for r in resources if "size" in r) / 1024, 2) if resources else 0
-                                            },
-                                            correlation_id=correlation_id,
-                                            tags=["resources", "timing_data"]
-                                        )
-                                    except Exception as res_error:
-                                        log_scraper_event(
-                                            "info", 
-                                            "Collected resource timing data", 
-                                            {
-                                                "resource_count": len(resources)
-                                            },
-                                            correlation_id=correlation_id,
-                                            tags=["resources", "timing_data"]
-                                        )
-                                        resources = []
-                                    
-                                    # Prüfe auf API-Anfragen in den gesammelten Ressourcen
-                                    try:
-                                        api_resources = [r for r in resources if "name" in r and API_RE.search(r["name"])]
-                                        if api_resources:
-                                            log_scraper_event(
-                                                "info", 
-                                                "Found API resources", 
-                                                {"api_resource_count": len(api_resources)},
-                                                correlation_id=correlation_id,
-                                                tags=["api", "resources"]
-                                            )
-                                    except Exception as api_error:
-                                        log_scraper_event(
-                                            "error", 
-                                            "Error processing API resources", 
-                                            {"error": str(api_error)},
-                                            correlation_id=correlation_id,
-                                            tags=["api", "resources", "error"]
-                                        )
-                                        continue
+                                except Exception as nav_log_error:
+                                    log_scraper_event(
+                                        "error", 
+                                        "Error logging navigation start", 
+                                        {"error": str(nav_log_error)},
+                                        correlation_id=correlation_id,
+                                        tags=["error", "logging_error", "navigation"]
+                                    )
                                 
+                                # Verwende CDP Session, um Netzwerkanfragen zu überwachen
+                                try:
+                                    cdp_session = await page.context.new_cdp_session(page)
+                                    await cdp_session.send('Network.enable')
+                                    log_scraper_event(
+                                        "info", 
+                                        "CDP session established for network monitoring",
+                                        correlation_id=correlation_id,
+                                        tags=["network", "cdp_session"]
+                                    )
+                                except Exception as cdp_error:
+                                    log_scraper_event(
+                                        "warning", 
+                                        "Could not establish CDP session", 
+                                        {
+                                            "error": str(cdp_error),
+                                            "traceback": traceback.format_exc()
+                                        },
+                                        correlation_id=correlation_id,
+                                        tags=["network", "cdp_session_error", "warning"]
+                                    )
+                                
+                                # Navigiere zur Seite mit Timeout-Handling
+                                try:
+                                    start_time = time.time()
+                                    response = await page.goto(current_url, timeout=60000)  # 60 Sekunden Timeout
+                                    navigation_time = time.time() - start_time
+                                    log_scraper_event(
+                                        "info", 
+                                        f"Successfully navigated to page {page_idx}", 
+                                        {
+                                            "navigation_time_seconds": round(navigation_time, 2),
+                                            "status": response.status if response else "unknown",
+                                            "url": current_url
+                                        },
+                                        correlation_id=correlation_id,
+                                        tags=["navigation", "page_load_success"]
+                                    )
+                                except Exception as goto_error:
+                                    log_scraper_event(
+                                        "error", 
+                                        f"Navigation timeout or error on page {page_idx}", 
+                                        {
+                                            "error": str(goto_error),
+                                            "url": current_url,
+                                            "traceback": traceback.format_exc()
+                                        },
+                                        correlation_id=correlation_id,
+                                        tags=["navigation", "page_load_error", "error"]
+                                    )
+                                    # Versuche trotzdem fortzufahren
+                                    response = None
+                                
+                                # Sammle Ressourcen und Performance-Metriken
+                                resources = []
+                                try:
+                                    # Sammle Netzwerk-Ressourcen für Performance-Analyse
+                                    resources = await page.evaluate("() => JSON.parse(JSON.stringify(performance.getEntriesByType('resource')))")
+                                    log_scraper_event(
+                                        "info", 
+                                        "Collected resource timing data", 
+                                        {
+                                            "resource_count": len(resources),
+                                            "resource_types": {r["type"]: sum(1 for res in resources if res["type"] == r["type"]) 
+                                                        for r in resources if "type" in r},
+                                            "total_transfer_size_kb": round(sum(r["size"] for r in resources if "size" in r) / 1024, 2) if resources else 0
+                                        },
+                                        correlation_id=correlation_id,
+                                        tags=["resources", "timing_data"]
+                                    )
+                                except Exception as res_error:
+                                    log_scraper_event(
+                                        "info", 
+                                        "Collected resource timing data", 
+                                        {
+                                            "resource_count": len(resources)
+                                        },
+                                        correlation_id=correlation_id,
+                                        tags=["resources", "timing_data"]
+                                    )
+                                    resources = []
+                                
+                                # Prüfe auf API-Anfragen in den gesammelten Ressourcen
+                                try:
+                                    api_resources = [r for r in resources if "name" in r and API_RE.search(r["name"])]
+                                    if api_resources:
+                                        log_scraper_event(
+                                            "info", 
+                                            "Found API resources", 
+                                            {"api_resource_count": len(api_resources)},
+                                            correlation_id=correlation_id,
+                                            tags=["api", "resources"]
+                                        )
+                                except Exception as api_error:
+                                    log_scraper_event(
+                                        "error", 
+                                        "Error processing API resources", 
+                                        {"error": str(api_error)},
+                                        correlation_id=correlation_id,
+                                        tags=["api", "resources", "error"]
+                                    )
+                                    continue
+                                
+                                # Scroll through the page to trigger lazy loading
                                 try:
                                     # Scroll through the page to trigger lazy loading
                                     log_scraper_event(
@@ -1094,6 +1105,22 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                                         {"error": str(scroll_error)},
                                         correlation_id=correlation_id,
                                         tags=["error", "browser", "scrolling"]
+                                    )
+                                
+                                # Handle any other navigation errors
+                                try:
+                                    # This is a placeholder try block to maintain the structure
+                                    pass
+                                except Exception as main_navigation_error:
+                                    log_scraper_event(
+                                        "error", 
+                                        "Unhandled error during page navigation and processing", 
+                                        {
+                                            "error": str(main_navigation_error),
+                                            "traceback": traceback.format_exc()
+                                        },
+                                        correlation_id=correlation_id,
+                                        tags=["error", "navigation", "critical"]
                                     )
                             # Close browser resources with proper error handling
                             try:
