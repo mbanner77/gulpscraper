@@ -1281,11 +1281,8 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                 "traceback": traceback.format_exc()
             })
             
-    except Exception as scraper_error:
-        log_scraper_event("error", "General scraping error", {
-            "error": str(scraper_error),
-            "traceback": traceback.format_exc()
-        })
+    # Reset the scraping flag
+    is_scraping = False
     
     # Bei Fehlern auf Render versuchen wir, zumindest Dummy-Daten zu laden
     fallback_success = False
