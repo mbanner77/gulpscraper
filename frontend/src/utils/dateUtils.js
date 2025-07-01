@@ -5,20 +5,30 @@
 /**
  * Format a date string to a localized format
  * @param {string} dateString - ISO date string
+ * @param {boolean} showSeconds - Whether to show seconds in the formatted time
  * @returns {string} Formatted date string
  */
-export const formatDate = (dateString) => {
+export const formatDate = (dateString, showSeconds = false) => {
   if (!dateString) return 'Unbekannt';
   
   try {
     const date = new Date(dateString);
-    return date.toLocaleDateString('de-DE', {
+    
+    // Options for date formatting
+    const options = {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit'
-    });
+    };
+    
+    // Add seconds if requested
+    if (showSeconds) {
+      options.second = '2-digit';
+    }
+    
+    return date.toLocaleDateString('de-DE', options);
   } catch (error) {
     console.error('Error formatting date:', error);
     return 'Ungültiges Datum';

@@ -140,7 +140,7 @@ def log_scraper_event(event_type, message, data=None, log_level=None, correlatio
         data = {}
     
     # Füge zusätzliche Kontextinformationen hinzu
-    timestamp = datetime.datetime.now().isoformat()
+    timestamp = datetime.datetime.now().astimezone().isoformat()
     
     # Füge Umgebungsinformationen hinzu
     env_info = {
@@ -343,7 +343,7 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
             "info", 
             f"Starting GULP scraper", 
             {
-                "timestamp": datetime.datetime.now().isoformat(),
+                "timestamp": datetime.datetime.now().astimezone().isoformat(),
                 "use_real_scraper": USE_REAL_SCRAPER,
                 "is_cloud_env": IS_CLOUD_ENV,
                 "pages": list(pages)
@@ -451,7 +451,7 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
         )
         
         # Aktualisiere den Zeitstempel des letzten Scans
-        last_scrape_time = datetime.datetime.now().isoformat()
+        last_scrape_time = datetime.datetime.now().astimezone().isoformat()
         
         # Wenn wir Dummy-Daten verwenden, geben wir hier zurück
         if not USE_REAL_SCRAPER:
@@ -1204,7 +1204,7 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                                     })
                                     
                                     # Aktualisiere den Zeitstempel des letzten Scans
-                                    last_scrape_time = datetime.datetime.now().isoformat()
+                                    last_scrape_time = datetime.datetime.now().astimezone().isoformat()
                                     
                                     # Sende E-Mail-Benachrichtigung, wenn aktiviert und neue Projekte gefunden wurden
                                     if email_notification_enabled and email_recipient and new_projects:
@@ -1301,7 +1301,7 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                     "location": "Berlin",
                     "isRemoteWorkPossible": True,
                     "publicationDate": datetime.datetime.now().strftime("%d.%m.%Y"),
-                    "originalPublicationDate": datetime.datetime.now().isoformat(),
+                    "originalPublicationDate": datetime.datetime.now().astimezone().isoformat(),
                     "url": "https://www.gulp.de/"
                 },
                 {
@@ -1312,7 +1312,7 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                     "location": "München",
                     "isRemoteWorkPossible": True,
                     "publicationDate": datetime.datetime.now().strftime("%d.%m.%Y"),
-                    "originalPublicationDate": datetime.datetime.now().isoformat(),
+                    "originalPublicationDate": datetime.datetime.now().astimezone().isoformat(),
                     "url": "https://www.gulp.de/"
                 }
             ]
@@ -1357,7 +1357,7 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
             )
             
             # Aktualisiere den Zeitstempel des letzten Scans
-            last_scrape_time = datetime.datetime.now().isoformat()
+            last_scrape_time = datetime.datetime.now().astimezone().isoformat()
             print(f"[RENDER DEBUG] Updated last_scrape_time to {last_scrape_time}")
             fallback_success = True
             
@@ -2115,7 +2115,7 @@ async def startup_event():
                     # Aktualisiere den letzten Scrape-Zeitpunkt, damit er nicht als "Noch nie" angezeigt wird
                     global last_scrape_time
                     if not last_scrape_time:
-                        last_scrape_time = datetime.datetime.now().isoformat()
+                        last_scrape_time = datetime.datetime.now().astimezone().isoformat()
                         print(f"[RENDER SETUP] Letzter Scrape-Zeitpunkt auf {last_scrape_time} gesetzt")
             except Exception as e:
                 print(f"[RENDER SETUP] Fehler beim Lesen der Projektdatei: {str(e)}")
@@ -2186,7 +2186,7 @@ async def trigger_scrape(
                     "location": "Berlin",
                     "isRemoteWorkPossible": True,
                     "publicationDate": datetime.datetime.now().strftime("%d.%m.%Y"),
-                    "originalPublicationDate": datetime.datetime.now().isoformat(),
+                    "originalPublicationDate": datetime.datetime.now().astimezone().isoformat(),
                     "url": "https://www.gulp.de/"
                 },
                 {
@@ -2197,7 +2197,7 @@ async def trigger_scrape(
                     "location": "München",
                     "isRemoteWorkPossible": True,
                     "publicationDate": datetime.datetime.now().strftime("%d.%m.%Y"),
-                    "originalPublicationDate": datetime.datetime.now().isoformat(),
+                    "originalPublicationDate": datetime.datetime.now().astimezone().isoformat(),
                     "url": "https://www.gulp.de/"
                 }
             ]
@@ -2216,7 +2216,7 @@ async def trigger_scrape(
                 print(f"[RENDER DEBUG] Processed {len(unique_projects)} unique projects, {len(new_projects)} new")
                 
                 # Aktualisiere den Zeitstempel des letzten Scans
-                last_scrape_time = datetime.datetime.now().isoformat()
+                last_scrape_time = datetime.datetime.now().astimezone().isoformat()
                 print(f"[RENDER DEBUG] Updated last_scrape_time to {last_scrape_time}")
                 
                 # Stelle sicher, dass die Projekte korrekt verarbeitet wurden
@@ -2230,7 +2230,7 @@ async def trigger_scrape(
                 
                 # Aktualisiere den letzten Scrape-Zeitpunkt und setze das Dummy-Daten-Flag
                 try:
-                    last_scrape_time = datetime.datetime.now().isoformat()
+                    last_scrape_time = datetime.datetime.now().astimezone().isoformat()
                     last_used_dummy_data = True  # Setze das Flag für Dummy-Daten
                     with open(LAST_SCRAPE_FILE, "w") as f:
                         f.write(last_scrape_time)
@@ -2273,7 +2273,7 @@ async def trigger_scrape(
             )
         
         # Stelle sicher, dass der letzte Scrape-Zeitpunkt aktualisiert wird
-        last_scrape_time = datetime.datetime.now().isoformat()
+        last_scrape_time = datetime.datetime.now().astimezone().isoformat()
         log_scraper_event("info", "Letzter Scrape-Zeitpunkt aktualisiert", {"timestamp": last_scrape_time})
         
         # Speichere den letzten Scrape-Zeitpunkt in einer Datei für Persistenz
