@@ -52,9 +52,6 @@ import {
 } from '@mui/icons-material';
 import WebIcon from '@mui/icons-material/Web';
 import EmailIcon from '@mui/icons-material/Email';
-import FilterListIcon from '@mui/icons-material/FilterList';
-import ClearIcon from '@mui/icons-material/Clear';
-import SearchIcon from '@mui/icons-material/Search';
 import LinkIcon from '@mui/icons-material/Link';
 import MemoryIcon from '@mui/icons-material/Memory';
 import SpeedIcon from '@mui/icons-material/Speed';
@@ -368,10 +365,33 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
       scroll="paper"
     >
       <DialogTitle>
-        <Typography variant="h5">Scraper Details</Typography>
-        <Typography variant="subtitle2" color="text.secondary">
-          Detaillierte Informationen über den Scraper-Prozess
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box>
+            <Typography variant="h5">Scraper Details</Typography>
+            <Typography variant="subtitle2" color="text.secondary">
+              Detaillierte Informationen über den Scraper-Prozess
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            {currentSession && (
+              <Chip
+                icon={<Badge color="success" variant="dot" />}
+                label={`Aktive Session: ${currentSession.substring(0, 12)}...`}
+                color="success"
+                variant="outlined"
+                size="small"
+              />
+            )}
+            {logStatus && (
+              <Chip
+                label={`${filteredLogs.length} / ${logs.length} Logs`}
+                color="primary"
+                variant="outlined"
+                size="small"
+              />
+            )}
+          </Box>
+        </Box>
       </DialogTitle>
       
       <Divider />
@@ -487,13 +507,13 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
                   <TextField
                     fullWidth
                     size="small"
-                    label="Suche in Logs"
-                    value={filters.search}
-                    onChange={handleFilterChange('search')}
+                    label="Suche in Logs (Message, Event-Typ, Session-ID)"
+                    value={filters.searchTerm}
+                    onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
                     InputProps={{
                       startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
-                      endAdornment: filters.search ? (
-                        <IconButton size="small" onClick={() => setFilters(prev => ({ ...prev, search: '' }))}>
+                      endAdornment: filters.searchTerm ? (
+                        <IconButton size="small" onClick={() => setFilters(prev => ({ ...prev, searchTerm: '' }))}>
                           <ClearIcon fontSize="small" />
                         </IconButton>
                       ) : null
@@ -540,7 +560,7 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
             </Box>
           ) : (
             <List sx={{ width: '100%' }}>
-              {logs.map((log, index) => (
+              {filteredLogs.map((log, index) => (
                 <Accordion key={index} sx={{ mb: 1 }}>
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <Grid container alignItems="center" spacing={1}>
@@ -551,6 +571,11 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
                         <Typography variant="body1">
                           {log.message}
                         </Typography>
+                        {log.session_id && (
+                          <Typography variant="caption" color="text.secondary">
+                            Session: {log.session_id}
+                          </Typography>
+                        )}
                       </Grid>
                       <Grid item>
                         <Stack direction="row" spacing={1}>
