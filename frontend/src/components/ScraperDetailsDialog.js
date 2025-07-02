@@ -45,18 +45,21 @@ import {
   KeyboardArrowDown as ArrowDownIcon,
   KeyboardArrowRight as ArrowRightIcon,
   Schedule as ScheduleIcon,
-  CheckCircle as SuccessIcon,
+  CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
   Info as InfoIcon,
-  Warning as WarningIcon
+  Warning as WarningIcon,
+  AccessTime as AccessTimeIcon,
+  BarChart as BarChartIcon
 } from '@mui/icons-material';
 import WebIcon from '@mui/icons-material/Web';
 import EmailIcon from '@mui/icons-material/Email';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import LinkIcon from '@mui/icons-material/Link';
 import MemoryIcon from '@mui/icons-material/Memory';
 import SpeedIcon from '@mui/icons-material/Speed';
 import { formatDate } from '../utils/dateUtils';
-import { getScraperLogs } from '../services/api';
+import { getScraperLogs, getLogStatus, getSessionLogs } from '../services/api';
 
 const ScraperDetailsDialog = ({ open, onClose }) => {
   const [logs, setLogs] = useState([]);
