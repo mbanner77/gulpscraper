@@ -328,7 +328,7 @@ is_scraping = False
 last_scrape_time = None
 email_notification_enabled = True
 email_recipient = DEFAULT_EMAIL_RECIPIENT
-last_used_dummy_data = False  # Neue Variable, die anzeigt, ob beim letzten Scrape Dummy-Daten verwendet wurden
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -350,7 +350,7 @@ def find_projects_recursive(data: Any) -> List[Dict]:
 
 async def scrape_gulp(pages: range = PAGE_RANGE):
     """Run the GULP scraper and return the projects."""
-    global is_scraping, last_scrape_time, last_used_dummy_data, project_manager, email_service, email_notification_enabled, email_recipient
+    global is_scraping, last_scrape_time, project_manager, email_service, email_notification_enabled, email_recipient
     
     # Generate a unique correlation ID for this scraping session
     correlation_id = f"scrape-{int(time.time())}-{uuid.uuid4().hex[:8]}"
@@ -410,87 +410,15 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
             except Exception as e:
                 print(f"[RENDER DEBUG] Fehler beim Lesen der Projektdatei: {str(e)}")
     
-    # Wenn USE_REAL_SCRAPER auf False gesetzt ist, verwende Dummy-Daten
+    # If USE_REAL_SCRAPER is False, skip scraping and return empty result
     if not USE_REAL_SCRAPER:
         log_scraper_event(
-            "info", 
-            "USE_REAL_SCRAPER is disabled, using dummy data",
+            "warning", 
+            "USE_REAL_SCRAPER is disabled, skipping scrape",
             correlation_id=correlation_id,
-            tags=["dummy_data"]
+            tags=["scraper_disabled"]
         )
-        # Setze das Flag für Dummy-Daten
-        last_used_dummy_data = True
-        # Erstelle 10 Dummy-Projekte
-        dummy_projects = []
-        # Versuche, Dummy-Daten aus der Datei zu laden
-        dummy_file = DATA_DIR / "dummy_projects.json"
-        print(f"[SCRAPER] Looking for dummy data at: {dummy_file.absolute()}")
-        if dummy_file.exists():
-            try:
-                with open(dummy_file, 'r', encoding='utf-8') as f:
-                    dummy_projects = json.load(f)
-                    print(f"[SCRAPER] Loaded {len(dummy_projects)} dummy projects from file")
-                    log_scraper_event(
-                        "info", 
-                        "Loaded dummy data from file", 
-                        {
-                            "dummy_projects_count": len(dummy_projects),
-                            "dummy_file": str(dummy_file.absolute())
-                        },
-                        correlation_id=correlation_id,
-                        tags=["dummy_data", "file_loaded"]
-                    )
-            except Exception as e:
-                print(f"[SCRAPER] Error loading dummy data: {str(e)}")
-                log_scraper_event(
-                    "error", 
-                    "Error loading dummy data", 
-                    {
-                        "error": str(e),
-                        "dummy_file": str(dummy_file.absolute())
-                    },
-                    correlation_id=correlation_id,
-                    tags=["dummy_data", "error", "file_error"]
-                )
-        
-        # Wenn keine Dummy-Daten geladen werden konnten, erstelle neue
-        if not dummy_projects:
-            print("[SCRAPER] Creating new dummy projects")
-            dummy_projects = create_dummy_projects()
-            log_scraper_event(
-                "info", 
-                "Created new dummy projects", 
-                {
-                    "dummy_projects_count": len(dummy_projects)
-                },
-                correlation_id=correlation_id,
-                tags=["dummy_data", "generated"]
-            )
-            
-        # Verarbeite die Dummy-Projekte
-        unique_projects, new_projects = project_manager.process_projects(dummy_projects)
-        log_scraper_event(
-            "success", 
-            "Dummy data processing completed", 
-            {
-                "unique_projects_count": len(unique_projects),
-                "new_projects_count": len(new_projects)
-            },
-            correlation_id=correlation_id,
-            tags=["dummy_data", "processing_complete"]
-        )
-        
-        # Aktualisiere den Zeitstempel des letzten Scans
-        # Use a more compatible approach for timezone handling
-        try:
-            last_scrape_time = datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z'  # UTC format
-        except Exception as e:
-            print(f"Error formatting last_scrape_time: {str(e)}")
-            last_scrape_time = datetime.datetime.now().isoformat()  # Fallback
-        
-        # Wenn wir Dummy-Daten verwenden, geben wir hier zurück
-        if not USE_REAL_SCRAPER:
-            return unique_projects
+        return []
         
         # Ab hier beginnt der echte Scraper mit Playwright
         # Browser-Konfiguration
@@ -586,8 +514,7 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                 tags=["error", "browser_launch"]
             )
         
-        # Setze das Flag für echte Daten (wird auf True gesetzt, wenn wir auf Dummy-Daten zurückfallen)
-        last_used_dummy_data = False
+
         
         # Initialisiere Playwright mit vollständiger Fehlerbehandlung
         try:
@@ -1324,115 +1251,14 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
     # Reset the scraping flag
     is_scraping = False
     
-    # Bei Fehlern auf Render versuchen wir, zumindest Dummy-Daten zu laden
-    fallback_success = False
-    if IS_CLOUD_ENV and USE_REAL_SCRAPER:
-        print("[RENDER DEBUG] Error with real scraper on Render, falling back to dummy data")
-        try:
-            print("[RENDER DEBUG] Versuche Fallback mit Dummy-Daten...")
-            
-            # Erstelle ein einfaches Dummy-Projekt
-            dummy_projects = [
-                {
-                    "id": "dummy-1",
-                    "title": "Dummy Projekt 1",
-                    "description": "Dies ist ein automatisch erstelltes Dummy-Projekt für Render.",
-                    "companyName": "Dummy GmbH",
-                    "location": "Berlin",
-                    "isRemoteWorkPossible": True,
-                    "publicationDate": datetime.datetime.now().strftime("%d.%m.%Y"),
-                    "originalPublicationDate": datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z',  # UTC format
-                    "url": "https://www.gulp.de/"
-                },
-                {
-                    "id": "dummy-2",
-                    "title": "Dummy Projekt 2",
-                    "description": "Ein weiteres automatisch erstelltes Dummy-Projekt für Render.",
-                    "companyName": "Test AG",
-                    "location": "München",
-                    "isRemoteWorkPossible": True,
-                    "publicationDate": datetime.datetime.now().strftime("%d.%m.%Y"),
-                    "originalPublicationDate": datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z',  # UTC format
-                    "url": "https://www.gulp.de/"
-                }
-            ]
-            
-            # Speichere die Dummy-Projekte
-            try:
-                DATA_DIR.mkdir(exist_ok=True, parents=True)
-                OUTPUT_JSON.write_text(
-                    json.dumps(dummy_projects, indent=2, ensure_ascii=False), 
-                    encoding="utf-8"
-                )
-                print(f"[RENDER DEBUG] Created dummy data file with {len(dummy_projects)} projects")
-                log_scraper_event(
-                    "info", 
-                    "Created dummy data file", 
-                    {"project_count": len(dummy_projects)},
-                    correlation_id=correlation_id,
-                    tags=["dummy_data", "file_creation"]
-                )
-            except Exception as save_error:
-                print(f"[RENDER DEBUG] Error saving dummy data: {str(save_error)}")
-                log_scraper_event(
-                    "error", 
-                    "Error saving dummy data", 
-                    {"error": str(save_error)},
-                    correlation_id=correlation_id,
-                    tags=["dummy_data", "file_error", "error"]
-                )
-            
-            # Verarbeite die Dummy-Projekte
-            unique_projects, new_projects = project_manager.process_projects(dummy_projects)
-            print(f"[RENDER DEBUG] Processed {len(unique_projects)} unique projects, {len(new_projects)} new")
-            log_scraper_event(
-                "info", 
-                "Processed dummy projects", 
-                {
-                    "unique_count": len(unique_projects),
-                    "new_count": len(new_projects)
-                },
-                correlation_id=correlation_id,
-                tags=["dummy_data", "processing"]
-            )
-            
-            # Aktualisiere den Zeitstempel des letzten Scans
-            # Use a more compatible approach for timezone handling
-            try:
-                last_scrape_time = datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z'  # UTC format
-            except Exception as e:
-                print(f"Error formatting last_scrape_time: {str(e)}")
-                last_scrape_time = datetime.datetime.now().isoformat()  # Fallback
-            print(f"[RENDER DEBUG] Updated last_scrape_time to {last_scrape_time}")
-            fallback_success = True
-            
-            # Sende E-Mail-Benachrichtigung, wenn aktiviert und neue Projekte gefunden wurden
-            if email_notification_enabled and email_recipient and new_projects:
-                print(f"\n[SCRAPER] Versuche E-Mail-Benachrichtigung zu senden...")
-                if not email_service:
-                    print(f"[SCRAPER] E-Mail-Service ist nicht initialisiert!")
-                else:
-                    print(f"[SCRAPER] E-Mail-Service Status: {email_service.get_config_status().get('is_configured')}")
-                    try:
-                        success = email_service.send_new_projects_notification(
-                            recipient=email_recipient,
-                            new_projects=new_projects,
-                            scan_time=datetime.datetime.now()
-                        )
-                        print(f"[SCRAPER] E-Mail-Versand Ergebnis: {'Erfolgreich' if success else 'Fehlgeschlagen'}")
-                    except Exception as e:
-                        print(f"Error sending email notification: {str(e)}")
-            
-            return unique_projects
-        except Exception as fallback_error:
-            print(f"[RENDER DEBUG] Fallback to dummy data also failed: {str(fallback_error)}")
-    
-    # If we reach here, we couldn't get any data
-    try:
-        return []
-    finally:
-        # Always reset the scraping flag when done
-        is_scraping = False
+    # If scraping fails, return empty result
+    log_scraper_event(
+        "error", 
+        "Scraping failed, returning empty result", 
+        correlation_id=correlation_id,
+        tags=["scraper_error", "empty_result"]
+    )
+    return []
 
 
 # ---------------------------------------------------------------------------
@@ -1790,7 +1616,7 @@ async def get_status():
         "project_count": len(json.loads(OUTPUT_JSON.read_text(encoding="utf-8"))) if OUTPUT_JSON.exists() else 0,
         "new_project_count": len(new_projects),
         "total_projects_found": history.get("total_projects_found", 0),
-        "dummy_data": last_used_dummy_data,  # Füge die Information über Dummy-Daten hinzu
+
         "email_notification": {
             "enabled": email_notification_enabled,
             "recipient": email_recipient if email_recipient else None,
@@ -1950,7 +1776,7 @@ async def get_log_status():
             "scraper_status": {
                 "is_scraping": is_scraping,
                 "last_scrape_time": last_scrape_time,
-                "last_used_dummy_data": last_used_dummy_data
+
             },
             "current_session": {
                 "active": current_scrape_session is not None,
@@ -2310,7 +2136,7 @@ async def trigger_scrape(
     request: ScrapeRequest = ScrapeRequest()
 ):
     """Trigger a new scrape."""
-    global email_notification_enabled, last_scrape_time, last_used_dummy_data, current_scrape_session
+    global email_notification_enabled, last_scrape_time, current_scrape_session
     
     if is_scraping:
         return JSONResponse(
@@ -2354,125 +2180,26 @@ async def trigger_scrape(
         # Starte den Scrape-Vorgang direkt
         print(f"[MANUAL SCRAPE] Führe Scrape direkt aus...")
         
-        # Auf Render verwenden wir immer Dummy-Daten, wenn nicht explizit anders konfiguriert
-        if IS_CLOUD_ENV and not USE_REAL_SCRAPER:
-            print(f"[MANUAL SCRAPE] Render-Umgebung erkannt, verwende Dummy-Daten")
-            log_scraper_event("info", "Verwende Dummy-Daten auf Render", {
-                "dummy_data": True,
-                "environment": "render/cloud",
+        # If real scraper is disabled, return empty result with warning
+        if not USE_REAL_SCRAPER:
+            warning_msg = "Real scraper is disabled (USE_REAL_SCRAPER=False)"
+            print(f"[MANUAL SCRAPE] {warning_msg}")
+            log_scraper_event("warning", warning_msg, {
+                "use_real_scraper": USE_REAL_SCRAPER,
                 "session_id": current_scrape_session
             }, session_id=current_scrape_session)
-            # Erstelle ein einfaches Dummy-Projekt
-            dummy_projects = [
-                {
-                    "id": "dummy-1",
-                    "title": "Dummy Projekt 1",
-                    "description": "Dies ist ein automatisch erstelltes Dummy-Projekt für Render.",
-                    "companyName": "Dummy GmbH",
-                    "location": "Berlin",
-                    "isRemoteWorkPossible": True,
-                    "publicationDate": datetime.datetime.now().strftime("%d.%m.%Y"),
-                    "originalPublicationDate": datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z',  # UTC format
-                    "url": "https://www.gulp.de/"
-                },
-                {
-                    "id": "dummy-2",
-                    "title": "Dummy Projekt 2",
-                    "description": "Ein weiteres automatisch erstelltes Dummy-Projekt für Render.",
-                    "companyName": "Test AG",
-                    "location": "München",
-                    "isRemoteWorkPossible": True,
-                    "publicationDate": datetime.datetime.now().strftime("%d.%m.%Y"),
-                    "originalPublicationDate": datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z',  # UTC format
-                    "url": "https://www.gulp.de/"
-                }
-            ]
             
-            # Speichere die Dummy-Projekte
-            try:
-                log_scraper_event("info", "Erstelle Dummy-Projektdaten", {
-                    "project_count": len(dummy_projects),
-                    "session_id": current_scrape_session
-                }, session_id=current_scrape_session)
-                
-                DATA_DIR.mkdir(exist_ok=True, parents=True)
-                OUTPUT_JSON.write_text(
-                    json.dumps(dummy_projects, indent=2, ensure_ascii=False), 
-                    encoding="utf-8"
-                )
-                print(f"[RENDER DEBUG] Created dummy data file with {len(dummy_projects)} projects")
-                
-                # Verarbeite die Dummy-Projekte
-                log_scraper_event("info", "Verarbeite Dummy-Projekte", {
-                    "project_count": len(dummy_projects),
-                    "session_id": current_scrape_session
-                }, session_id=current_scrape_session)
-                
-                unique_projects, new_projects = project_manager.process_projects(dummy_projects)
-                print(f"[RENDER DEBUG] Processed {len(unique_projects)} unique projects, {len(new_projects)} new")
-                
-                # Aktualisiere den Zeitstempel des letzten Scans
-                # Use a more compatible approach for timezone handling
-                try:
-                    last_scrape_time = datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z'  # UTC format
-                except Exception as e:
-                    print(f"Error formatting last_scrape_time: {str(e)}")
-                    last_scrape_time = datetime.datetime.now().isoformat()  # Fallback
-                print(f"[RENDER DEBUG] Updated last_scrape_time to {last_scrape_time}")
-                
-                # Stelle sicher, dass die Projekte korrekt verarbeitet wurden
-                project_count = len(unique_projects)
-                new_project_count = len(new_projects)
-                
-                # Für Render: Stelle sicher, dass die Projektdaten in allen relevanten Dateien aktualisiert sind
-                print(f"[MANUAL SCRAPE] Aktualisiere Projektdateien für Render-Kompatibilität...")
-                # Erzwinge eine Neusortierung der Projekte (aktuell vs. archiviert)
-                project_manager.get_projects(force_reprocess=True, show_all=True)
-                
-                # Aktualisiere den letzten Scrape-Zeitpunkt und setze das Dummy-Daten-Flag
-                try:
-                    try:
-                        last_scrape_time = datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z'  # UTC format
-                    except Exception as e:
-                        print(f"Error formatting last_scrape_time: {str(e)}")
-                        last_scrape_time = datetime.datetime.now().isoformat()  # Fallback
-                    
-                    last_used_dummy_data = True  # Setze das Flag für Dummy-Daten
-                    with open(LAST_SCRAPE_FILE, "w") as f:
-                        f.write(last_scrape_time)
-                        
-                    log_scraper_event("success", "Dummy-Scrape erfolgreich abgeschlossen", {
-                        "project_count": project_count,
-                        "new_project_count": new_project_count,
-                        "dummy_data": True,
-                        "session_id": current_scrape_session,
-                        "last_scrape_time": last_scrape_time
-                    }, session_id=current_scrape_session)
-                except Exception as e:
-                    error_msg = f"Fehler beim Speichern des letzten Scrape-Zeitpunkts: {str(e)}"
-                    print(f"[MANUAL SCRAPE] {error_msg}")
-                    log_scraper_event("error", error_msg, {
-                        "session_id": current_scrape_session,
-                        "traceback": traceback.format_exc()
-                    }, session_id=current_scrape_session)
-                
-                # Session beenden
-                current_scrape_session = None
-                
-                return {
-                    "message": "Scrape mit Dummy-Daten wurde erfolgreich durchgeführt",
-                    "success": True,
-                    "last_scrape": last_scrape_time,
-                    "project_count": project_count,
-                    "new_project_count": new_project_count,
-                    "email_notification": email_notification_enabled and email_recipient != "",
-                    "dummy_data": True,
-                    "session_id": current_scrape_session
-                }
-            except Exception as e:
-                print(f"[RENDER DEBUG] Error with dummy data: {str(e)}")
-                import traceback
-                print(f"[RENDER DEBUG] Traceback: {traceback.format_exc()}")
+            # Session beenden
+            current_scrape_session = None
+            
+            return {
+                "message": "Scraper ist deaktiviert - keine Daten verfügbar",
+                "success": False,
+                "project_count": 0,
+                "new_project_count": 0,
+                "warning": warning_msg,
+                "session_id": None
+            }
         
         # Normaler Scrape-Vorgang (nicht Render oder explizit USE_REAL_SCRAPER=True)
         print(f"[MANUAL SCRAPE] Starte echten Scraper mit USE_REAL_SCRAPER={USE_REAL_SCRAPER}")
