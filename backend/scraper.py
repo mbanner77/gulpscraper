@@ -94,12 +94,13 @@ project_manager = None
 
 # Globale Variable für Scraper-Logs
 scraper_logs = []
-max_log_entries = 100  # Maximale Anzahl der Log-Einträge
+MAX_LOG_ENTRIES = 100  # Maximale Anzahl der Log-Einträge
 
 def save_logs_to_file():
     """
     Speichert die Scraper-Logs in einer Datei.
     """
+    global scraper_logs
     try:
         with open(SCRAPER_LOGS_FILE, 'w', encoding='utf-8') as f:
             json.dump(scraper_logs, f, ensure_ascii=False, indent=2)
@@ -134,13 +135,18 @@ def log_scraper_event(event_type, message, data=None, log_level=None, correlatio
         correlation_id (str, optional): ID zur Korrelation zusammengehöriger Log-Einträge
         tags (list, optional): Tags zur Kategorisierung des Log-Eintrags
     """
-    global SCRAPER_LOGS
+    global scraper_logs
     
     if data is None:
         data = {}
     
     # Füge zusätzliche Kontextinformationen hinzu
-    timestamp = datetime.datetime.now().astimezone().isoformat()
+    # Use a more compatible approach for timezone handling
+    try:
+        timestamp = datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z'  # UTC format
+    except Exception as e:
+        print(f"Error formatting timestamp: {str(e)}")
+        timestamp = datetime.datetime.now().isoformat()  # Fallback
     
     # Füge Umgebungsinformationen hinzu
     env_info = {
@@ -230,11 +236,11 @@ def log_scraper_event(event_type, message, data=None, log_level=None, correlatio
     if event_type == "error":
         print(f"[SCRAPER ERROR DETAILS] {json.dumps(enhanced_data, default=str)}")
     
-    SCRAPER_LOGS.append(log_entry)
+    scraper_logs.append(log_entry)
     
     # Begrenze die Anzahl der Logs
-    if len(SCRAPER_LOGS) > MAX_LOG_ENTRIES:
-        SCRAPER_LOGS = SCRAPER_LOGS[-MAX_LOG_ENTRIES:]
+    if len(scraper_logs) > MAX_LOG_ENTRIES:
+        scraper_logs = scraper_logs[-MAX_LOG_ENTRIES:]
     
     # Speichere die Logs in einer Datei
     save_logs_to_file()
@@ -451,7 +457,12 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
         )
         
         # Aktualisiere den Zeitstempel des letzten Scans
-        last_scrape_time = datetime.datetime.now().astimezone().isoformat()
+        # Use a more compatible approach for timezone handling
+        try:
+            last_scrape_time = datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z'  # UTC format
+        except Exception as e:
+            print(f"Error formatting last_scrape_time: {str(e)}")
+            last_scrape_time = datetime.datetime.now().isoformat()  # Fallback
         
         # Wenn wir Dummy-Daten verwenden, geben wir hier zurück
         if not USE_REAL_SCRAPER:
@@ -1204,7 +1215,12 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                                     })
                                     
                                     # Aktualisiere den Zeitstempel des letzten Scans
-                                    last_scrape_time = datetime.datetime.now().astimezone().isoformat()
+                                    # Use a more compatible approach for timezone handling
+                                    try:
+                                        last_scrape_time = datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z'  # UTC format
+                                    except Exception as e:
+                                        print(f"Error formatting last_scrape_time: {str(e)}")
+                                        last_scrape_time = datetime.datetime.now().isoformat()  # Fallback
                                     
                                     # Sende E-Mail-Benachrichtigung, wenn aktiviert und neue Projekte gefunden wurden
                                     if email_notification_enabled and email_recipient and new_projects:
@@ -1301,7 +1317,7 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                     "location": "Berlin",
                     "isRemoteWorkPossible": True,
                     "publicationDate": datetime.datetime.now().strftime("%d.%m.%Y"),
-                    "originalPublicationDate": datetime.datetime.now().astimezone().isoformat(),
+                    "originalPublicationDate": datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z',  # UTC format
                     "url": "https://www.gulp.de/"
                 },
                 {
@@ -1312,7 +1328,7 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                     "location": "München",
                     "isRemoteWorkPossible": True,
                     "publicationDate": datetime.datetime.now().strftime("%d.%m.%Y"),
-                    "originalPublicationDate": datetime.datetime.now().astimezone().isoformat(),
+                    "originalPublicationDate": datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z',  # UTC format
                     "url": "https://www.gulp.de/"
                 }
             ]
@@ -1357,7 +1373,12 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
             )
             
             # Aktualisiere den Zeitstempel des letzten Scans
-            last_scrape_time = datetime.datetime.now().astimezone().isoformat()
+            # Use a more compatible approach for timezone handling
+            try:
+                last_scrape_time = datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z'  # UTC format
+            except Exception as e:
+                print(f"Error formatting last_scrape_time: {str(e)}")
+                last_scrape_time = datetime.datetime.now().isoformat()  # Fallback
             print(f"[RENDER DEBUG] Updated last_scrape_time to {last_scrape_time}")
             fallback_success = True
             
@@ -1857,6 +1878,68 @@ async def get_scraper_logs(
     }
 
 
+@app.get("/api/scraper-logs/status", tags=["scraper"])
+async def get_log_status():
+    """Get detailed logging status for monitoring and debugging."""
+    try:
+        log_file_exists = SCRAPER_LOGS_FILE.exists() if SCRAPER_LOGS_FILE else False
+        log_file_size = SCRAPER_LOGS_FILE.stat().st_size if log_file_exists else 0
+        
+        # Calculate recent activity
+        now = datetime.datetime.now()
+        recent_logs = []
+        if scraper_logs:
+            for log in scraper_logs[-10:]:  # Last 10 logs
+                try:
+                    log_time = datetime.datetime.fromisoformat(log.get("timestamp", "").replace('Z', '+00:00'))
+                    recent_logs.append({
+                        "timestamp": log.get("timestamp"),
+                        "event_type": log.get("event_type"),
+                        "message": log.get("message"),
+                        "age_seconds": (now - log_time.replace(tzinfo=None)).total_seconds()
+                    })
+                except (ValueError, TypeError):
+                    continue
+        
+        return {
+            "status": "healthy",
+            "timestamp": now.isoformat(),
+            "logging": {
+                "total_logs": len(scraper_logs),
+                "memory_logs_count": len(scraper_logs),
+                "log_file_exists": log_file_exists,
+                "log_file_size_bytes": log_file_size,
+                "log_file_path": str(SCRAPER_LOGS_FILE) if SCRAPER_LOGS_FILE else None,
+                "last_log_timestamp": scraper_logs[-1].get("timestamp") if scraper_logs else None,
+                "recent_logs": recent_logs
+            },
+            "environment": {
+                "is_cloud_env": IS_CLOUD_ENV,
+                "use_real_scraper": USE_REAL_SCRAPER,
+                "data_dir": str(DATA_DIR),
+                "frontend_url": FRONTEND_URL
+            },
+            "services": {
+                "scheduler_running": scheduler.running if scheduler else False,
+                "scheduler_enabled": scheduler_config.get("enabled", False),
+                "email_configured": email_service.is_configured if email_service else False,
+                "project_manager_ready": project_manager is not None
+            },
+            "scraper_status": {
+                "is_scraping": is_scraping,
+                "last_scrape_time": last_scrape_time,
+                "last_used_dummy_data": last_used_dummy_data
+            }
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.datetime.now().isoformat(),
+            "total_logs": len(scraper_logs) if scraper_logs else 0
+        }
+
+
 # ---------------------------------------------------------------------------
 # Scheduler
 # ---------------------------------------------------------------------------
@@ -1990,11 +2073,27 @@ async def startup_event():
     """Run when the API starts up."""
     global project_manager, email_service
     
+    # Log the startup process
+    print("\n[STARTUP] ======================================")
+    print("[STARTUP] GULP Scraper API wird gestartet...")
+    print(f"[STARTUP] Cloud Environment: {IS_CLOUD_ENV}")
+    print(f"[STARTUP] Use Real Scraper: {USE_REAL_SCRAPER}")
+    print(f"[STARTUP] Data Directory: {DATA_DIR.absolute()}")
+    print("[STARTUP] ======================================\n")
+    
     # Lade gespeicherte Scraper-Logs
     load_logs_from_file()
     
+    # Log the startup event
+    log_scraper_event("info", "API Startup initiated", {
+        "is_cloud_env": IS_CLOUD_ENV,
+        "use_real_scraper": USE_REAL_SCRAPER,
+        "data_dir": str(DATA_DIR.absolute())
+    })
+    
     # Initialisiere den Projekt-Manager
     project_manager = ProjectManager(DATA_DIR)
+    log_scraper_event("info", "ProjectManager initialized", {"data_dir": str(DATA_DIR)})
     
     # Initialisiere den E-Mail-Service mit Standard-SMTP-Einstellungen
     print("\n[STARTUP] Initialisiere E-Mail-Service...")
@@ -2037,14 +2136,17 @@ async def startup_event():
     
     # Configure and start the scheduler
     configure_scheduler()
+    log_scraper_event("info", "Scheduler configuration completed", scheduler_config)
     
     # Make sure the scheduler is not already running before starting it
     if not scheduler.running:
         try:
             scheduler.start()
             print("Scheduler started successfully")
+            log_scraper_event("success", "Scheduler started successfully", {"running": scheduler.running})
         except Exception as e:
             print(f"Error starting scheduler: {str(e)}")
+            log_scraper_event("error", f"Error starting scheduler: {str(e)}")
     
     # In Cloud-Umgebung (Render) spezielles Setup durchführen
     if IS_CLOUD_ENV:
@@ -2091,9 +2193,7 @@ async def startup_event():
                 # Überprüfe die neue Konfiguration
                 new_config = email_service.get_config_status()
                 print(f"[RENDER SETUP] Neue E-Mail-Konfiguration: {new_config}")
-                print(f"[RENDER SETUP] E-Mail-Service konfiguriert: {new_config.get('is_configured')}")
-            else:
-                print("[RENDER SETUP] E-Mail-Service ist korrekt konfiguriert.")
+                log_scraper_event("info", "Email service configured for Render", new_config)
         
         # Stelle sicher, dass die Datenverzeichnisse existieren und beschreibbar sind
         print(f"[RENDER SETUP] Überprüfe Datenverzeichnisse...")
@@ -2115,7 +2215,12 @@ async def startup_event():
                     # Aktualisiere den letzten Scrape-Zeitpunkt, damit er nicht als "Noch nie" angezeigt wird
                     global last_scrape_time
                     if not last_scrape_time:
-                        last_scrape_time = datetime.datetime.now().astimezone().isoformat()
+                        # Use a more compatible approach for timezone handling
+                        try:
+                            last_scrape_time = datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z'  # UTC format
+                        except Exception as e:
+                            print(f"Error formatting last_scrape_time: {str(e)}")
+                            last_scrape_time = datetime.datetime.now().isoformat()  # Fallback
                         print(f"[RENDER SETUP] Letzter Scrape-Zeitpunkt auf {last_scrape_time} gesetzt")
             except Exception as e:
                 print(f"[RENDER SETUP] Fehler beim Lesen der Projektdatei: {str(e)}")
@@ -2127,6 +2232,20 @@ async def startup_event():
     # Run the scraper on startup if no data exists
     if not OUTPUT_JSON.exists():
         asyncio.create_task(scrape_gulp())
+    
+    # Final startup completion log
+    print("\n[STARTUP] ======================================")
+    print("[STARTUP] API Startup completed successfully!")
+    print("[STARTUP] ======================================\n")
+    log_scraper_event("success", "API Startup completed successfully", {
+        "scheduler_running": scheduler.running,
+        "email_configured": email_service.is_configured if email_service else False,
+        "project_manager_ready": project_manager is not None
+    })
+    
+    # Force flush all output to ensure logs are visible immediately
+    sys.stdout.flush()
+    sys.stderr.flush()
 
 
 @app.on_event("shutdown")
@@ -2156,6 +2275,16 @@ async def trigger_scrape(
     print(f"\n[MANUAL SCRAPE] Manueller Scrape-Vorgang gestartet")
     print(f"[MANUAL SCRAPE] Umgebung: {'Render/Cloud' if IS_CLOUD_ENV else 'Lokal'}")
     print(f"[MANUAL SCRAPE] USE_REAL_SCRAPER={USE_REAL_SCRAPER}")
+    
+    # Log den Startvorgang
+    log_scraper_event("info", "Manueller Scrape gestartet", {
+        "is_cloud_env": IS_CLOUD_ENV,
+        "use_real_scraper": USE_REAL_SCRAPER,
+        "pages": str(pages) if 'pages' in locals() else str(PAGE_RANGE)
+    })
+    
+    # Stelle sicher, dass die Logs auch in der Konsole sichtbar sind
+    sys.stdout.flush()
         
     # Convert the pages list to a range if provided
     pages = PAGE_RANGE
@@ -2176,6 +2305,7 @@ async def trigger_scrape(
         # Auf Render verwenden wir immer Dummy-Daten, wenn nicht explizit anders konfiguriert
         if IS_CLOUD_ENV and not USE_REAL_SCRAPER:
             print(f"[MANUAL SCRAPE] Render-Umgebung erkannt, verwende Dummy-Daten")
+            log_scraper_event("info", "Verwende Dummy-Daten auf Render", {"dummy_data": True})
             # Erstelle ein einfaches Dummy-Projekt
             dummy_projects = [
                 {
@@ -2186,7 +2316,7 @@ async def trigger_scrape(
                     "location": "Berlin",
                     "isRemoteWorkPossible": True,
                     "publicationDate": datetime.datetime.now().strftime("%d.%m.%Y"),
-                    "originalPublicationDate": datetime.datetime.now().astimezone().isoformat(),
+                    "originalPublicationDate": datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z',  # UTC format
                     "url": "https://www.gulp.de/"
                 },
                 {
@@ -2197,7 +2327,7 @@ async def trigger_scrape(
                     "location": "München",
                     "isRemoteWorkPossible": True,
                     "publicationDate": datetime.datetime.now().strftime("%d.%m.%Y"),
-                    "originalPublicationDate": datetime.datetime.now().astimezone().isoformat(),
+                    "originalPublicationDate": datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z',  # UTC format
                     "url": "https://www.gulp.de/"
                 }
             ]
@@ -2216,7 +2346,12 @@ async def trigger_scrape(
                 print(f"[RENDER DEBUG] Processed {len(unique_projects)} unique projects, {len(new_projects)} new")
                 
                 # Aktualisiere den Zeitstempel des letzten Scans
-                last_scrape_time = datetime.datetime.now().astimezone().isoformat()
+                # Use a more compatible approach for timezone handling
+                try:
+                    last_scrape_time = datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z'  # UTC format
+                except Exception as e:
+                    print(f"Error formatting last_scrape_time: {str(e)}")
+                    last_scrape_time = datetime.datetime.now().isoformat()  # Fallback
                 print(f"[RENDER DEBUG] Updated last_scrape_time to {last_scrape_time}")
                 
                 # Stelle sicher, dass die Projekte korrekt verarbeitet wurden
@@ -2230,7 +2365,12 @@ async def trigger_scrape(
                 
                 # Aktualisiere den letzten Scrape-Zeitpunkt und setze das Dummy-Daten-Flag
                 try:
-                    last_scrape_time = datetime.datetime.now().astimezone().isoformat()
+                    try:
+                        last_scrape_time = datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z'  # UTC format
+                    except Exception as e:
+                        print(f"Error formatting last_scrape_time: {str(e)}")
+                        last_scrape_time = datetime.datetime.now().isoformat()  # Fallback
+                    
                     last_used_dummy_data = True  # Setze das Flag für Dummy-Daten
                     with open(LAST_SCRAPE_FILE, "w") as f:
                         f.write(last_scrape_time)
@@ -2266,14 +2406,22 @@ async def trigger_scrape(
         except Exception as e:
             error_msg = f"Fehler beim Ausführen des Scrapers: {str(e)}"
             print(f"[MANUAL SCRAPE ERROR] {error_msg}")
+            print(f"[MANUAL SCRAPE ERROR] Full traceback: {traceback.format_exc()}")
             log_scraper_event("error", error_msg, {"traceback": traceback.format_exc()})
+            # Stelle sicher, dass Fehler-Logs auch in der Konsole sichtbar sind
+            sys.stderr.flush()
             return JSONResponse(
                 status_code=500,
                 content={"error": error_msg}
             )
         
         # Stelle sicher, dass der letzte Scrape-Zeitpunkt aktualisiert wird
-        last_scrape_time = datetime.datetime.now().astimezone().isoformat()
+        # Use a more compatible approach for timezone handling
+        try:
+            last_scrape_time = datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z'  # UTC format
+        except Exception as e:
+            print(f"Error formatting last_scrape_time: {str(e)}")
+            last_scrape_time = datetime.datetime.now().isoformat()  # Fallback
         log_scraper_event("info", "Letzter Scrape-Zeitpunkt aktualisiert", {"timestamp": last_scrape_time})
         
         # Speichere den letzten Scrape-Zeitpunkt in einer Datei für Persistenz
@@ -2318,6 +2466,9 @@ async def trigger_scrape(
         print(f"[MANUAL SCRAPE] Fehler beim Scrapen: {str(e)}")
         import traceback
         print(f"[MANUAL SCRAPE] Traceback: {traceback.format_exc()}")
+        log_scraper_event("error", f"Fehler beim Scrapen: {str(e)}", {"traceback": traceback.format_exc()})
+        # Stelle sicher, dass Fehler-Logs auch in der Konsole sichtbar sind
+        sys.stderr.flush()
         return JSONResponse(
             status_code=500,
             content={

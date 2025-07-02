@@ -1,76 +1,6 @@
 [
   {
     "event_type": "info",
-    "message": "Browser resources released",
-    "timestamp": "2025-06-24T12:01:34.038076",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Browser closed successfully",
-    "timestamp": "2025-06-24T12:01:34.036548",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Browser context closed successfully",
-    "timestamp": "2025-06-24T12:01:33.978283",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Page closed successfully",
-    "timestamp": "2025-06-24T12:01:33.952761",
-    "data": null
-  },
-  {
-    "event_type": "error",
-    "message": "Navigation error on page 3",
-    "timestamp": "2025-06-24T12:01:33.942321",
-    "data": {
-      "error": "Timeout 30000ms exceeded.",
-      "traceback": "Traceback (most recent call last):\n  File \"/Users/mbanner/CascadeProjects/gulp-job-app/backend/scraper.py\", line 601, in scrape_gulp\n    await page.wait_for_load_state(\"networkidle\")\n  File \"/Users/mbanner/CascadeProjects/gulp-job-app/.venv/lib/python3.9/site-packages/playwright/async_api/_generated.py\", line 9382, in wait_for_load_state\n    await self._impl_obj.wait_for_load_state(state=state, timeout=timeout)\n  File \"/Users/mbanner/CascadeProjects/gulp-job-app/.venv/lib/python3.9/site-packages/playwright/_impl/_page.py\", line 500, in wait_for_load_state\n    return await self._main_frame.wait_for_load_state(**locals_to_params(locals()))\n  File \"/Users/mbanner/CascadeProjects/gulp-job-app/.venv/lib/python3.9/site-packages/playwright/_impl/_frame.py\", line 247, in wait_for_load_state\n    return await self._wait_for_load_state_impl(state, timeout)\n  File \"/Users/mbanner/CascadeProjects/gulp-job-app/.venv/lib/python3.9/site-packages/playwright/_impl/_frame.py\", line 275, in _wait_for_load_state_impl\n    await waiter.result()\nplaywright._impl._errors.TimeoutError: Timeout 30000ms exceeded.\n",
-      "url": "https://www.gulp.de/gulp2/g/projekte?page=3"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Waiting for network requests to complete",
-    "timestamp": "2025-06-24T12:01:03.923693",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Successfully navigated to page 3",
-    "timestamp": "2025-06-24T12:01:03.921723",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Setting up API response capture without event handlers",
-    "timestamp": "2025-06-24T12:01:03.621920",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Navigating to page 3",
-    "timestamp": "2025-06-24T12:01:03.600012",
-    "data": {
-      "url": "https://www.gulp.de/gulp2/g/projekte?page=3"
-    }
-  },
-  {
-    "event_type": "error",
-    "message": "Navigation error on page 2",
-    "timestamp": "2025-06-24T12:01:03.597424",
-    "data": {
-      "error": "Timeout 30000ms exceeded.",
-      "traceback": "Traceback (most recent call last):\n  File \"/Users/mbanner/CascadeProjects/gulp-job-app/backend/scraper.py\", line 601, in scrape_gulp\n    await page.wait_for_load_state(\"networkidle\")\n  File \"/Users/mbanner/CascadeProjects/gulp-job-app/.venv/lib/python3.9/site-packages/playwright/async_api/_generated.py\", line 9382, in wait_for_load_state\n    await self._impl_obj.wait_for_load_state(state=state, timeout=timeout)\n  File \"/Users/mbanner/CascadeProjects/gulp-job-app/.venv/lib/python3.9/site-packages/playwright/_impl/_page.py\", line 500, in wait_for_load_state\n    return await self._main_frame.wait_for_load_state(**locals_to_params(locals()))\n  File \"/Users/mbanner/CascadeProjects/gulp-job-app/.venv/lib/python3.9/site-packages/playwright/_impl/_frame.py\", line 247, in wait_for_load_state\n    return await self._wait_for_load_state_impl(state, timeout)\n  File \"/Users/mbanner/CascadeProjects/gulp-job-app/.venv/lib/python3.9/site-packages/playwright/_impl/_frame.py\", line 275, in _wait_for_load_state_impl\n    await waiter.result()\nplaywright._impl._errors.TimeoutError: Timeout 30000ms exceeded.\n",
-      "url": "https://www.gulp.de/gulp2/g/projekte?page=2"
-    }
-  },
-  {
-    "event_type": "info",
     "message": "Waiting for network requests to complete",
     "timestamp": "2025-06-24T12:00:33.572368",
     "data": null
@@ -789,6 +719,411 @@
     "data": {
       "count": 20,
       "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
+    }
+  },
+  {
+    "timestamp": "2025-07-02T10:42:56Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "API Startup initiated",
+    "data": {
+      "is_cloud_env": false,
+      "use_real_scraper": true,
+      "data_dir": "/Users/mbanner/CascadeProjects/gulp-job-app/backend/data"
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true
+    },
+    "process_id": 9855,
+    "correlation_id": "scrape-1751445776-9855-e0065441",
+    "tags": [],
+    "performance": {
+      "cpu_percent": 0.1,
+      "memory_usage": {
+        "rss_mb": 58.78,
+        "vms_mb": 33345.73
+      },
+      "system_load": [
+        3.97412109375,
+        2.81005859375,
+        2.55859375
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-02T10:42:56Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "ProjectManager initialized",
+    "data": {
+      "data_dir": "data"
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true
+    },
+    "process_id": 9855,
+    "correlation_id": "scrape-1751445776-9855-154efeec",
+    "tags": [],
+    "performance": {
+      "cpu_percent": 0.1,
+      "memory_usage": {
+        "rss_mb": 58.79,
+        "vms_mb": 33345.73
+      },
+      "system_load": [
+        3.97412109375,
+        2.81005859375,
+        2.55859375
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-02T10:42:56Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Scheduler configuration completed",
+    "data": {
+      "enabled": true,
+      "interval_days": 1,
+      "daily_runs": [
+        {
+          "hour": 0,
+          "minute": 0
+        },
+        {
+          "hour": 1,
+          "minute": 0
+        },
+        {
+          "hour": 2,
+          "minute": 0
+        },
+        {
+          "hour": 3,
+          "minute": 0
+        },
+        {
+          "hour": 4,
+          "minute": 0
+        },
+        {
+          "hour": 5,
+          "minute": 0
+        },
+        {
+          "hour": 6,
+          "minute": 0
+        },
+        {
+          "hour": 7,
+          "minute": 0
+        },
+        {
+          "hour": 8,
+          "minute": 0
+        },
+        {
+          "hour": 9,
+          "minute": 0
+        },
+        {
+          "hour": 10,
+          "minute": 0
+        },
+        {
+          "hour": 11,
+          "minute": 0
+        },
+        {
+          "hour": 12,
+          "minute": 0
+        },
+        {
+          "hour": 13,
+          "minute": 0
+        },
+        {
+          "hour": 14,
+          "minute": 0
+        },
+        {
+          "hour": 15,
+          "minute": 0
+        },
+        {
+          "hour": 16,
+          "minute": 0
+        },
+        {
+          "hour": 17,
+          "minute": 0
+        },
+        {
+          "hour": 18,
+          "minute": 0
+        },
+        {
+          "hour": 19,
+          "minute": 0
+        },
+        {
+          "hour": 20,
+          "minute": 0
+        },
+        {
+          "hour": 21,
+          "minute": 0
+        },
+        {
+          "hour": 22,
+          "minute": 0
+        },
+        {
+          "hour": 23,
+          "minute": 0
+        }
+      ]
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true
+    },
+    "process_id": 9855,
+    "correlation_id": "scrape-1751445776-9855-87123f50",
+    "tags": [],
+    "performance": {
+      "cpu_percent": 0.0,
+      "memory_usage": {
+        "rss_mb": 58.8,
+        "vms_mb": 33345.73
+      },
+      "system_load": [
+        3.97412109375,
+        2.81005859375,
+        2.55859375
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-02T10:42:57Z",
+    "event_type": "success",
+    "log_level": "INFO",
+    "message": "Scheduler started successfully",
+    "data": {
+      "running": true
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true
+    },
+    "process_id": 9855,
+    "correlation_id": "scrape-1751445777-9855-8634e04b",
+    "tags": [],
+    "performance": {
+      "cpu_percent": 0.1,
+      "memory_usage": {
+        "rss_mb": 58.8,
+        "vms_mb": 33345.73
+      },
+      "system_load": [
+        3.97412109375,
+        2.81005859375,
+        2.55859375
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-02T10:42:57Z",
+    "event_type": "success",
+    "log_level": "INFO",
+    "message": "API Startup completed successfully",
+    "data": {
+      "scheduler_running": true,
+      "email_configured": true,
+      "project_manager_ready": true
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true
+    },
+    "process_id": 9855,
+    "correlation_id": "scrape-1751445777-9855-11fa13cb",
+    "tags": [],
+    "performance": {
+      "cpu_percent": 0.1,
+      "memory_usage": {
+        "rss_mb": 58.81,
+        "vms_mb": 33345.73
+      },
+      "system_load": [
+        3.97412109375,
+        2.81005859375,
+        2.55859375
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-02T10:43:44Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Manueller Scrape gestartet",
+    "data": {
+      "is_cloud_env": false,
+      "use_real_scraper": true,
+      "pages": "range(1, 4)"
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true
+    },
+    "process_id": 9855,
+    "correlation_id": "scrape-1751445824-9855-04f004fa",
+    "tags": [],
+    "performance": {
+      "cpu_percent": 0.0,
+      "memory_usage": {
+        "rss_mb": 58.94,
+        "vms_mb": 33345.98
+      },
+      "system_load": [
+        2.6083984375,
+        2.60205078125,
+        2.4931640625
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-02T10:43:45Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Starte echten Scraper",
+    "data": {
+      "is_cloud_env": false,
+      "use_real_scraper": true,
+      "pages": "range(1, 2)"
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true
+    },
+    "process_id": 9855,
+    "correlation_id": "scrape-1751445825-9855-0025be5f",
+    "tags": [],
+    "performance": {
+      "cpu_percent": 0.0,
+      "memory_usage": {
+        "rss_mb": 58.98,
+        "vms_mb": 33345.98
+      },
+      "system_load": [
+        2.6083984375,
+        2.60205078125,
+        2.4931640625
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-02T10:43:45Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Starting GULP scraper",
+    "data": {
+      "timestamp": "2025-07-02T10:43:45.110446+02:00",
+      "use_real_scraper": true,
+      "is_cloud_env": false,
+      "pages": [
+        1
+      ]
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true
+    },
+    "process_id": 9855,
+    "correlation_id": "scrape-1751445825-520cdb30",
+    "tags": [
+      "scraper_start",
+      "gulp"
+    ],
+    "performance": {
+      "cpu_percent": 0.1,
+      "memory_usage": {
+        "rss_mb": 58.98,
+        "vms_mb": 33345.98
+      },
+      "system_load": [
+        2.6083984375,
+        2.60205078125,
+        2.4931640625
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-02T10:43:45Z",
+    "event_type": "success",
+    "log_level": "INFO",
+    "message": "Scraper abgeschlossen",
+    "data": {
+      "projects_count": 0
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true
+    },
+    "process_id": 9855,
+    "correlation_id": "scrape-1751445825-9855-a38600f4",
+    "tags": [],
+    "performance": {
+      "cpu_percent": 0.1,
+      "memory_usage": {
+        "rss_mb": 58.98,
+        "vms_mb": 33345.98
+      },
+      "system_load": [
+        2.6083984375,
+        2.60205078125,
+        2.4931640625
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-02T10:43:45Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Letzter Scrape-Zeitpunkt aktualisiert",
+    "data": {
+      "timestamp": "2025-07-02T10:43:45Z"
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true
+    },
+    "process_id": 9855,
+    "correlation_id": "scrape-1751445825-9855-43643c7d",
+    "tags": [],
+    "performance": {
+      "cpu_percent": 0.0,
+      "memory_usage": {
+        "rss_mb": 58.98,
+        "vms_mb": 33345.98
+      },
+      "system_load": [
+        2.6083984375,
+        2.60205078125,
+        2.4931640625
+      ]
     }
   }
 ]
