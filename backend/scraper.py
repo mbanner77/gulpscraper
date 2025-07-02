@@ -123,7 +123,10 @@ def load_logs_from_file():
     except Exception as e:
         print(f"Fehler beim Laden der Scraper-Logs: {str(e)}")
 
-def log_scraper_event(event_type, message, data=None, log_level=None, correlation_id=None, tags=None):
+# Global variable to track current scrape session
+current_scrape_session = None
+
+def log_scraper_event(event_type, message, data=None, log_level=None, correlation_id=None, tags=None, session_id=None):
     """
     Fügt einen neuen Log-Eintrag zu den Scraper-Logs hinzu.
     
@@ -134,8 +137,9 @@ def log_scraper_event(event_type, message, data=None, log_level=None, correlatio
         log_level (str, optional): Log-Level (debug, info, warning, error, critical)
         correlation_id (str, optional): ID zur Korrelation zusammengehöriger Log-Einträge
         tags (list, optional): Tags zur Kategorisierung des Log-Eintrags
+        session_id (str, optional): Session ID für die aktuelle Scrape-Session
     """
-    global scraper_logs
+    global scraper_logs, current_scrape_session
     
     if data is None:
         data = {}
@@ -148,15 +152,22 @@ def log_scraper_event(event_type, message, data=None, log_level=None, correlatio
         print(f"Error formatting timestamp: {str(e)}")
         timestamp = datetime.datetime.now().isoformat()  # Fallback
     
+    # Verwende die aktuelle Session-ID wenn verfügbar
+    if session_id is None and current_scrape_session:
+        session_id = current_scrape_session
+    
     # Füge Umgebungsinformationen hinzu
     env_info = {
         "is_cloud": IS_CLOUD_ENV,
         "use_real_scraper": USE_REAL_SCRAPER,
-        "headless": HEADLESS
+        "headless": HEADLESS,
+        "session_id": session_id
     }
     
     # Erweitere die Daten für bessere Diagnose
     enhanced_data = data.copy()
+    if session_id:
+        enhanced_data["session_id"] = session_id
     
     # Füge Stack-Trace für Fehler hinzu
     if event_type == "error" or event_type == "warning":
@@ -193,9 +204,12 @@ def log_scraper_event(event_type, message, data=None, log_level=None, correlatio
     else:
         log_level = log_level.upper()
     
-    # Generate correlation ID if not provided
+    # Generate correlation ID if not provided - verwende Session-ID als Basis
     if correlation_id is None:
-        correlation_id = f"scrape-{int(time.time())}-{os.getpid()}-{uuid.uuid4().hex[:8]}"
+        if session_id:
+            correlation_id = f"{session_id}-{uuid.uuid4().hex[:8]}"
+        else:
+            correlation_id = f"scrape-{int(time.time())}-{os.getpid()}-{uuid.uuid4().hex[:8]}"
     
     # Add performance metrics
     performance_metrics = {}
@@ -227,14 +241,21 @@ def log_scraper_event(event_type, message, data=None, log_level=None, correlatio
         "environment": env_info,
         "process_id": os.getpid(),
         "correlation_id": correlation_id,
+        "session_id": session_id,
         "tags": tags or [],
         "performance": performance_metrics
     }
     
-    # Ausgabe in der Konsole für bessere Sichtbarkeit
-    print(f"[SCRAPER LOG] [{event_type.upper()}] {message}")
+    # Ausgabe in der Konsole für bessere Sichtbarkeit mit Session-ID
+    session_prefix = f"[{session_id[:8]}]" if session_id else ""
+    print(f"[SCRAPER LOG]{session_prefix} [{event_type.upper()}] {message}")
     if event_type == "error":
-        print(f"[SCRAPER ERROR DETAILS] {json.dumps(enhanced_data, default=str)}")
+        print(f"[SCRAPER ERROR DETAILS]{session_prefix} {json.dumps(enhanced_data, default=str)}")
+    
+    # Sorge dafür, dass die Logs sofort sichtbar sind
+    sys.stdout.flush()
+    if event_type == "error":
+        sys.stderr.flush()
     
     scraper_logs.append(log_entry)
     
@@ -244,6 +265,9 @@ def log_scraper_event(event_type, message, data=None, log_level=None, correlatio
     
     # Speichere die Logs in einer Datei
     save_logs_to_file()
+    
+    # Gib den Log-Eintrag zurück für weitere Verarbeitung
+    return log_entry
 
 # ---------------------------------------------------------------------------
 # Config
@@ -1892,43 +1916,46 @@ async def get_log_status():
             for log in scraper_logs[-10:]:  # Last 10 logs
                 try:
                     log_time = datetime.datetime.fromisoformat(log.get("timestamp", "").replace('Z', '+00:00'))
-                    recent_logs.append({
-                        "timestamp": log.get("timestamp"),
-                        "event_type": log.get("event_type"),
-                        "message": log.get("message"),
-                        "age_seconds": (now - log_time.replace(tzinfo=None)).total_seconds()
-                    })
-                except (ValueError, TypeError):
-                    continue
+                    time_diff = (now - log_time).total_seconds()
+                    if time_diff < 300:  # Last 5 minutes
+                        recent_logs.append({
+                            "timestamp": log.get("timestamp"),
+                            "event_type": log.get("event_type"),
+                            "message": log.get("message")
+                        })
+                except Exception:
+                    pass  # Skip logs with invalid timestamps
         
         return {
-            "status": "healthy",
-            "timestamp": now.isoformat(),
-            "logging": {
+            "status": "ok",
+            "timestamp": datetime.datetime.now().isoformat(),
+            "log_file": {
+                "exists": log_file_exists,
+                "size_bytes": log_file_size,
+                "path": str(SCRAPER_LOGS_FILE) if SCRAPER_LOGS_FILE else None,
                 "total_logs": len(scraper_logs),
                 "memory_logs_count": len(scraper_logs),
-                "log_file_exists": log_file_exists,
-                "log_file_size_bytes": log_file_size,
-                "log_file_path": str(SCRAPER_LOGS_FILE) if SCRAPER_LOGS_FILE else None,
-                "last_log_timestamp": scraper_logs[-1].get("timestamp") if scraper_logs else None,
-                "recent_logs": recent_logs
             },
+            "recent_activity": recent_logs,
             "environment": {
-                "is_cloud_env": IS_CLOUD_ENV,
+                "is_cloud": IS_CLOUD_ENV,
                 "use_real_scraper": USE_REAL_SCRAPER,
-                "data_dir": str(DATA_DIR),
-                "frontend_url": FRONTEND_URL
+                "headless": HEADLESS,
+                "last_log_timestamp": scraper_logs[-1].get("timestamp") if scraper_logs else None,
             },
-            "services": {
-                "scheduler_running": scheduler.running if scheduler else False,
-                "scheduler_enabled": scheduler_config.get("enabled", False),
-                "email_configured": email_service.is_configured if email_service else False,
-                "project_manager_ready": project_manager is not None
+            "project_manager": {
+                "initialized": project_manager is not None,
+                "data_dir_exists": DATA_DIR.exists() if DATA_DIR else False
             },
             "scraper_status": {
                 "is_scraping": is_scraping,
                 "last_scrape_time": last_scrape_time,
                 "last_used_dummy_data": last_used_dummy_data
+            },
+            "current_session": {
+                "active": current_scrape_session is not None,
+                "session_id": current_scrape_session,
+                "session_logs_count": len([log for log in scraper_logs if log.get("session_id") == current_scrape_session]) if current_scrape_session else 0
             }
         }
     except Exception as e:
@@ -1937,6 +1964,25 @@ async def get_log_status():
             "error": str(e),
             "timestamp": datetime.datetime.now().isoformat(),
             "total_logs": len(scraper_logs) if scraper_logs else 0
+        }
+
+@app.get("/api/scraper-logs/session/{session_id}", tags=["scraper"])
+async def get_session_logs(session_id: str):
+    """Get logs for a specific session."""
+    try:
+        session_logs = [log for log in scraper_logs if log.get("session_id") == session_id]
+        
+        return {
+            "session_id": session_id,
+            "logs": session_logs,
+            "count": len(session_logs),
+            "timestamp": datetime.datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "session_id": session_id,
+            "timestamp": datetime.datetime.now().isoformat()
         }
 
 
@@ -2264,7 +2310,7 @@ async def trigger_scrape(
     request: ScrapeRequest = ScrapeRequest()
 ):
     """Trigger a new scrape."""
-    global email_notification_enabled, last_scrape_time, last_used_dummy_data
+    global email_notification_enabled, last_scrape_time, last_used_dummy_data, current_scrape_session
     
     if is_scraping:
         return JSONResponse(
@@ -2272,16 +2318,22 @@ async def trigger_scrape(
             content={"error": "A scrape is already in progress"}
         )
     
-    print(f"\n[MANUAL SCRAPE] Manueller Scrape-Vorgang gestartet")
+    # Erstelle eine neue Session-ID für diese Scrape-Session
+    current_scrape_session = f"manual-{int(time.time())}-{uuid.uuid4().hex[:8]}"
+    
+    print(f"\n[MANUAL SCRAPE] Manueller Scrape-Vorgang gestartet (Session: {current_scrape_session})")
     print(f"[MANUAL SCRAPE] Umgebung: {'Render/Cloud' if IS_CLOUD_ENV else 'Lokal'}")
     print(f"[MANUAL SCRAPE] USE_REAL_SCRAPER={USE_REAL_SCRAPER}")
     
-    # Log den Startvorgang
-    log_scraper_event("info", "Manueller Scrape gestartet", {
+    # Log den Startvorgang mit Session-ID
+    start_log = log_scraper_event("info", "Manueller Scrape gestartet", {
         "is_cloud_env": IS_CLOUD_ENV,
         "use_real_scraper": USE_REAL_SCRAPER,
-        "pages": str(pages) if 'pages' in locals() else str(PAGE_RANGE)
-    })
+        "pages": str(pages) if 'pages' in locals() else str(PAGE_RANGE),
+        "session_id": current_scrape_session,
+        "trigger_type": "manual",
+        "send_email": request.send_email
+    }, session_id=current_scrape_session)
     
     # Stelle sicher, dass die Logs auch in der Konsole sichtbar sind
     sys.stdout.flush()
@@ -2305,7 +2357,11 @@ async def trigger_scrape(
         # Auf Render verwenden wir immer Dummy-Daten, wenn nicht explizit anders konfiguriert
         if IS_CLOUD_ENV and not USE_REAL_SCRAPER:
             print(f"[MANUAL SCRAPE] Render-Umgebung erkannt, verwende Dummy-Daten")
-            log_scraper_event("info", "Verwende Dummy-Daten auf Render", {"dummy_data": True})
+            log_scraper_event("info", "Verwende Dummy-Daten auf Render", {
+                "dummy_data": True,
+                "environment": "render/cloud",
+                "session_id": current_scrape_session
+            }, session_id=current_scrape_session)
             # Erstelle ein einfaches Dummy-Projekt
             dummy_projects = [
                 {
@@ -2334,6 +2390,11 @@ async def trigger_scrape(
             
             # Speichere die Dummy-Projekte
             try:
+                log_scraper_event("info", "Erstelle Dummy-Projektdaten", {
+                    "project_count": len(dummy_projects),
+                    "session_id": current_scrape_session
+                }, session_id=current_scrape_session)
+                
                 DATA_DIR.mkdir(exist_ok=True, parents=True)
                 OUTPUT_JSON.write_text(
                     json.dumps(dummy_projects, indent=2, ensure_ascii=False), 
@@ -2342,6 +2403,11 @@ async def trigger_scrape(
                 print(f"[RENDER DEBUG] Created dummy data file with {len(dummy_projects)} projects")
                 
                 # Verarbeite die Dummy-Projekte
+                log_scraper_event("info", "Verarbeite Dummy-Projekte", {
+                    "project_count": len(dummy_projects),
+                    "session_id": current_scrape_session
+                }, session_id=current_scrape_session)
+                
                 unique_projects, new_projects = project_manager.process_projects(dummy_projects)
                 print(f"[RENDER DEBUG] Processed {len(unique_projects)} unique projects, {len(new_projects)} new")
                 
@@ -2374,8 +2440,24 @@ async def trigger_scrape(
                     last_used_dummy_data = True  # Setze das Flag für Dummy-Daten
                     with open(LAST_SCRAPE_FILE, "w") as f:
                         f.write(last_scrape_time)
+                        
+                    log_scraper_event("success", "Dummy-Scrape erfolgreich abgeschlossen", {
+                        "project_count": project_count,
+                        "new_project_count": new_project_count,
+                        "dummy_data": True,
+                        "session_id": current_scrape_session,
+                        "last_scrape_time": last_scrape_time
+                    }, session_id=current_scrape_session)
                 except Exception as e:
-                    print(f"[MANUAL SCRAPE] Fehler beim Speichern des letzten Scrape-Zeitpunkts: {str(e)}")
+                    error_msg = f"Fehler beim Speichern des letzten Scrape-Zeitpunkts: {str(e)}"
+                    print(f"[MANUAL SCRAPE] {error_msg}")
+                    log_scraper_event("error", error_msg, {
+                        "session_id": current_scrape_session,
+                        "traceback": traceback.format_exc()
+                    }, session_id=current_scrape_session)
+                
+                # Session beenden
+                current_scrape_session = None
                 
                 return {
                     "message": "Scrape mit Dummy-Daten wurde erfolgreich durchgeführt",
@@ -2384,7 +2466,8 @@ async def trigger_scrape(
                     "project_count": project_count,
                     "new_project_count": new_project_count,
                     "email_notification": email_notification_enabled and email_recipient != "",
-                    "dummy_data": True
+                    "dummy_data": True,
+                    "session_id": current_scrape_session
                 }
             except Exception as e:
                 print(f"[RENDER DEBUG] Error with dummy data: {str(e)}")
@@ -2396,20 +2479,29 @@ async def trigger_scrape(
         log_scraper_event("info", "Starte echten Scraper", {
             "is_cloud_env": IS_CLOUD_ENV,
             "use_real_scraper": USE_REAL_SCRAPER,
-            "pages": str(pages)
-        })
+            "pages": str(pages),
+            "session_id": current_scrape_session
+        }, session_id=current_scrape_session)
         
         try:
             projects = await scrape_gulp(pages)
             print(f"[MANUAL SCRAPE] Scraper abgeschlossen, {len(projects)} Projekte gefunden")
-            log_scraper_event("success", "Scraper abgeschlossen", {"projects_count": len(projects)})
+            log_scraper_event("success", "Echter Scraper abgeschlossen", {
+                "projects_count": len(projects),
+                "session_id": current_scrape_session
+            }, session_id=current_scrape_session)
         except Exception as e:
             error_msg = f"Fehler beim Ausführen des Scrapers: {str(e)}"
             print(f"[MANUAL SCRAPE ERROR] {error_msg}")
             print(f"[MANUAL SCRAPE ERROR] Full traceback: {traceback.format_exc()}")
-            log_scraper_event("error", error_msg, {"traceback": traceback.format_exc()})
+            log_scraper_event("error", error_msg, {
+                "traceback": traceback.format_exc(),
+                "session_id": current_scrape_session
+            }, session_id=current_scrape_session)
             # Stelle sicher, dass Fehler-Logs auch in der Konsole sichtbar sind
             sys.stderr.flush()
+            # Session beenden bei Fehler
+            current_scrape_session = None
             return JSONResponse(
                 status_code=500,
                 content={"error": error_msg}
@@ -2422,7 +2514,10 @@ async def trigger_scrape(
         except Exception as e:
             print(f"Error formatting last_scrape_time: {str(e)}")
             last_scrape_time = datetime.datetime.now().isoformat()  # Fallback
-        log_scraper_event("info", "Letzter Scrape-Zeitpunkt aktualisiert", {"timestamp": last_scrape_time})
+        log_scraper_event("info", "Letzter Scrape-Zeitpunkt aktualisiert", {
+            "timestamp": last_scrape_time,
+            "session_id": current_scrape_session
+        }, session_id=current_scrape_session)
         
         # Speichere den letzten Scrape-Zeitpunkt in einer Datei für Persistenz
         try:
@@ -2454,21 +2549,41 @@ async def trigger_scrape(
         except Exception as e:
             print(f"[MANUAL SCRAPE] Fehler bei der Projektverarbeitung: {str(e)}")
         
+        # Abschließendes Erfolgs-Log
+        log_scraper_event("success", "Manueller Scrape erfolgreich abgeschlossen", {
+            "project_count": project_count,
+            "new_project_count": new_project_count,
+            "last_scrape_time": last_scrape_time,
+            "session_id": current_scrape_session,
+            "email_notification": email_notification_enabled and email_recipient != ""
+        }, session_id=current_scrape_session)
+        
+        # Session beenden
+        completed_session = current_scrape_session
+        current_scrape_session = None
+        
         return {
             "message": "Scrape wurde erfolgreich durchgeführt",
             "success": True,
             "last_scrape": last_scrape_time,
             "project_count": project_count,
             "new_project_count": new_project_count,
-            "email_notification": email_notification_enabled and email_recipient != ""
+            "email_notification": email_notification_enabled and email_recipient != "",
+            "session_id": completed_session
         }
     except Exception as e:
         print(f"[MANUAL SCRAPE] Fehler beim Scrapen: {str(e)}")
         import traceback
         print(f"[MANUAL SCRAPE] Traceback: {traceback.format_exc()}")
-        log_scraper_event("error", f"Fehler beim Scrapen: {str(e)}", {"traceback": traceback.format_exc()})
+        log_scraper_event("error", f"Kritischer Fehler beim Scrapen: {str(e)}", {
+            "traceback": traceback.format_exc(),
+            "session_id": current_scrape_session,
+            "error_type": "critical_scrape_error"
+        }, session_id=current_scrape_session)
         # Stelle sicher, dass Fehler-Logs auch in der Konsole sichtbar sind
         sys.stderr.flush()
+        # Session bei kritischem Fehler beenden
+        current_scrape_session = None
         return JSONResponse(
             status_code=500,
             content={

@@ -1,31 +1,5 @@
 [
   {
-    "event_type": "info",
-    "message": "Waiting for network requests to complete",
-    "timestamp": "2025-06-24T12:00:33.572368",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Successfully navigated to page 2",
-    "timestamp": "2025-06-24T12:00:33.562622",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Setting up API response capture without event handlers",
-    "timestamp": "2025-06-24T12:00:33.222300",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Navigating to page 2",
-    "timestamp": "2025-06-24T12:00:33.220455",
-    "data": {
-      "url": "https://www.gulp.de/gulp2/g/projekte?page=2"
-    }
-  },
-  {
     "event_type": "error",
     "message": "Navigation error on page 1",
     "timestamp": "2025-06-24T12:00:33.218178",
@@ -1123,6 +1097,162 @@
         2.6083984375,
         2.60205078125,
         2.4931640625
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-02T11:00:00Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Starting GULP scraper",
+    "data": {
+      "timestamp": "2025-07-02T11:00:00.000843+02:00",
+      "use_real_scraper": true,
+      "is_cloud_env": false,
+      "pages": [
+        1,
+        2,
+        3
+      ]
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true
+    },
+    "process_id": 9855,
+    "correlation_id": "scrape-1751446800-443e2ab9",
+    "tags": [
+      "scraper_start",
+      "gulp"
+    ],
+    "performance": {
+      "cpu_percent": 0.0,
+      "memory_usage": {
+        "rss_mb": 64.83,
+        "vms_mb": 33347.73
+      },
+      "system_load": [
+        2.736328125,
+        1.9052734375,
+        1.93017578125
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-02T12:00:00Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Starting GULP scraper",
+    "data": {
+      "timestamp": "2025-07-02T12:00:00.042870+02:00",
+      "use_real_scraper": true,
+      "is_cloud_env": false,
+      "pages": [
+        1,
+        2,
+        3
+      ]
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true
+    },
+    "process_id": 9855,
+    "correlation_id": "scrape-1751450400-acb60b49",
+    "tags": [
+      "scraper_start",
+      "gulp"
+    ],
+    "performance": {
+      "cpu_percent": 0.0,
+      "memory_usage": {
+        "rss_mb": 64.83,
+        "vms_mb": 33347.73
+      },
+      "system_load": [
+        1.8740234375,
+        1.6630859375,
+        1.8291015625
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-02T13:00:00Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Starting GULP scraper",
+    "data": {
+      "timestamp": "2025-07-02T13:00:00.001036+02:00",
+      "use_real_scraper": true,
+      "is_cloud_env": false,
+      "pages": [
+        1,
+        2,
+        3
+      ]
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true
+    },
+    "process_id": 9855,
+    "correlation_id": "scrape-1751454000-44ccfef4",
+    "tags": [
+      "scraper_start",
+      "gulp"
+    ],
+    "performance": {
+      "cpu_percent": 0.0,
+      "memory_usage": {
+        "rss_mb": 64.83,
+        "vms_mb": 33347.73
+      },
+      "system_load": [
+        1.49755859375,
+        1.568359375,
+        1.51220703125
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-02T14:00:00Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Starting GULP scraper",
+    "data": {
+      "timestamp": "2025-07-02T14:00:00.000844+02:00",
+      "use_real_scraper": true,
+      "is_cloud_env": false,
+      "pages": [
+        1,
+        2,
+        3
+      ]
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true
+    },
+    "process_id": 9855,
+    "correlation_id": "scrape-1751457600-6fd14c46",
+    "tags": [
+      "scraper_start",
+      "gulp"
+    ],
+    "performance": {
+      "cpu_percent": 0.0,
+      "memory_usage": {
+        "rss_mb": 64.83,
+        "vms_mb": 33347.73
+      },
+      "system_load": [
+        3.88525390625,
+        2.2412109375,
+        1.56396484375
       ]
     }
   }

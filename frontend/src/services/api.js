@@ -133,6 +133,28 @@ export const getScraperLogs = async (filters = {}) => {
   }
 };
 
+// Get detailed logging status for monitoring
+export const getLogStatus = async () => {
+  try {
+    const response = await api.get('/api/scraper-logs/status');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching log status:', error);
+    throw error;
+  }
+};
+
+// Get logs for a specific session
+export const getSessionLogs = async (sessionId) => {
+  try {
+    const response = await api.get(`/api/scraper-logs/session/${sessionId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching session logs:', error);
+    throw error;
+  }
+};
+
 // Mark projects as seen
 export const markProjectsAsSeen = async (projectIds) => {
   try {
@@ -274,6 +296,9 @@ export default {
   getScraperStatus,
   triggerScrape,
   getNewProjects,
+  getScraperLogs,
+  getLogStatus,
+  getSessionLogs,
   markProjectsAsSeen,
   getEmailConfig,
   setEmailConfig,

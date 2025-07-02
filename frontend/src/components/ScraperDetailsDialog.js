@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -31,17 +31,25 @@ import {
   Select,
   IconButton,
   Tooltip,
-  Badge
+  Badge,
+  Alert,
+  Collapse
 } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import InfoIcon from '@mui/icons-material/Info';
-import WarningIcon from '@mui/icons-material/Warning';
-import ErrorIcon from '@mui/icons-material/Error';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CodeIcon from '@mui/icons-material/Code';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import BarChartIcon from '@mui/icons-material/BarChart';
+import {
+  Close as CloseIcon,
+  Refresh as RefreshIcon,
+  Search as SearchIcon,
+  Clear as ClearIcon,
+  ExpandMore as ExpandMoreIcon,
+  FilterList as FilterIcon,
+  KeyboardArrowDown as ArrowDownIcon,
+  KeyboardArrowRight as ArrowRightIcon,
+  Schedule as ScheduleIcon,
+  CheckCircle as SuccessIcon,
+  Error as ErrorIcon,
+  Info as InfoIcon,
+  Warning as WarningIcon
+} from '@mui/icons-material';
 import WebIcon from '@mui/icons-material/Web';
 import EmailIcon from '@mui/icons-material/Email';
 import FilterListIcon from '@mui/icons-material/FilterList';
@@ -55,21 +63,30 @@ import { getScraperLogs } from '../services/api';
 
 const ScraperDetailsDialog = ({ open, onClose }) => {
   const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [filteredLogs, setFilteredLogs] = useState([]);
+  const [error, setError] = useState('');
   const [tabValue, setTabValue] = useState(0);
+  const [expandedItems, setExpandedItems] = useState(new Set());
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [autoRefreshInterval, setAutoRefreshInterval] = useState(null);
+  const [currentSession, setCurrentSession] = useState(null);
+  const [sessionFilter, setSessionFilter] = useState('all');
+  const [availableSessions, setAvailableSessions] = useState([]);
+  const [logStatus, setLogStatus] = useState(null);
   const [statistics, setStatistics] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
-    eventType: '',
-    logLevel: '',
-    correlationId: '',
-    search: '',
-    limit: 100
+    searchTerm: '',
+    eventType: 'all',
+    logLevel: 'all',
+    timeRange: 'all',
+    sessionId: 'all'
   });
   const [correlationIds, setCorrelationIds] = useState([]);
   const [logLevels, setLogLevels] = useState({});
-  
+  const scrollRef = useRef(null);
+
   // Calculate statistics from logs
   const calculateStatistics = (logs) => {
     if (!logs || logs.length === 0) return null;
@@ -167,34 +184,49 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
     });
   };
   
-  // Fetch logs from the API
+  // Enhanced fetch logs function with session tracking
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      setError(null);
+      setError('');
       
-      // Convert filters to API parameters
-      const apiFilters = {};
-      if (filters.eventType) apiFilters.event_type = filters.eventType;
-      if (filters.logLevel) apiFilters.log_level = filters.logLevel;
-      if (filters.correlationId) apiFilters.correlation_id = filters.correlationId;
-      if (filters.search) apiFilters.search = filters.search;
-      if (filters.limit) apiFilters.limit = filters.limit;
+      // Fetch both logs and status in parallel
+      const [logsData, statusData] = await Promise.all([
+        getScraperLogs(),
+        getLogStatus()
+      ]);
       
-      const data = await getScraperLogs(apiFilters);
-      const logData = data.logs || [];
-      setLogs(logData);
+      const logsArray = Array.isArray(logsData) ? logsData : logsData.logs || [];
+      setLogs(logsArray);
+      setLogStatus(statusData);
       
-      // Store correlation IDs and log levels
-      setCorrelationIds(data.correlation_ids || []);
-      setLogLevels(data.log_levels || {});
+      // Set current session if active
+      if (statusData.current_session && statusData.current_session.active) {
+        setCurrentSession(statusData.current_session.session_id);
+      }
+      
+      // Extract unique session IDs for filter dropdown
+      const uniqueSessions = [...new Set(
+        logsArray
+          .map(log => log.session_id)
+          .filter(id => id)
+      )];
+      setAvailableSessions(uniqueSessions);
+      
+      // Extract unique correlation IDs for filter dropdown
+      const uniqueCorrelationIds = [...new Set(
+        logsArray
+          .map(log => log.correlation_id)
+          .filter(id => id)
+      )];
+      setCorrelationIds(uniqueCorrelationIds);
       
       // Calculate statistics
-      const stats = calculateStatistics(logData);
-      setStatistics(stats);
-    } catch (err) {
-      console.error('Error fetching scraper logs:', err);
-      setError('Die Scraper-Logs konnten nicht geladen werden.');
+      setStatistics(calculateStatistics(logsArray));
+      
+    } catch (error) {
+      console.error('Error fetching logs:', error);
+      setError('Fehler beim Laden der Logs: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -205,7 +237,7 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
     if (open) {
       fetchLogs();
     }
-  }, [open, filters.eventType, filters.logLevel, filters.correlationId, filters.limit]);
+  }, [open, filters.eventType, filters.logLevel, filters.sessionId]);
   
   // Debounce search input
   useEffect(() => {
@@ -216,7 +248,58 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
     }, 500);
     
     return () => clearTimeout(handler);
-  }, [filters.search, open]);
+  }, [filters.searchTerm, open]);
+  
+  // Auto-refresh when current session is active
+  useEffect(() => {
+    if (!open || !autoRefresh) return;
+    
+    const interval = setInterval(() => {
+      if (currentSession) {
+        fetchLogs();
+      }
+    }, 3000); // Refresh every 3 seconds during active session
+    
+    setAutoRefreshInterval(interval);
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [open, autoRefresh, currentSession]);
+  
+  // Filter logs based on current filters
+  useEffect(() => {
+    let filtered = logs;
+    
+    // Search term filter
+    if (filters.searchTerm) {
+      const searchLower = filters.searchTerm.toLowerCase();
+      filtered = filtered.filter(log => 
+        log.message?.toLowerCase().includes(searchLower) ||
+        log.event_type?.toLowerCase().includes(searchLower) ||
+        log.session_id?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Event type filter
+    if (filters.eventType !== 'all') {
+      filtered = filtered.filter(log => log.event_type === filters.eventType);
+    }
+    
+    // Log level filter
+    if (filters.logLevel !== 'all') {
+      filtered = filtered.filter(log => log.log_level === filters.logLevel);
+    }
+    
+    // Session filter
+    if (filters.sessionId !== 'all') {
+      filtered = filtered.filter(log => log.session_id === filters.sessionId);
+    }
+    
+    setFilteredLogs(filtered);
+  }, [logs, filters]);
   
   // Handle tab change
   const handleTabChange = (event, newValue) => {
@@ -319,10 +402,10 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
                     <InputLabel>Event-Typ</InputLabel>
                     <Select
                       value={filters.eventType}
-                      onChange={handleFilterChange('eventType')}
+                      onChange={(e) => setFilters(prev => ({ ...prev, eventType: e.target.value }))}
                       label="Event-Typ"
                     >
-                      <MenuItem value="">Alle</MenuItem>
+                      <MenuItem value="all">Alle</MenuItem>
                       <MenuItem value="info">Info</MenuItem>
                       <MenuItem value="success">Success</MenuItem>
                       <MenuItem value="warning">Warning</MenuItem>
@@ -336,10 +419,10 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
                     <InputLabel>Log-Level</InputLabel>
                     <Select
                       value={filters.logLevel}
-                      onChange={handleFilterChange('logLevel')}
+                      onChange={(e) => setFilters(prev => ({ ...prev, logLevel: e.target.value }))}
                       label="Log-Level"
                     >
-                      <MenuItem value="">Alle</MenuItem>
+                      <MenuItem value="all">Alle</MenuItem>
                       <MenuItem value="DEBUG">DEBUG</MenuItem>
                       <MenuItem value="INFO">INFO</MenuItem>
                       <MenuItem value="WARNING">WARNING</MenuItem>
@@ -351,16 +434,24 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
                 
                 <Grid item xs={12} md={3}>
                   <FormControl fullWidth size="small">
-                    <InputLabel>Correlation ID</InputLabel>
+                    <InputLabel>Session</InputLabel>
                     <Select
-                      value={filters.correlationId}
-                      onChange={handleFilterChange('correlationId')}
-                      label="Correlation ID"
+                      value={filters.sessionId}
+                      onChange={(e) => setFilters(prev => ({ ...prev, sessionId: e.target.value }))}
+                      label="Session"
                     >
-                      <MenuItem value="">Alle</MenuItem>
-                      {correlationIds.map((id) => (
-                        <MenuItem key={id} value={id}>
-                          {id.substring(0, 15)}...
+                      <MenuItem value="all">Alle Sessions</MenuItem>
+                      {currentSession && (
+                        <MenuItem value={currentSession}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Badge color="success" variant="dot" />
+                            Aktuelle Session
+                          </Box>
+                        </MenuItem>
+                      )}
+                      {availableSessions.filter(id => id !== currentSession).map((sessionId) => (
+                        <MenuItem key={sessionId} value={sessionId}>
+                          {sessionId.substring(0, 20)}...
                         </MenuItem>
                       ))}
                     </Select>
@@ -368,20 +459,28 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
                 </Grid>
                 
                 <Grid item xs={12} md={3}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Limit</InputLabel>
-                    <Select
-                      value={filters.limit}
-                      onChange={handleFilterChange('limit')}
-                      label="Limit"
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    <Button
+                      size="small"
+                      variant={autoRefresh ? "contained" : "outlined"}
+                      color={currentSession ? "success" : "primary"}
+                      onClick={() => setAutoRefresh(!autoRefresh)}
+                      disabled={!currentSession}
                     >
-                      <MenuItem value={25}>25</MenuItem>
-                      <MenuItem value={50}>50</MenuItem>
-                      <MenuItem value={100}>100</MenuItem>
-                      <MenuItem value={200}>200</MenuItem>
-                      <MenuItem value={500}>500</MenuItem>
-                    </Select>
-                  </FormControl>
+                      Auto-Refresh
+                    </Button>
+                    <Button
+                      size="small"
+                      onClick={() => setFilters({
+                        searchTerm: '',
+                        eventType: 'all',
+                        logLevel: 'all',
+                        sessionId: 'all'
+                      })}
+                    >
+                      Reset
+                    </Button>
+                  </Box>
                 </Grid>
                 
                 <Grid item xs={12}>
