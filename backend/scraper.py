@@ -289,6 +289,7 @@ DATA_DIR = Path(data_dir_path)
 SCRAPER_LOGS_FILE = Path(data_dir_path) / "scraper_logs.json"
 DATA_DIR.mkdir(exist_ok=True)
 OUTPUT_JSON = DATA_DIR / "gulp_projekte_raw.json"
+ARCHIVE_JSON = DATA_DIR / "archive_projects.json"
 DEBUG_DIR = DATA_DIR / "debug"
 DEBUG_DIR.mkdir(exist_ok=True)
 NETWORK_LOG = DEBUG_DIR / "network.log"
@@ -1711,23 +1712,131 @@ async def get_project(project_id: str):
         project = next((p for p in projects if p.get("id") == project_id), None)
         
         if not project:
-            # Log available project IDs for debugging
-            available_ids = [p.get("id") for p in projects[:10]]  # First 10 for debugging
+            # Project not found in current data, try archive
             log_scraper_event(
-                "warning", 
-                "Project not found", 
+                "info", 
+                "Project not found in current data, searching archive", 
                 {
                     "requested_project_id": project_id,
                     "correlation_id": correlation_id,
-                    "total_projects": len(projects),
-                    "sample_available_ids": available_ids,
-                    "project_id_type": type(project_id).__name__
+                    "current_projects_count": len(projects),
+                    "archive_file_exists": ARCHIVE_JSON.exists()
                 },
                 correlation_id=correlation_id,
-                tags=["project_details", "not_found"]
+                tags=["project_details", "archive_search"]
             )
-            print(f"[PROJECT API ERROR] Project {project_id} not found among {len(projects)} projects")
-            print(f"[PROJECT API DEBUG] Sample IDs: {available_ids}")
+            print(f"[PROJECT API] Project {project_id} not in current data, checking archive...")
+            sys.stdout.flush()
+            
+            # Try to find in archive
+            if ARCHIVE_JSON.exists():
+                try:
+                    archive_data = ARCHIVE_JSON.read_text(encoding="utf-8")
+                    archive_projects = json.loads(archive_data)
+                    
+                    # Find project in archive
+                    archived_project = next((p for p in archive_projects if p.get("id") == project_id), None)
+                    
+                    if archived_project:
+                        log_scraper_event(
+                            "success", 
+                            "Project found in archive", 
+                            {
+                                "project_id": project_id,
+                                "correlation_id": correlation_id,
+                                "project_title": archived_project.get("title", "Unknown"),
+                                "archive_projects_count": len(archive_projects),
+                                "is_archived": True
+                            },
+                            correlation_id=correlation_id,
+                            tags=["project_details", "archive_found", "success"]
+                        )
+                        print(f"[PROJECT API SUCCESS] Found archived project: {archived_project.get('title', 'Unknown')}")
+                        sys.stdout.flush()
+                        
+                        # Add metadata to indicate this is archived
+                        archived_project["_isArchived"] = True
+                        archived_project["_archivedNotice"] = "Dieses Projekt befindet sich im Archiv und ist möglicherweise nicht mehr aktuell."
+                        
+                        return archived_project
+                    else:
+                        log_scraper_event(
+                            "info", 
+                            "Project not found in archive either", 
+                            {
+                                "project_id": project_id,
+                                "correlation_id": correlation_id,
+                                "archive_projects_count": len(archive_projects)
+                            },
+                            correlation_id=correlation_id,
+                            tags=["project_details", "archive_not_found"]
+                        )
+                        print(f"[PROJECT API] Project {project_id} not found in archive ({len(archive_projects)} archived projects)")
+                        
+                except json.JSONDecodeError as archive_json_error:
+                    log_scraper_event(
+                        "error", 
+                        "Failed to parse archive JSON", 
+                        {
+                            "project_id": project_id,
+                            "correlation_id": correlation_id,
+                            "json_error": str(archive_json_error),
+                            "archive_file_path": str(ARCHIVE_JSON)
+                        },
+                        correlation_id=correlation_id,
+                        tags=["project_details", "archive_json_error"]
+                    )
+                    print(f"[PROJECT API ERROR] Archive JSON parse error: {str(archive_json_error)}")
+                    sys.stderr.flush()
+                    
+                except Exception as archive_error:
+                    log_scraper_event(
+                        "error", 
+                        "Error reading archive file", 
+                        {
+                            "project_id": project_id,
+                            "correlation_id": correlation_id,
+                            "error": str(archive_error),
+                            "archive_file_path": str(ARCHIVE_JSON)
+                        },
+                        correlation_id=correlation_id,
+                        tags=["project_details", "archive_error"]
+                    )
+                    print(f"[PROJECT API ERROR] Archive read error: {str(archive_error)}")
+                    sys.stderr.flush()
+            else:
+                log_scraper_event(
+                    "warning", 
+                    "Archive file does not exist", 
+                    {
+                        "project_id": project_id,
+                        "correlation_id": correlation_id,
+                        "archive_file_path": str(ARCHIVE_JSON)
+                    },
+                    correlation_id=correlation_id,
+                    tags=["project_details", "no_archive"]
+                )
+                print(f"[PROJECT API] No archive file at {ARCHIVE_JSON}")
+                sys.stdout.flush()
+            
+            # Final not found response with debug info
+            available_ids = [p.get("id") for p in projects[:10]]  # First 10 for debugging
+            log_scraper_event(
+                "warning", 
+                "Project not found in current data or archive", 
+                {
+                    "requested_project_id": project_id,
+                    "correlation_id": correlation_id,
+                    "total_current_projects": len(projects),
+                    "sample_current_ids": available_ids,
+                    "project_id_type": type(project_id).__name__,
+                    "searched_archive": ARCHIVE_JSON.exists()
+                },
+                correlation_id=correlation_id,
+                tags=["project_details", "final_not_found"]
+            )
+            print(f"[PROJECT API ERROR] Project {project_id} not found in current ({len(projects)}) or archived projects")
+            print(f"[PROJECT API DEBUG] Sample current IDs: {available_ids}")
             sys.stderr.flush()
             return JSONResponse(
                 status_code=404,

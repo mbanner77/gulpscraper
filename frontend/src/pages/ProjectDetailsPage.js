@@ -243,10 +243,36 @@ function ProjectDetailsPage() {
         </Button>
         
         <Paper sx={{ p: 3, mb: 4 }}>
+          {project._isArchived && (
+            <Alert 
+              severity="info" 
+              sx={{ mb: 3 }}
+              icon={<AccessTimeIcon />}
+            >
+              <Typography variant="subtitle2" gutterBottom>
+                Archiviertes Projekt
+              </Typography>
+              <Typography variant="body2">
+                {project._archivedNotice || 'Dieses Projekt befindet sich im Archiv und ist möglicherweise nicht mehr aktuell.'}
+              </Typography>
+            </Alert>
+          )}
+          
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-            <Typography variant="h4" component="h1" gutterBottom>
-              {project.title}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="h4" component="h1" gutterBottom>
+                {project.title}
+              </Typography>
+              {project._isArchived && (
+                <Chip 
+                  label="Archiviert" 
+                  size="small" 
+                  color="default" 
+                  variant="outlined"
+                  icon={<AccessTimeIcon />}
+                />
+              )}
+            </Box>
             
             <IconButton 
               color={isFavorite ? "secondary" : "default"} 
