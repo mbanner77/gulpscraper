@@ -100,10 +100,19 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
       uniqueProjects: 0,
       pagesScraped: 0,
       errors: 0,
+      errorTypes: {},
+      criticalErrors: 0,
       lastScrapeTime: null,
       scrapeDuration: null,
       browserType: null,
-      hasEmailNotifications: false
+      hasEmailNotifications: false,
+      correlationIds: new Set(),
+      sessionIds: new Set(),
+      environmentInfo: {},
+      playwrightErrors: 0,
+      networkErrors: 0,
+      navigationErrors: 0,
+      renderEnvironment: false
     };
     
     // Track scrape start and end times
@@ -116,9 +125,62 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
       const eventType = log.event_type || 'unknown';
       stats.eventTypes[eventType] = (stats.eventTypes[eventType] || 0) + 1;
       
+      // Track correlation IDs
+      if (log.correlation_id) {
+        stats.correlationIds.add(log.correlation_id);
+      }
+      
+      // Track session IDs
+      if (log.session_id) {
+        stats.sessionIds.add(log.session_id);
+      }
+      
       // Check for errors
       if (eventType === 'error') {
         stats.errors++;
+        
+        // Analyze error types
+        if (log.data) {
+          if (log.data.error_type) {
+            stats.errorTypes[log.data.error_type] = (stats.errorTypes[log.data.error_type] || 0) + 1;
+          }
+          
+          // Check for critical errors
+          if (log.message.includes('Critical error') || log.tags?.includes('critical_error')) {
+            stats.criticalErrors++;
+          }
+          
+          // Categorize specific error types
+          if (log.tags?.includes('playwright') || log.message.includes('Playwright')) {
+            stats.playwrightErrors++;
+          }
+          
+          if (log.tags?.includes('network') || log.message.includes('network')) {
+            stats.networkErrors++;
+          }
+          
+          if (log.tags?.includes('navigation') || log.message.includes('navigation')) {
+            stats.navigationErrors++;
+          }
+        }
+      }
+      
+      // Check for render environment
+      if (log.data?.is_cloud_env || log.tags?.includes('render')) {
+        stats.renderEnvironment = true;
+      }
+      
+      // Extract environment info
+      if (log.data) {
+        if (log.data.headless !== undefined) {
+          stats.environmentInfo.headless = log.data.headless;
+        }
+        if (log.data.timeout_ms) {
+          stats.environmentInfo.timeout_ms = log.data.timeout_ms;
+        }
+        if (log.data.use_real_scraper !== undefined) {
+          stats.environmentInfo.use_real_scraper = log.data.use_real_scraper;
+        }
       }
       
       // Track scrape start time
@@ -617,24 +679,90 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
                   </AccordionSummary>
                   <AccordionDetails>
                     <Grid container spacing={2}>
-                      {/* Correlation ID */}
-                      {log.correlation_id && (
-                        <Grid item xs={12}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                            <LinkIcon fontSize="small" sx={{ mr: 1 }} color="primary" />
-                            <Typography variant="body2" color="text.secondary">
-                              Correlation ID: 
-                              <Chip 
-                                label={log.correlation_id} 
-                                size="small" 
-                                sx={{ ml: 1 }}
-                                onClick={() => {
-                                  setFilters(prev => ({ ...prev, correlationId: log.correlation_id }));
-                                  setShowFilters(true);
-                                }}
+                      {/* Session and Correlation Information */}
+                      <Grid item xs={12}>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                          {log.correlation_id && (
+                            <Chip
+                              icon={<LinkIcon fontSize="small" />}
+                              label={`Correlation: ${log.correlation_id.substring(0, 8)}...`}
+                              size="small"
+                              variant="outlined"
+                              color="primary"
+                              onClick={() => {
+                                setFilters(prev => ({ ...prev, correlationId: log.correlation_id }));
+                                setShowFilters(true);
+                              }}
+                              sx={{ cursor: 'pointer' }}
+                            />
+                          )}
+                          {log.session_id && (
+                            <Chip
+                              label={`Session: ${log.session_id}`}
+                              size="small"
+                              variant="outlined"
+                              color="info"
+                            />
+                          )}
+                          {log.tags && log.tags.length > 0 && (
+                            log.tags.map((tag, tagIndex) => (
+                              <Chip
+                                key={tagIndex}
+                                label={tag}
+                                size="small"
+                                variant="outlined"
+                                color="secondary"
                               />
-                            </Typography>
-                          </Box>
+                            ))
+                          )}
+                        </Box>
+                      </Grid>
+                      
+                      {/* Error Details */}
+                      {log.event_type === 'error' && log.data && (
+                        <Grid item xs={12}>
+                          <Paper variant="outlined" sx={{ p: 2, bgcolor: 'error.light', borderColor: 'error.main' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                              <ErrorIcon fontSize="small" sx={{ mr: 1 }} color="error" />
+                              <Typography variant="subtitle2" color="error">
+                                Fehlerdetails
+                              </Typography>
+                            </Box>
+                            
+                            {log.data.error_type && (
+                              <Typography variant="body2" sx={{ mb: 1 }}>
+                                <strong>Fehlertyp:</strong> {log.data.error_type}
+                              </Typography>
+                            )}
+                            
+                            {log.data.error && (
+                              <Typography variant="body2" sx={{ mb: 1 }}>
+                                <strong>Fehlermeldung:</strong> {log.data.error}
+                              </Typography>
+                            )}
+                            
+                            {log.data.traceback && (
+                              <Box sx={{ mt: 1 }}>
+                                <Typography variant="body2" sx={{ mb: 1 }}>
+                                  <strong>Traceback:</strong>
+                                </Typography>
+                                <Box
+                                  sx={{
+                                    bgcolor: 'background.paper',
+                                    p: 1,
+                                    borderRadius: 1,
+                                    maxHeight: '200px',
+                                    overflow: 'auto',
+                                    fontFamily: 'monospace',
+                                    fontSize: '0.75rem',
+                                    whiteSpace: 'pre-wrap'
+                                  }}
+                                >
+                                  {log.data.traceback}
+                                </Box>
+                              </Box>
+                            )}
+                          </Paper>
                         </Grid>
                       )}
                       
@@ -843,6 +971,154 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
                     </Typography>
                   </Grid>
                 </Grid>
+              </Paper>
+              
+              {/* Error Analysis */}
+              {(statistics.errors > 0 || statistics.criticalErrors > 0) && (
+                <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>  
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>  
+                    <ErrorIcon sx={{ mr: 1 }} color="error" />  
+                    <Typography variant="h6">  
+                      Fehleranalyse  
+                    </Typography>  
+                  </Box>  
+                  <Divider sx={{ my: 1 }} />  
+                  <Grid container spacing={2}>  
+                    <Grid item xs={12} md={3}>  
+                      <Card variant="outlined" sx={{ bgcolor: 'error.light', color: 'error.contrastText' }}>  
+                        <CardContent>  
+                          <Typography variant="h6" gutterBottom>  
+                            {statistics.errors}  
+                          </Typography>  
+                          <Typography variant="body2">  
+                            Gesamt Fehler  
+                          </Typography>  
+                        </CardContent>  
+                      </Card>  
+                    </Grid>  
+                    <Grid item xs={12} md={3}>  
+                      <Card variant="outlined" sx={{ bgcolor: 'error.dark', color: 'error.contrastText' }}>  
+                        <CardContent>  
+                          <Typography variant="h6" gutterBottom>  
+                            {statistics.criticalErrors}  
+                          </Typography>  
+                          <Typography variant="body2">  
+                            Kritische Fehler  
+                          </Typography>  
+                        </CardContent>  
+                      </Card>  
+                    </Grid>  
+                    <Grid item xs={12} md={3}>  
+                      <Card variant="outlined" sx={{ bgcolor: 'warning.light', color: 'warning.contrastText' }}>  
+                        <CardContent>  
+                          <Typography variant="h6" gutterBottom>  
+                            {statistics.playwrightErrors}  
+                          </Typography>  
+                          <Typography variant="body2">  
+                            Browser-Fehler  
+                          </Typography>  
+                        </CardContent>  
+                      </Card>  
+                    </Grid>  
+                    <Grid item xs={12} md={3}>  
+                      <Card variant="outlined" sx={{ bgcolor: 'info.light', color: 'info.contrastText' }}>  
+                        <CardContent>  
+                          <Typography variant="h6" gutterBottom>  
+                            {statistics.networkErrors + statistics.navigationErrors}  
+                          </Typography>  
+                          <Typography variant="body2">  
+                            Netzwerk-Fehler  
+                          </Typography>  
+                        </CardContent>  
+                      </Card>  
+                    </Grid>  
+                  </Grid>  
+                  
+                  {/* Error Types Details */}
+                  {Object.keys(statistics.errorTypes).length > 0 && (
+                    <Box sx={{ mt: 2 }}>  
+                      <Typography variant="subtitle2" sx={{ mb: 1 }}>  
+                        Fehlertypen:  
+                      </Typography>  
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>  
+                        {Object.entries(statistics.errorTypes).map(([errorType, count]) => (  
+                          <Chip   
+                            key={errorType}  
+                            label={`${errorType}: ${count}`}  
+                            size="small"  
+                            color="error"  
+                            variant="outlined"  
+                          />  
+                        ))}  
+                      </Box>  
+                    </Box>
+                  )}
+                </Paper>  
+              )}
+              
+              {/* Environment Information */}
+              <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>  
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>  
+                  <MemoryIcon sx={{ mr: 1 }} color="primary" />  
+                  <Typography variant="h6">  
+                    Umgebungsdetails  
+                  </Typography>  
+                  {statistics.renderEnvironment && (
+                    <Chip 
+                      label="Render Cloud" 
+                      size="small" 
+                      color="primary" 
+                      sx={{ ml: 1 }}
+                    />
+                  )}
+                </Box>  
+                <Divider sx={{ my: 1 }} />  
+                <Grid container spacing={2}>  
+                  <Grid item xs={12} md={4}>  
+                    <Typography variant="body2" color="text.secondary">  
+                      Korrelations-IDs:  
+                    </Typography>  
+                    <Typography variant="body1">  
+                      {statistics.correlationIds.size}  
+                    </Typography>  
+                  </Grid>  
+                  <Grid item xs={12} md={4}>  
+                    <Typography variant="body2" color="text.secondary">  
+                      Session-IDs:  
+                    </Typography>  
+                    <Typography variant="body1">  
+                      {statistics.sessionIds.size}  
+                    </Typography>  
+                  </Grid>  
+                  <Grid item xs={12} md={4}>  
+                    <Typography variant="body2" color="text.secondary">  
+                      Headless-Modus:  
+                    </Typography>  
+                    <Typography variant="body1">  
+                      {statistics.environmentInfo.headless !== undefined 
+                        ? (statistics.environmentInfo.headless ? 'Ja' : 'Nein') 
+                        : 'Unbekannt'}  
+                    </Typography>  
+                  </Grid>  
+                  <Grid item xs={12} md={4}>  
+                    <Typography variant="body2" color="text.secondary">  
+                      Timeout (ms):  
+                    </Typography>  
+                    <Typography variant="body1">  
+                      {statistics.environmentInfo.timeout_ms || 'Standard'}  
+                    </Typography>  
+                  </Grid>  
+                  <Grid item xs={12} md={4}>  
+                    <Typography variant="body2" color="text.secondary">  
+                      Echter Scraper:  
+                    </Typography>  
+                    <Typography variant="body1">  
+                      {statistics.environmentInfo.use_real_scraper !== undefined 
+                        ? (statistics.environmentInfo.use_real_scraper ? 'Aktiviert' : 'Deaktiviert') 
+                        : 'Unbekannt'}  
+                    </Typography>  
+                  </Grid>  
+                </Grid>  
               </Paper>
               
               {/* Event Statistics */}

@@ -376,7 +376,8 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                 "timestamp": datetime.datetime.now().astimezone().isoformat(),
                 "use_real_scraper": USE_REAL_SCRAPER,
                 "is_cloud_env": IS_CLOUD_ENV,
-                "pages": list(pages)
+                "pages": list(pages),
+                "correlation_id": correlation_id
             },
             correlation_id=correlation_id,
             tags=["scraper_start", "gulp"]
@@ -398,8 +399,9 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
     if IS_CLOUD_ENV:
         log_scraper_event("info", "Starting Playwright in cloud environment", {
             "headless": HEADLESS,
-            "data_dir": str(DATA_DIR.absolute())
-        })
+            "data_dir": str(DATA_DIR.absolute()),
+            "correlation_id": correlation_id
+        }, correlation_id=correlation_id, tags=["render", "environment"])
         print(f"[RENDER DEBUG] Ausgabedatei existiert: {OUTPUT_JSON.exists()}")
         print(f"[RENDER DEBUG] USE_REAL_SCRAPER={USE_REAL_SCRAPER}")
         if OUTPUT_JSON.exists():
@@ -407,20 +409,44 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                 with open(OUTPUT_JSON, 'r', encoding='utf-8') as f:
                     project_count = len(json.load(f))
                     print(f"[RENDER DEBUG] Anzahl Projekte in Datei: {project_count}")
+                    log_scraper_event("info", "Existing project data found", {
+                        "project_count": project_count,
+                        "correlation_id": correlation_id
+                    }, correlation_id=correlation_id, tags=["render", "existing_data"])
             except Exception as e:
                 print(f"[RENDER DEBUG] Fehler beim Lesen der Projektdatei: {str(e)}")
+                log_scraper_event("error", "Error reading existing project data", {
+                    "error": str(e),
+                    "correlation_id": correlation_id
+                }, correlation_id=correlation_id, tags=["render", "data_error"])
     
     # If USE_REAL_SCRAPER is False, skip scraping and return empty result
     if not USE_REAL_SCRAPER:
         log_scraper_event(
             "warning", 
             "USE_REAL_SCRAPER is disabled, skipping scrape",
+            {"correlation_id": correlation_id},
             correlation_id=correlation_id,
             tags=["scraper_disabled"]
         )
+        is_scraping = False
         return []
+    
+    # Ab hier beginnt der echte Scraper mit Playwright
+    try:
+        log_scraper_event(
+            "info", 
+            "Initializing browser configuration", 
+            {
+                "headless": HEADLESS,
+                "timeout_ms": TIMEOUT_MS,
+                "is_cloud_env": IS_CLOUD_ENV,
+                "correlation_id": correlation_id
+            },
+            correlation_id=correlation_id,
+            tags=["browser", "configuration"]
+        )
         
-        # Ab hier beginnt der echte Scraper mit Playwright
         # Browser-Konfiguration
         launch_options = {
             "headless": HEADLESS,
@@ -1245,18 +1271,58 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
         except Exception as pw_error:
             log_scraper_event("error", "Error initializing Playwright", {
                 "error": str(pw_error),
-                "traceback": traceback.format_exc()
-            })
+                "traceback": traceback.format_exc(),
+                "correlation_id": correlation_id
+            }, correlation_id=correlation_id, tags=["playwright", "initialization_error"])
             
-    # Reset the scraping flag
-    is_scraping = False
+    except Exception as main_scraper_error:
+        # Hauptfehlerbehandlung für den gesamten Scraper-Prozess
+        log_scraper_event(
+            "error", 
+            "Critical error in main scraper process", 
+            {
+                "error": str(main_scraper_error),
+                "error_type": type(main_scraper_error).__name__,
+                "traceback": traceback.format_exc(),
+                "correlation_id": correlation_id,
+                "pages_attempted": list(pages),
+                "use_real_scraper": USE_REAL_SCRAPER,
+                "is_cloud_env": IS_CLOUD_ENV
+            },
+            correlation_id=correlation_id,
+            tags=["scraper_error", "critical_error", "main_process"]
+        )
+        print(f"[SCRAPER ERROR] Critical error: {str(main_scraper_error)}")
+        print(f"[SCRAPER ERROR] Traceback: {traceback.format_exc()}")
+        sys.stderr.flush()
+        
+    finally:
+        # Reset the scraping flag in jedem Fall
+        is_scraping = False
+        log_scraper_event(
+            "info", 
+            "Scraper process completed, resetting flags", 
+            {
+                "correlation_id": correlation_id,
+                "is_scraping_reset": True
+            },
+            correlation_id=correlation_id,
+            tags=["scraper_cleanup", "process_completed"]
+        )
     
-    # If scraping fails, return empty result
+    # If we reach here, scraping failed
     log_scraper_event(
         "error", 
-        "Scraping failed, returning empty result", 
+        "Scraping completed but no results returned", 
+        {
+            "correlation_id": correlation_id,
+            "pages_attempted": list(pages),
+            "use_real_scraper": USE_REAL_SCRAPER,
+            "is_cloud_env": IS_CLOUD_ENV,
+            "reason": "No projects found or scraping process failed"
+        },
         correlation_id=correlation_id,
-        tags=["scraper_error", "empty_result"]
+        tags=["scraper_error", "empty_result", "no_data"]
     )
     return []
 
