@@ -1628,28 +1628,147 @@ async def get_archived_projects(
 @app.get("/projects/{project_id}")
 async def get_project(project_id: str):
     """Get a specific project by ID."""
+    correlation_id = str(uuid.uuid4())[:8]
+    
     try:
+        # Log the request start
+        log_scraper_event(
+            "info", 
+            "Project details request received", 
+            {
+                "project_id": project_id,
+                "correlation_id": correlation_id,
+                "is_cloud_env": IS_CLOUD_ENV,
+                "output_file_exists": OUTPUT_JSON.exists()
+            },
+            correlation_id=correlation_id,
+            tags=["project_details", "api_request"]
+        )
+        print(f"[PROJECT API] Fetching project details for ID: {project_id} (correlation: {correlation_id})")
+        sys.stdout.flush()
+        
         if not OUTPUT_JSON.exists():
+            log_scraper_event(
+                "warning", 
+                "No project data file available", 
+                {
+                    "project_id": project_id,
+                    "correlation_id": correlation_id,
+                    "output_file_path": str(OUTPUT_JSON),
+                    "suggestion": "Try triggering a scrape first"
+                },
+                correlation_id=correlation_id,
+                tags=["project_details", "missing_data"]
+            )
+            print(f"[PROJECT API ERROR] No data file at {OUTPUT_JSON}")
+            sys.stderr.flush()
             return JSONResponse(
                 status_code=404,
                 content={"error": "No project data available. Try triggering a scrape first."}
             )
             
         # Read the projects from the JSON file
-        projects = json.loads(OUTPUT_JSON.read_text(encoding="utf-8"))
+        try:
+            projects_data = OUTPUT_JSON.read_text(encoding="utf-8")
+            projects = json.loads(projects_data)
+            
+            log_scraper_event(
+                "info", 
+                "Project data loaded successfully", 
+                {
+                    "project_id": project_id,
+                    "correlation_id": correlation_id,
+                    "total_projects": len(projects),
+                    "file_size_bytes": len(projects_data)
+                },
+                correlation_id=correlation_id,
+                tags=["project_details", "data_loaded"]
+            )
+            print(f"[PROJECT API] Loaded {len(projects)} projects from data file")
+            sys.stdout.flush()
+            
+        except json.JSONDecodeError as json_error:
+            log_scraper_event(
+                "error", 
+                "Failed to parse project data JSON", 
+                {
+                    "project_id": project_id,
+                    "correlation_id": correlation_id,
+                    "json_error": str(json_error),
+                    "file_path": str(OUTPUT_JSON)
+                },
+                correlation_id=correlation_id,
+                tags=["project_details", "json_error"]
+            )
+            print(f"[PROJECT API ERROR] JSON parse error: {str(json_error)}")
+            sys.stderr.flush()
+            return JSONResponse(
+                status_code=500,
+                content={"error": f"Error parsing project data: {str(json_error)}"}
+            )
         
         # Find the project with the given ID
         project = next((p for p in projects if p.get("id") == project_id), None)
         
         if not project:
+            # Log available project IDs for debugging
+            available_ids = [p.get("id") for p in projects[:10]]  # First 10 for debugging
+            log_scraper_event(
+                "warning", 
+                "Project not found", 
+                {
+                    "requested_project_id": project_id,
+                    "correlation_id": correlation_id,
+                    "total_projects": len(projects),
+                    "sample_available_ids": available_ids,
+                    "project_id_type": type(project_id).__name__
+                },
+                correlation_id=correlation_id,
+                tags=["project_details", "not_found"]
+            )
+            print(f"[PROJECT API ERROR] Project {project_id} not found among {len(projects)} projects")
+            print(f"[PROJECT API DEBUG] Sample IDs: {available_ids}")
+            sys.stderr.flush()
             return JSONResponse(
                 status_code=404,
                 content={"error": f"Project with ID {project_id} not found"}
             )
+        
+        # Log successful project retrieval
+        log_scraper_event(
+            "success", 
+            "Project details retrieved successfully", 
+            {
+                "project_id": project_id,
+                "correlation_id": correlation_id,
+                "project_title": project.get("title", "Unknown"),
+                "project_fields": list(project.keys()) if isinstance(project, dict) else "non-dict"
+            },
+            correlation_id=correlation_id,
+            tags=["project_details", "success"]
+        )
+        print(f"[PROJECT API SUCCESS] Retrieved project: {project.get('title', 'Unknown')}")
+        sys.stdout.flush()
             
         return project
         
     except Exception as e:
+        log_scraper_event(
+            "error", 
+            "Critical error in project details API", 
+            {
+                "project_id": project_id,
+                "correlation_id": correlation_id,
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "traceback": traceback.format_exc()
+            },
+            correlation_id=correlation_id,
+            tags=["project_details", "critical_error", "api_error"]
+        )
+        print(f"[PROJECT API ERROR] Critical error: {str(e)}")
+        print(f"[PROJECT API ERROR] Traceback: {traceback.format_exc()}")
+        sys.stderr.flush()
         return JSONResponse(
             status_code=500,
             content={"error": f"Error retrieving project: {str(e)}"}

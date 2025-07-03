@@ -57,7 +57,52 @@ function ProjectDetailsPage() {
         }
       } catch (err) {
         console.error(`Error fetching project with ID ${id}:`, err);
-        setError('Fehler beim Laden des Projekts. Bitte versuchen Sie es später erneut.');
+        
+        // Extract more detailed error information
+        let errorMessage = 'Fehler beim Laden des Projekts. Bitte versuchen Sie es später erneut.';
+        
+        if (err.response) {
+          // API responded with an error status
+          const status = err.response.status;
+          const data = err.response.data;
+          
+          if (status === 404) {
+            if (data?.error?.includes('No project data available')) {
+              errorMessage = 'Noch keine Projektdaten verfügbar. Bitte führen Sie zunächst einen Scraper-Lauf durch.';
+            } else if (data?.error?.includes('not found')) {
+              errorMessage = `Projekt mit ID ${id} wurde nicht gefunden. Möglicherweise wurde es noch nicht gescrapt oder die ID ist ungültig.`;
+            } else {
+              errorMessage = 'Projekt nicht gefunden.';
+            }
+          } else if (status === 500) {
+            if (data?.error?.includes('JSON')) {
+              errorMessage = 'Fehler beim Laden der Projektdaten. Die Datenbank könnte beschädigt sein.';
+            } else {
+              errorMessage = `Server-Fehler: ${data?.error || 'Unbekannter Fehler'}`;
+            }
+          } else {
+            errorMessage = `HTTP-Fehler ${status}: ${data?.error || err.message}`;
+          }
+        } else if (err.request) {
+          // Network error
+          errorMessage = 'Netzwerkfehler: Keine Verbindung zum Server möglich. Bitte überprüfen Sie Ihre Internetverbindung.';
+        } else {
+          // Other error
+          errorMessage = `Unerwarteter Fehler: ${err.message}`;
+        }
+        
+        // Log detailed error info for debugging
+        console.error('Detailed error info:', {
+          projectId: id,
+          error: err,
+          status: err.response?.status,
+          statusText: err.response?.statusText,
+          data: err.response?.data,
+          url: err.config?.url,
+          method: err.config?.method
+        });
+        
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -96,6 +141,10 @@ function ProjectDetailsPage() {
   }
   
   if (error || !project) {
+    const isNoDataError = error && error.includes('Noch keine Projektdaten verfügbar');
+    const isNotFoundError = error && error.includes('wurde nicht gefunden');
+    const isNetworkError = error && error.includes('Netzwerkfehler');
+    
     return (
       <Container maxWidth="lg">
         <Box sx={{ my: 4 }}>
@@ -107,9 +156,76 @@ function ProjectDetailsPage() {
             Zurück
           </Button>
           
-          <Alert severity="error" sx={{ mb: 3 }}>
+          <Alert 
+            severity={isNetworkError ? "warning" : "error"} 
+            sx={{ mb: 3 }}
+            action={
+              isNoDataError ? (
+                <Button 
+                  color="inherit" 
+                  size="small" 
+                  onClick={() => navigate('/scraper')}
+                >
+                  Zum Scraper
+                </Button>
+              ) : isNotFoundError ? (
+                <Button 
+                  color="inherit" 
+                  size="small" 
+                  onClick={() => navigate('/')}
+                >
+                  Alle Projekte
+                </Button>
+              ) : isNetworkError ? (
+                <Button 
+                  color="inherit" 
+                  size="small" 
+                  onClick={() => window.location.reload()}
+                >
+                  Erneut versuchen
+                </Button>
+              ) : null
+            }
+          >
             {error || 'Projekt nicht gefunden'}
+            
+            {isNoDataError && (
+              <Box sx={{ mt: 2, fontSize: '0.875rem' }}>
+                <strong>Hinweis:</strong> Starten Sie einen Scraper-Lauf, um aktuelle Projektdaten zu laden.
+              </Box>
+            )}
+            
+            {isNotFoundError && (
+              <Box sx={{ mt: 2, fontSize: '0.875rem' }}>
+                <strong>Projekt-ID:</strong> {id}<br/>
+                <strong>Tipp:</strong> Überprüfen Sie die URL oder kehren Sie zur Projektübersicht zurück.
+              </Box>
+            )}
+            
+            {isNetworkError && (
+              <Box sx={{ mt: 2, fontSize: '0.875rem' }}>
+                <strong>Mögliche Lösungen:</strong>
+                <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                  <li>Internetverbindung prüfen</li>
+                  <li>Seite neu laden</li>
+                  <li>Später erneut versuchen</li>
+                </ul>
+              </Box>
+            )}
           </Alert>
+          
+          {process.env.NODE_ENV === 'development' && (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Debug-Informationen (nur in Entwicklung sichtbar):
+              </Typography>
+              <Typography variant="body2" component="pre" sx={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>
+                Projekt-ID: {id}{"\n"}
+                Error: {error}{"\n"}
+                Zeitstempel: {new Date().toISOString()}
+              </Typography>
+            </Alert>
+          )}
         </Box>
       </Container>
     );
