@@ -1594,7 +1594,22 @@ async def get_archived_projects(
     limit: int = 10,
 ):
     """Get archived projects (older than 24h) with optional filtering and pagination."""
+    correlation_id = str(uuid.uuid4())[:8]
+    
     try:
+        print(f"\n[ARCHIVE API {correlation_id}] Archive projects request - search: {search}, location: {location}, remote: {remote}, page: {page}, limit: {limit}")
+        print(f"[ARCHIVE API {correlation_id}] Environment: {'Render' if os.environ.get('RENDER') else 'Local'}")
+        sys.stdout.flush()
+        
+        # Check file existence
+        data_dir = Path("data")
+        archive_file = data_dir / "archive_projects.json"
+        recent_file = data_dir / "recent_projects.json"
+        raw_file = data_dir / "projects.json"
+        
+        print(f"[ARCHIVE API {correlation_id}] File status - archive: {archive_file.exists()}, recent: {recent_file.exists()}, raw: {raw_file.exists()}")
+        sys.stdout.flush()
+        
         # Get archived projects from the project manager
         projects, total = project_manager.get_projects(
             search=search, 
@@ -1604,13 +1619,16 @@ async def get_archived_projects(
             limit=limit, 
             include_new_only=False,
             archived=True,
-            show_all=show_all
+            show_all=False
         )
+        
+        print(f"[ARCHIVE API {correlation_id}] Retrieved {len(projects)} projects out of {total} total archived projects")
+        sys.stdout.flush()
         
         # Calculate pagination
         total_pages = (total + limit - 1) // limit if limit > 0 else 1
         
-        return {
+        result = {
             "projects": projects,
             "total": total,
             "page": page,
@@ -1619,10 +1637,24 @@ async def get_archived_projects(
             "lastScrape": last_scrape_time
         }
         
+        print(f"[ARCHIVE API {correlation_id}] Success - returning {len(projects)} projects")
+        sys.stdout.flush()
+        
+        return result
+        
     except Exception as e:
+        error_msg = f"Error retrieving archived projects: {str(e)}"
+        print(f"[ARCHIVE API {correlation_id}] ERROR: {error_msg}")
+        print(f"[ARCHIVE API {correlation_id}] Traceback: {traceback.format_exc()}")
+        sys.stderr.flush()
+        
         return JSONResponse(
             status_code=500,
-            content={"error": f"Error retrieving projects: {str(e)}"}
+            content={
+                "error": error_msg,
+                "correlation_id": correlation_id,
+                "type": "archive_error"
+            }
         )
 
 

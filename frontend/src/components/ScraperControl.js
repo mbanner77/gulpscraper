@@ -44,6 +44,7 @@ const ScraperControl = () => {
   const [success, setSuccess] = useState(null);
   const [sendEmail, setSendEmail] = useState(false);
   const [statusPolling, setStatusPolling] = useState(null);
+  const [lastManualUpdate, setLastManualUpdate] = useState(null); // Track last manual status update
   
   useEffect(() => {
     fetchStatus();
@@ -60,10 +61,49 @@ const ScraperControl = () => {
     };
   }, []);
   
+  // Pause polling when details dialog is open
+  useEffect(() => {
+    if (detailsDialogOpen) {
+      console.log('Pausing status polling - details dialog opened');
+      if (statusPolling) {
+        clearInterval(statusPolling);
+        setStatusPolling(null);
+      }
+    } else {
+      console.log('Resuming status polling - details dialog closed');
+      if (!statusPolling) {
+        const interval = setInterval(fetchStatus, 5000);
+        setStatusPolling(interval);
+      }
+    }
+  }, [detailsDialogOpen]);
+  
   const fetchStatus = async () => {
     try {
       const data = await getScraperStatus();
-      setStatus(data);
+      
+      // Check if we have a recent manual update (within last 30 seconds)
+      const now = Date.now();
+      const recentUpdate = lastManualUpdate && (now - lastManualUpdate) < 30000;
+      
+      if (recentUpdate) {
+        console.log('Skipping status update - recent manual update detected');
+        // Only update certain fields, preserve manually updated values
+        setStatus(prevStatus => ({
+          ...prevStatus,
+          // Only update is_scraping and email settings from backend
+          is_scraping: data.is_scraping,
+          email_notification: data.email_notification,
+          // Keep locally updated values for these fields
+          last_scrape: prevStatus.last_scrape || data.last_scrape,
+          project_count: prevStatus.project_count || data.project_count,
+          new_project_count: prevStatus.new_project_count || data.new_project_count,
+          data_available: prevStatus.data_available || data.data_available
+        }));
+      } else {
+        // Normal update - use all backend data
+        setStatus(data);
+      }
       
       // E-Mail-Benachrichtigung standardmäßig aktivieren, wenn konfiguriert
       if (data.email_notification.configured && !loading) {
@@ -107,6 +147,10 @@ const ScraperControl = () => {
           data_available: true,
           dummy_data: result.dummy_data || false
         }));
+        
+        // Mark this as a manual update to prevent polling from overwriting it
+        setLastManualUpdate(Date.now());
+        console.log('Manual status update timestamp set:', new Date().toISOString());
         
         // Erfolgsmeldung anzeigen
         setSuccess('Scraper wurde erfolgreich ausgeführt! Projekte wurden aktualisiert.');

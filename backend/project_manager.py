@@ -86,13 +86,33 @@ class ProjectManager:
     
     def _load_archive_projects(self) -> List[Dict]:
         """Lädt die Archiv-Projekte aus der Datei."""
+        print(f"[DEBUG] Attempting to load archive projects from: {self.archive_projects_file}")
+        
         if not self.archive_projects_file.exists():
+            print(f"[DEBUG] Archive file does not exist: {self.archive_projects_file}")
             return []
         
         try:
-            return json.loads(self.archive_projects_file.read_text(encoding="utf-8"))
+            file_size = self.archive_projects_file.stat().st_size
+            print(f"[DEBUG] Archive file exists, size: {file_size} bytes")
+            
+            if file_size == 0:
+                print(f"[DEBUG] Archive file is empty")
+                return []
+                
+            content = self.archive_projects_file.read_text(encoding="utf-8")
+            projects = json.loads(content)
+            print(f"[DEBUG] Successfully loaded {len(projects)} archived projects")
+            return projects
+            
+        except json.JSONDecodeError as e:
+            print(f"[ERROR] JSON decode error in archive file: {str(e)}")
+            print(f"[ERROR] Archive file content preview: {content[:200] if 'content' in locals() else 'N/A'}")
+            return []
         except Exception as e:
-            print(f"Fehler beim Laden der Archiv-Projekte: {str(e)}")
+            print(f"[ERROR] Unexpected error loading archive projects: {str(e)}")
+            import traceback
+            print(f"[ERROR] Traceback: {traceback.format_exc()}")
             return []
     
     def _update_archive_projects(self, projects: List[Dict]) -> None:
