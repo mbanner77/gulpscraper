@@ -126,6 +126,209 @@ def load_logs_from_file():
 # Global variable to track current scrape session
 current_scrape_session = None
 
+def analyze_error_from_traceback(traceback_str):
+    """Analysiert einen Stack-Trace und extrahiert nützliche Fehlerinformationen."""
+    if not traceback_str or traceback_str == "No traceback available":
+        return {"category": "unknown", "severity": "medium"}
+    
+    analysis = {
+        "category": "unknown",
+        "severity": "medium",
+        "common_causes": [],
+        "suggested_actions": []
+    }
+    
+    traceback_lower = traceback_str.lower()
+    
+    # Browser/Playwright Fehler
+    if any(keyword in traceback_lower for keyword in ["playwright", "browser", "chromium", "page.goto"]):
+        analysis["category"] = "browser"
+        analysis["severity"] = "high"
+        analysis["common_causes"] = [
+            "Browser nicht installiert oder nicht erreichbar",
+            "Netzwerkprobleme beim Laden der Seite",
+            "Timeout beim Warten auf Seitenelemente",
+            "Ungültige Selektoren oder veränderte Website-Struktur"
+        ]
+        analysis["suggested_actions"] = [
+            "Browser-Installation überprüfen",
+            "Timeout-Werte erhöhen",
+            "Headless-Modus testen",
+            "Netzwerkverbindung prüfen"
+        ]
+    
+    # Netzwerk-Fehler
+    elif any(keyword in traceback_lower for keyword in ["connectionerror", "timeout", "httperror", "network"]):
+        analysis["category"] = "network"
+        analysis["severity"] = "high"
+        analysis["common_causes"] = [
+            "Keine Internetverbindung",
+            "Ziel-Website nicht erreichbar",
+            "Firewall blockiert Zugriff",
+            "Rate-Limiting oder IP-Blocking"
+        ]
+        analysis["suggested_actions"] = [
+            "Internetverbindung testen",
+            "Website-Verfügbarkeit prüfen",
+            "VPN oder andere IP verwenden",
+            "Scraping-Geschwindigkeit reduzieren"
+        ]
+    
+    # Speicher-Fehler
+    elif any(keyword in traceback_lower for keyword in ["memoryerror", "out of memory", "cannot allocate"]):
+        analysis["category"] = "memory"
+        analysis["severity"] = "critical"
+        analysis["common_causes"] = [
+            "Unzureichender Arbeitsspeicher",
+            "Memory Leak im Code",
+            "Zu viele gleichzeitige Browser-Instanzen"
+        ]
+        analysis["suggested_actions"] = [
+            "Server-Ressourcen erhöhen", 
+            "Browser-Instanzen begrenzen",
+            "Memory-Usage monitoring aktivieren",
+            "Garbage Collection optimieren"
+        ]
+    
+    # Datei-/Pfad-Fehler
+    elif any(keyword in traceback_lower for keyword in ["filenotfounderror", "permissionerror", "no such file"]):
+        analysis["category"] = "filesystem"
+        analysis["severity"] = "medium"
+        analysis["common_causes"] = [
+            "Datei oder Verzeichnis existiert nicht",
+            "Keine Berechtigung für Dateizugriff",
+            "Falsche Pfadangabe",
+            "Datei von anderem Prozess gesperrt"
+        ]
+        analysis["suggested_actions"] = [
+            "Dateipfade überprüfen",
+            "Berechtigungen anpassen",
+            "Verzeichnisse erstellen falls nötig",
+            "Concurrent Access vermeiden"
+        ]
+    
+    # JSON/Parsing-Fehler
+    elif any(keyword in traceback_lower for keyword in ["jsondecodeerror", "invalid json", "parsing error"]):
+        analysis["category"] = "parsing"
+        analysis["severity"] = "medium"
+        analysis["common_causes"] = [
+            "Unvollständige oder korrupte JSON-Daten",
+            "Unerwartetes Datenformat",
+            "Encoding-Probleme",
+            "Leere oder fehlerhafte API-Antworten"
+        ]
+        analysis["suggested_actions"] = [
+            "JSON-Daten validieren",
+            "Error-Handling für leere Antworten",
+            "Encoding explizit setzen",
+            "Datenformat vor Parsing prüfen"
+        ]
+    
+    return analysis
+
+def aggregate_log_statistics():
+    """Erstellt aggregierte Statistiken aus den Log-Einträgen."""
+    global scraper_logs
+    
+    if not scraper_logs:
+        return {}
+    
+    stats = {
+        "total_entries": len(scraper_logs),
+        "entries_by_type": {},
+        "entries_by_level": {},
+        "error_categories": {},
+        "performance_summary": {
+            "avg_memory_mb": 0,
+            "peak_memory_mb": 0,
+            "avg_cpu_percent": 0,
+            "peak_cpu_percent": 0
+        },
+        "session_summary": {},
+        "recent_critical_errors": [],
+        "diagnostic_insights": []
+    }
+    
+    memory_values = []
+    cpu_values = []
+    
+    for log_entry in scraper_logs:
+        # Event Type Statistiken
+        event_type = log_entry.get("event_type", "unknown")
+        stats["entries_by_type"][event_type] = stats["entries_by_type"].get(event_type, 0) + 1
+        
+        # Log Level Statistiken  
+        log_level = log_entry.get("log_level", "INFO")
+        stats["entries_by_level"][log_level] = stats["entries_by_level"].get(log_level, 0) + 1
+        
+        # Error Category Analyse
+        if log_entry.get("data", {}).get("error_category"):
+            category = log_entry["data"]["error_category"]
+            stats["error_categories"][category] = stats["error_categories"].get(category, 0) + 1
+        
+        # Performance Daten sammeln
+        perf_info = log_entry.get("data", {}).get("performance_info", {})
+        if isinstance(perf_info, dict):
+            if "memory_rss_mb" in perf_info:
+                memory_values.append(perf_info["memory_rss_mb"])
+            if "cpu_percent" in perf_info:
+                cpu_values.append(perf_info["cpu_percent"])
+        
+        # Session Tracking
+        session_id = log_entry.get("session_id")
+        if session_id:
+            if session_id not in stats["session_summary"]:
+                stats["session_summary"][session_id] = {
+                    "entry_count": 0,
+                    "error_count": 0,
+                    "start_time": log_entry.get("timestamp"),
+                    "end_time": log_entry.get("timestamp")
+                }
+            stats["session_summary"][session_id]["entry_count"] += 1
+            stats["session_summary"][session_id]["end_time"] = log_entry.get("timestamp")
+            if event_type in ["error", "critical"]:
+                stats["session_summary"][session_id]["error_count"] += 1
+        
+        # Kritische Fehler der letzten Zeit sammeln
+        if event_type in ["error", "critical"]:
+            log_time = log_entry.get("timestamp")
+            stats["recent_critical_errors"].append({
+                "timestamp": log_time,
+                "message": log_entry.get("message", ""),
+                "category": log_entry.get("data", {}).get("error_category", "unknown"),
+                "session_id": session_id
+            })
+    
+    # Performance Zusammenfassung berechnen
+    if memory_values:
+        stats["performance_summary"]["avg_memory_mb"] = round(sum(memory_values) / len(memory_values), 2)
+        stats["performance_summary"]["peak_memory_mb"] = round(max(memory_values), 2)
+    
+    if cpu_values:
+        stats["performance_summary"]["avg_cpu_percent"] = round(sum(cpu_values) / len(cpu_values), 2)
+        stats["performance_summary"]["peak_cpu_percent"] = round(max(cpu_values), 2)
+    
+    # Nur die letzten 10 kritischen Fehler behalten
+    stats["recent_critical_errors"] = stats["recent_critical_errors"][-10:]
+    
+    # Diagnostische Insights generieren
+    if stats["entries_by_type"].get("error", 0) > 5:
+        stats["diagnostic_insights"].append(
+            "Hohe Anzahl von Fehlern erkannt - System-Check empfohlen"
+        )
+    
+    if stats["performance_summary"]["peak_memory_mb"] > 500:
+        stats["diagnostic_insights"].append(
+            "Hoher Speicherverbrauch erkannt - Memory-Optimierung empfohlen"
+        )
+    
+    if len(stats["error_categories"]) > 3:
+        stats["diagnostic_insights"].append(
+            "Verschiedene Fehlerkategorien - Umfassende Diagnose erforderlich"
+        )
+    
+    return stats
+
 def log_scraper_event(event_type, message, data=None, log_level=None, correlation_id=None, tags=None, session_id=None):
     """
     Fügt einen neuen Log-Eintrag zu den Scraper-Logs hinzu.
@@ -169,28 +372,76 @@ def log_scraper_event(event_type, message, data=None, log_level=None, correlatio
     if session_id:
         enhanced_data["session_id"] = session_id
     
+    # Füge Performance-Informationen hinzu
+    try:
+        import psutil
+        process = psutil.Process()
+        
+        # CPU und Memory Information
+        cpu_percent = process.cpu_percent()
+        memory_info = process.memory_info()
+        
+        enhanced_data["performance_info"] = {
+            "cpu_percent": cpu_percent,
+            "memory_rss_mb": round(memory_info.rss / 1024 / 1024, 2),
+            "memory_vms_mb": round(memory_info.vms / 1024 / 1024, 2),
+            "memory_percent": process.memory_percent(),
+            "num_threads": process.num_threads(),
+            "create_time": process.create_time()
+        }
+        
+        # System-weite Informationen bei kritischen Events
+        if event_type in ["error", "critical"]:
+            system_memory = psutil.virtual_memory()
+            system_disk = psutil.disk_usage('/')
+            enhanced_data["system_info"] = {
+                "total_memory_gb": round(system_memory.total / 1024 / 1024 / 1024, 2),
+                "available_memory_gb": round(system_memory.available / 1024 / 1024 / 1024, 2),
+                "memory_usage_percent": system_memory.percent,
+                "disk_usage_percent": system_disk.percent,
+                "cpu_count": psutil.cpu_count(),
+                "load_average": psutil.getloadavg() if hasattr(psutil, 'getloadavg') else None
+            }
+    except ImportError:
+        enhanced_data["performance_info"] = "psutil not available"
+    except Exception as e:
+        enhanced_data["performance_info"] = f"Error getting performance info: {str(e)}"
+    
     # Füge Stack-Trace für Fehler hinzu
-    if event_type == "error" or event_type == "warning":
+    if event_type in ["error", "warning", "critical"]:
         if "traceback" not in enhanced_data:
             trace = traceback.format_exc()
             if trace != "NoneType: None\n":
                 enhanced_data["traceback"] = trace
+                # Analysiere den Stack-Trace für häufige Fehlertypen
+                enhanced_data["error_analysis"] = analyze_error_from_traceback(trace)
             else:
                 enhanced_data["traceback"] = "No traceback available"
         
-        # Füge Speichernutzung hinzu
-        try:
-            import psutil
-            process = psutil.Process()
-            memory_info = process.memory_info()
-            enhanced_data["memory_usage"] = {
-                "rss_mb": round(memory_info.rss / 1024 / 1024, 2),  # MB
-                "vms_mb": round(memory_info.vms / 1024 / 1024, 2)   # MB
-            }
-        except ImportError:
-            enhanced_data["memory_usage"] = "psutil not available"
-        except Exception as e:
-            enhanced_data["memory_usage"] = f"Error getting memory usage: {str(e)}"
+        # Füge Browser-spezifische Diagnose hinzu
+        if "playwright" in message.lower() or "browser" in message.lower():
+            enhanced_data["error_category"] = "browser"
+            enhanced_data["diagnostic_tips"] = [
+                "Check browser installation",
+                "Verify network connectivity",
+                "Check if headless mode is appropriate",
+                "Verify timeout settings"
+            ]
+        elif "network" in message.lower() or "timeout" in message.lower():
+            enhanced_data["error_category"] = "network"
+            enhanced_data["diagnostic_tips"] = [
+                "Check internet connection",
+                "Verify target website availability",
+                "Consider increasing timeout values",
+                "Check for rate limiting"
+            ]
+        elif "permission" in message.lower() or "access" in message.lower():
+            enhanced_data["error_category"] = "permission"
+            enhanced_data["diagnostic_tips"] = [
+                "Check file/directory permissions",
+                "Verify user access rights",
+                "Check if files are locked by other processes"
+            ]
     
     # Map event_type to log_level if not provided
     if log_level is None:
@@ -198,6 +449,7 @@ def log_scraper_event(event_type, message, data=None, log_level=None, correlatio
             "info": "INFO",
             "warning": "WARNING",
             "error": "ERROR",
+            "critical": "CRITICAL",
             "success": "INFO"
         }
         log_level = log_level_map.get(event_type, "INFO")
@@ -2045,12 +2297,48 @@ async def get_scraper_logs(
         if level:
             log_levels[level] = log_levels.get(level, 0) + 1
     
+    # Erweiterte Statistiken für gefilterte Logs hinzufügen
+    stats = {
+        "total_entries": len(filtered_logs),
+        "entries_by_type": {},
+        "entries_by_level": {},
+        "error_categories": {},
+        "recent_errors": []
+    }
+    
+    for log in filtered_logs:
+        # Event Type Statistiken
+        event_type = log.get("event_type", "unknown")
+        stats["entries_by_type"][event_type] = stats["entries_by_type"].get(event_type, 0) + 1
+        
+        # Log Level Statistiken  
+        log_level = log.get("log_level", "INFO")
+        stats["entries_by_level"][log_level] = stats["entries_by_level"].get(log_level, 0) + 1
+        
+        # Error Category Analyse
+        if log.get("data", {}).get("error_category"):
+            category = log["data"]["error_category"]
+            stats["error_categories"][category] = stats["error_categories"].get(category, 0) + 1
+        
+        # Letzte Fehler sammeln
+        if event_type in ["error", "critical"]:
+            stats["recent_errors"].append({
+                "timestamp": log.get("timestamp"),
+                "message": log.get("message", ""),
+                "category": log.get("data", {}).get("error_category", "unknown"),
+                "session_id": log.get("session_id")
+            })
+    
+    # Nur die letzten 5 Fehler behalten
+    stats["recent_errors"] = stats["recent_errors"][-5:]
+    
     return {
         "logs": filtered_logs,
         "count": len(filtered_logs),
         "total_count": len(scraper_logs),
         "correlation_ids": correlation_ids,
-        "log_levels": log_levels
+        "log_levels": log_levels,
+        "statistics": stats
     }
 
 
@@ -2078,6 +2366,41 @@ async def get_log_status():
                 except Exception:
                     pass  # Skip logs with invalid timestamps
         
+        # Generiere umfassende Statistiken
+        comprehensive_stats = aggregate_log_statistics()
+        
+        # Unique Sessions für bessere Übersicht
+        unique_sessions = list(set(log.get("session_id") for log in scraper_logs if log.get("session_id")))
+        
+        # Health Check
+        health_indicators = {
+            "memory_health": "good",
+            "error_rate": "low",
+            "performance_health": "good",
+            "system_health": "good"
+        }
+        
+        # Bewerte System Health basierend auf Statistiken
+        if comprehensive_stats.get("performance_summary", {}).get("peak_memory_mb", 0) > 1000:
+            health_indicators["memory_health"] = "critical"
+        elif comprehensive_stats.get("performance_summary", {}).get("peak_memory_mb", 0) > 500:
+            health_indicators["memory_health"] = "warning"
+        
+        error_count = comprehensive_stats.get("entries_by_type", {}).get("error", 0)
+        total_entries = comprehensive_stats.get("total_entries", 1)
+        error_rate = (error_count / total_entries) * 100 if total_entries > 0 else 0
+        
+        if error_rate > 30:
+            health_indicators["error_rate"] = "critical"
+        elif error_rate > 15:
+            health_indicators["error_rate"] = "warning"
+        elif error_rate > 5:
+            health_indicators["error_rate"] = "medium"
+        
+        # System Performance Check
+        if comprehensive_stats.get("performance_summary", {}).get("avg_cpu_percent", 0) > 80:
+            health_indicators["performance_health"] = "warning"
+        
         return {
             "status": "ok",
             "timestamp": datetime.datetime.now().isoformat(),
@@ -2102,12 +2425,24 @@ async def get_log_status():
             "scraper_status": {
                 "is_scraping": is_scraping,
                 "last_scrape_time": last_scrape_time,
-
             },
             "current_session": {
                 "active": current_scrape_session is not None,
                 "session_id": current_scrape_session,
                 "session_logs_count": len([log for log in scraper_logs if log.get("session_id") == current_scrape_session]) if current_scrape_session else 0
+            },
+            "comprehensive_statistics": comprehensive_stats,
+            "session_overview": {
+                "total_sessions": len(unique_sessions),
+                "active_session": current_scrape_session,
+                "recent_sessions": unique_sessions[-5:] if len(unique_sessions) > 5 else unique_sessions
+            },
+            "health_indicators": health_indicators,
+            "system_metrics": {
+                "error_rate_percent": round(error_rate, 2),
+                "total_critical_errors": comprehensive_stats.get("entries_by_type", {}).get("critical", 0),
+                "unique_error_categories": len(comprehensive_stats.get("error_categories", {})),
+                "diagnostic_insights": comprehensive_stats.get("diagnostic_insights", [])
             }
         }
     except Exception as e:
@@ -2134,6 +2469,184 @@ async def get_session_logs(session_id: str):
         return {
             "error": str(e),
             "session_id": session_id,
+            "timestamp": datetime.datetime.now().isoformat()
+        }
+
+@app.get("/api/scraper-logs/error-analysis", tags=["scraper"])
+async def get_error_analysis(
+    hours_back: Optional[int] = 24,
+    session_id: Optional[str] = None
+):
+    """Erweiterte Fehleranalyse mit Diagnoseempfehlungen."""
+    try:
+        # Filter für Zeitraum
+        cutoff_time = datetime.datetime.now() - datetime.timedelta(hours=hours_back)
+        
+        filtered_logs = scraper_logs
+        if session_id:
+            filtered_logs = [log for log in filtered_logs if log.get("session_id") == session_id]
+        
+        # Nur Logs aus dem gewünschten Zeitraum
+        recent_logs = []
+        for log in filtered_logs:
+            try:
+                log_time = datetime.datetime.fromisoformat(log.get("timestamp", "").replace('Z', '+00:00'))
+                if log_time.replace(tzinfo=None) >= cutoff_time:
+                    recent_logs.append(log)
+            except Exception:
+                pass  # Skip logs with invalid timestamps
+        
+        # Fehleranalyse durchführen
+        error_analysis = {
+            "analysis_period": f"Last {hours_back} hours",
+            "total_logs_analyzed": len(recent_logs),
+            "error_summary": {
+                "total_errors": 0,
+                "critical_errors": 0,
+                "browser_errors": 0,
+                "network_errors": 0,
+                "memory_errors": 0,
+                "filesystem_errors": 0,
+                "parsing_errors": 0
+            },
+            "error_patterns": {},
+            "performance_issues": [],
+            "diagnostic_recommendations": [],
+            "error_timeline": [],
+            "top_error_messages": {},
+            "session_error_breakdown": {}
+        }
+        
+        error_messages = {}
+        session_errors = {}
+        
+        for log in recent_logs:
+            if log.get("event_type") in ["error", "critical"]:
+                error_analysis["error_summary"]["total_errors"] += 1
+                
+                if log.get("event_type") == "critical":
+                    error_analysis["error_summary"]["critical_errors"] += 1
+                
+                # Kategorisiere Fehler
+                error_category = log.get("data", {}).get("error_category", "unknown")
+                if error_category in ["browser", "network", "memory", "filesystem", "parsing"]:
+                    error_analysis["error_summary"][f"{error_category}_errors"] += 1
+                
+                # Sammle Fehlermuster
+                if error_category not in error_analysis["error_patterns"]:
+                    error_analysis["error_patterns"][error_category] = {
+                        "count": 0,
+                        "common_causes": log.get("data", {}).get("error_analysis", {}).get("common_causes", []),
+                        "suggested_actions": log.get("data", {}).get("error_analysis", {}).get("suggested_actions", []),
+                        "diagnostic_tips": log.get("data", {}).get("diagnostic_tips", [])
+                    }
+                error_analysis["error_patterns"][error_category]["count"] += 1
+                
+                # Timeline für Fehler
+                error_analysis["error_timeline"].append({
+                    "timestamp": log.get("timestamp"),
+                    "category": error_category,
+                    "message": log.get("message", "")[:100],  # Begrenzt auf 100 Zeichen
+                    "severity": log.get("event_type")
+                })
+                
+                # Häufige Fehlermeldungen
+                message = log.get("message", "Unknown error")
+                if message in error_messages:
+                    error_messages[message] += 1
+                else:
+                    error_messages[message] = 1
+                
+                # Session-basierte Fehlerverteilung
+                session = log.get("session_id", "no_session")
+                if session not in session_errors:
+                    session_errors[session] = 0
+                session_errors[session] += 1
+            
+            # Performance-Probleme erkennen
+            perf_info = log.get("data", {}).get("performance_info", {})
+            if isinstance(perf_info, dict):
+                memory_mb = perf_info.get("memory_rss_mb", 0)
+                cpu_percent = perf_info.get("cpu_percent", 0)
+                
+                if memory_mb > 800:  # Hoher Speicherverbrauch
+                    error_analysis["performance_issues"].append({
+                        "type": "high_memory",
+                        "value": memory_mb,
+                        "timestamp": log.get("timestamp"),
+                        "message": f"Hoher Speicherverbrauch: {memory_mb} MB"
+                    })
+                
+                if cpu_percent > 90:  # Hohe CPU-Last
+                    error_analysis["performance_issues"].append({
+                        "type": "high_cpu",
+                        "value": cpu_percent,
+                        "timestamp": log.get("timestamp"),
+                        "message": f"Hohe CPU-Last: {cpu_percent}%"
+                    })
+        
+        # Top Fehlermeldungen (maximal 10)
+        error_analysis["top_error_messages"] = dict(
+            sorted(error_messages.items(), key=lambda x: x[1], reverse=True)[:10]
+        )
+        
+        # Session Error Breakdown
+        error_analysis["session_error_breakdown"] = session_errors
+        
+        # Sortiere Timeline nach Zeit (neueste zuerst)
+        error_analysis["error_timeline"] = sorted(
+            error_analysis["error_timeline"], 
+            key=lambda x: x["timestamp"], 
+            reverse=True
+        )[:20]  # Nur die letzten 20 Fehler
+        
+        # Diagnostische Empfehlungen basierend auf Fehlern generieren
+        recommendations = []
+        
+        if error_analysis["error_summary"]["browser_errors"] > 5:
+            recommendations.append({
+                "priority": "high",
+                "category": "browser",
+                "recommendation": "Häufige Browser-Fehler erkannt. Browser-Installation und Netzwerkverbindung prüfen.",
+                "actions": ["Browser neu installieren", "Netzwerk-Diagnose", "Headless-Modus testen"]
+            })
+        
+        if error_analysis["error_summary"]["memory_errors"] > 2:
+            recommendations.append({
+                "priority": "critical",
+                "category": "memory",
+                "recommendation": "Speicherprobleme erkannt. Server-Ressourcen erhöhen oder Memory-Leaks prüfen.",
+                "actions": ["RAM erhöhen", "Memory-Profiling", "Browser-Instanzen begrenzen"]
+            })
+        
+        if len(error_analysis["performance_issues"]) > 10:
+            recommendations.append({
+                "priority": "medium",
+                "category": "performance",
+                "recommendation": "Performance-Probleme erkannt. System-Optimierung empfohlen.",
+                "actions": ["CPU/Memory Monitoring", "System-Tuning", "Load-Balancing"]
+            })
+        
+        if error_analysis["error_summary"]["network_errors"] > 3:
+            recommendations.append({
+                "priority": "high",
+                "category": "network",
+                "recommendation": "Netzwerk-Probleme erkannt. Verbindungsqualität und DNS prüfen.",
+                "actions": ["Netzwerk-Diagnose", "DNS-Check", "Rate-Limiting prüfen"]
+            })
+        
+        error_analysis["diagnostic_recommendations"] = recommendations
+        
+        return {
+            "status": "success",
+            "timestamp": datetime.datetime.now().isoformat(),
+            "analysis": error_analysis
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
             "timestamp": datetime.datetime.now().isoformat()
         }
 
