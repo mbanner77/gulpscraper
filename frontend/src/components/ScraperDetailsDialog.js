@@ -33,6 +33,7 @@ import {
   Tooltip,
   Badge,
   Alert,
+  AlertTitle,
   Collapse
 } from '@mui/material';
 import {
@@ -58,8 +59,12 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import LinkIcon from '@mui/icons-material/Link';
 import MemoryIcon from '@mui/icons-material/Memory';
 import SpeedIcon from '@mui/icons-material/Speed';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import TimelineIcon from '@mui/icons-material/Timeline';
+import BuildIcon from '@mui/icons-material/Build';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 import { formatDate } from '../utils/dateUtils';
-import { getScraperLogs, getLogStatus, getSessionLogs } from '../services/api';
+import { getScraperLogs, getLogStatus, getSessionLogs, getErrorAnalysis } from '../services/api';
 
 const ScraperDetailsDialog = ({ open, onClose }) => {
   const [logs, setLogs] = useState([]);
@@ -85,6 +90,13 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
   });
   const [correlationIds, setCorrelationIds] = useState([]);
   const [logLevels, setLogLevels] = useState({});
+  const [errorAnalysis, setErrorAnalysis] = useState(null);
+  const [healthIndicators, setHealthIndicators] = useState(null);
+  const [comprehensiveStats, setComprehensiveStats] = useState(null);
+  const [diagnosticRecommendations, setDiagnosticRecommendations] = useState([]);
+  const [performanceIssues, setPerformanceIssues] = useState([]);
+  const [errorTimeline, setErrorTimeline] = useState([]);
+  const [systemMetrics, setSystemMetrics] = useState(null);
   const scrollRef = useRef(null);
 
   // Calculate statistics from logs
@@ -252,10 +264,11 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
       setLoading(true);
       setError('');
       
-      // Fetch both logs and status in parallel
-      const [logsData, statusData] = await Promise.all([
+      // Fetch logs, status, and error analysis in parallel
+      const [logsData, statusData, errorAnalysisData] = await Promise.all([
         getScraperLogs(),
-        getLogStatus()
+        getLogStatus(),
+        getErrorAnalysis(24) // Last 24 hours
       ]);
       
       const logsArray = Array.isArray(logsData) ? logsData : logsData.logs || [];
@@ -285,6 +298,37 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
       
       // Calculate statistics
       setStatistics(calculateStatistics(logsArray));
+      
+      // Process enhanced status data
+      if (statusData.comprehensive_statistics) {
+        setComprehensiveStats(statusData.comprehensive_statistics);
+      }
+      
+      if (statusData.health_indicators) {
+        setHealthIndicators(statusData.health_indicators);
+      }
+      
+      if (statusData.system_metrics) {
+        setSystemMetrics(statusData.system_metrics);
+      }
+      
+      // Process error analysis data
+      if (errorAnalysisData && errorAnalysisData.status === 'success') {
+        const analysis = errorAnalysisData.analysis;
+        setErrorAnalysis(analysis);
+        
+        if (analysis.diagnostic_recommendations) {
+          setDiagnosticRecommendations(analysis.diagnostic_recommendations);
+        }
+        
+        if (analysis.performance_issues) {
+          setPerformanceIssues(analysis.performance_issues);
+        }
+        
+        if (analysis.error_timeline) {
+          setErrorTimeline(analysis.error_timeline);
+        }
+      }
       
     } catch (error) {
       console.error('Error fetching logs:', error);
@@ -467,6 +511,9 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
             <Tabs value={tabValue} onChange={handleTabChange}>
               <Tab label="Logs" />
               <Tab label="Statistiken" />
+              <Tab label="System-Health" />
+              <Tab label="Fehleranalyse" />
+              <Tab label="Diagnose" />
             </Tabs>
             
             {tabValue === 0 && (
@@ -1181,6 +1228,392 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
                   </Grid>
                 </Grid>
               </Paper>
+            </>
+          )}
+        </Box>
+
+        {/* System Health Tab */}
+        <Box role="tabpanel" hidden={tabValue !== 2}>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              {/* Health Indicators */}
+              {healthIndicators && (
+                <Paper sx={{ p: 2, mb: 2 }}>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                    <FavoriteIcon sx={{ mr: 1, color: 'error.main' }} />
+                    System Health Status
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={3}>
+                      <Card variant="outlined" sx={{ 
+                        bgcolor: healthIndicators.memory_health === 'good' ? 'success.light' : 
+                                healthIndicators.memory_health === 'warning' ? 'warning.light' : 'error.light',
+                        color: healthIndicators.memory_health === 'good' ? 'success.contrastText' : 
+                               healthIndicators.memory_health === 'warning' ? 'warning.contrastText' : 'error.contrastText'
+                      }}>
+                        <CardContent>
+                          <Typography variant="h6" gutterBottom>
+                            {healthIndicators.memory_health?.toUpperCase()}
+                          </Typography>
+                          <Typography variant="body2">
+                            Memory Health
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <Card variant="outlined" sx={{ 
+                        bgcolor: healthIndicators.error_rate === 'good' ? 'success.light' : 
+                                healthIndicators.error_rate === 'warning' ? 'warning.light' : 'error.light',
+                        color: healthIndicators.error_rate === 'good' ? 'success.contrastText' : 
+                               healthIndicators.error_rate === 'warning' ? 'warning.contrastText' : 'error.contrastText'
+                      }}>
+                        <CardContent>
+                          <Typography variant="h6" gutterBottom>
+                            {healthIndicators.error_rate?.toUpperCase()}
+                          </Typography>
+                          <Typography variant="body2">
+                            Error Rate
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <Card variant="outlined" sx={{ 
+                        bgcolor: healthIndicators.performance_health === 'good' ? 'success.light' : 
+                                healthIndicators.performance_health === 'warning' ? 'warning.light' : 'error.light',
+                        color: healthIndicators.performance_health === 'good' ? 'success.contrastText' : 
+                               healthIndicators.performance_health === 'warning' ? 'warning.contrastText' : 'error.contrastText'
+                      }}>
+                        <CardContent>
+                          <Typography variant="h6" gutterBottom>
+                            {healthIndicators.performance_health?.toUpperCase()}
+                          </Typography>
+                          <Typography variant="body2">
+                            Performance Health
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <Card variant="outlined" sx={{ 
+                        bgcolor: healthIndicators.system_health === 'good' ? 'success.light' : 
+                                healthIndicators.system_health === 'warning' ? 'warning.light' : 'error.light',
+                        color: healthIndicators.system_health === 'good' ? 'success.contrastText' : 
+                               healthIndicators.system_health === 'warning' ? 'warning.contrastText' : 'error.contrastText'
+                      }}>
+                        <CardContent>
+                          <Typography variant="h6" gutterBottom>
+                            {healthIndicators.system_health?.toUpperCase()}
+                          </Typography>
+                          <Typography variant="body2">
+                            Overall System Health
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  </Grid>
+                </Paper>
+              )}
+
+              {/* System Metrics */}
+              {systemMetrics && (
+                <Paper sx={{ p: 2, mb: 2 }}>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                    <SpeedIcon sx={{ mr: 1, color: 'primary.main' }} />
+                    System Metrics
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={4}>
+                      <Typography variant="body2" color="text.secondary">
+                        Error Rate Percentage
+                      </Typography>
+                      <Typography variant="h6">
+                        {systemMetrics.error_rate_percentage ? `${systemMetrics.error_rate_percentage.toFixed(2)}%` : 'N/A'}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <Typography variant="body2" color="text.secondary">
+                        Critical Errors Count
+                      </Typography>
+                      <Typography variant="h6">
+                        {systemMetrics.critical_error_count || 0}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <Typography variant="body2" color="text.secondary">
+                        Unique Error Categories
+                      </Typography>
+                      <Typography variant="h6">
+                        {systemMetrics.unique_error_categories || 0}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Paper>
+              )}
+
+              {/* Performance Issues */}
+              {performanceIssues && performanceIssues.length > 0 && (
+                <Paper sx={{ p: 2, mb: 2 }}>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                    <WarningIcon sx={{ mr: 1, color: 'warning.main' }} />
+                    Performance Issues
+                  </Typography>
+                  {performanceIssues.map((issue, index) => (
+                    <Alert key={index} severity={issue.severity || 'warning'} sx={{ mb: 1 }}>
+                      <AlertTitle>
+                        {issue.type === 'high_memory' ? 'High Memory Usage' : 
+                         issue.type === 'high_cpu' ? 'High CPU Usage' : issue.type}
+                      </AlertTitle>
+                      {issue.details}
+                    </Alert>
+                  ))}
+                </Paper>
+              )}
+            </>
+          )}
+        </Box>
+
+        {/* Error Analysis Tab */}
+        <Box role="tabpanel" hidden={tabValue !== 3}>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              {/* Error Summary */}
+              {errorAnalysis && (
+                <Paper sx={{ p: 2, mb: 2 }}>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                    <ErrorIcon sx={{ mr: 1, color: 'error.main' }} />
+                    Error Analysis Summary
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={3}>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Errors (24h)
+                      </Typography>
+                      <Typography variant="h6">
+                        {errorAnalysis.total_errors || 0}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <Typography variant="body2" color="text.secondary">
+                        Critical Errors
+                      </Typography>
+                      <Typography variant="h6" color="error.main">
+                        {errorAnalysis.critical_errors || 0}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <Typography variant="body2" color="text.secondary">
+                        Error Categories
+                      </Typography>
+                      <Typography variant="h6">
+                        {errorAnalysis.error_categories ? Object.keys(errorAnalysis.error_categories).length : 0}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <Typography variant="body2" color="text.secondary">
+                        Sessions with Errors
+                      </Typography>
+                      <Typography variant="h6">
+                        {errorAnalysis.sessions_with_errors || 0}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Paper>
+              )}
+
+              {/* Error Categories Breakdown */}
+              {errorAnalysis && errorAnalysis.error_categories && (
+                <Paper sx={{ p: 2, mb: 2 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Error Categories
+                  </Typography>
+                  <Grid container spacing={2}>
+                    {Object.entries(errorAnalysis.error_categories).map(([category, count], index) => (
+                      <Grid item xs={12} md={4} key={index}>
+                        <Card variant="outlined" sx={{ bgcolor: 'error.light', color: 'error.contrastText' }}>
+                          <CardContent>
+                            <Typography variant="h6" gutterBottom>
+                              {count}
+                            </Typography>
+                            <Typography variant="body2">
+                              {category.charAt(0).toUpperCase() + category.slice(1)} Errors
+                            </Typography>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Paper>
+              )}
+
+              {/* Error Timeline */}
+              {errorTimeline && errorTimeline.length > 0 && (
+                <Paper sx={{ p: 2, mb: 2 }}>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                    <TimelineIcon sx={{ mr: 1, color: 'primary.main' }} />
+                    Recent Error Timeline
+                  </Typography>
+                  <List>
+                    {errorTimeline.slice(0, 10).map((error, index) => (
+                      <ListItem key={index} divider>
+                        <ListItemIcon>
+                          <Chip 
+                            label={error.level || 'ERROR'} 
+                            size="small" 
+                            color={error.level === 'critical' ? 'error' : 'warning'}
+                          />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={error.message}
+                          secondary={
+                            <>
+                              <Typography component="span" variant="body2" color="text.primary">
+                                {formatDate(error.timestamp)}
+                              </Typography>
+                              {error.category && (
+                                <Chip 
+                                  label={error.category} 
+                                  size="small" 
+                                  variant="outlined" 
+                                  sx={{ ml: 1 }}
+                                />
+                              )}
+                              {error.session_id && (
+                                <Chip 
+                                  label={`Session: ${error.session_id.slice(0, 8)}`} 
+                                  size="small" 
+                                  variant="outlined" 
+                                  sx={{ ml: 1 }}
+                                />
+                              )}
+                            </>
+                          }
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Paper>
+              )}
+            </>
+          )}
+        </Box>
+
+        {/* Diagnostic Recommendations Tab */}
+        <Box role="tabpanel" hidden={tabValue !== 4}>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              {/* Diagnostic Recommendations */}
+              {diagnosticRecommendations && diagnosticRecommendations.length > 0 && (
+                <Paper sx={{ p: 2, mb: 2 }}>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                    <BuildIcon sx={{ mr: 1, color: 'success.main' }} />
+                    Diagnostic Recommendations
+                  </Typography>
+                  {diagnosticRecommendations.map((recommendation, index) => (
+                    <Card key={index} sx={{ mb: 2, border: '1px solid', borderColor: 
+                      recommendation.priority === 'critical' ? 'error.main' :
+                      recommendation.priority === 'high' ? 'warning.main' : 'info.main'
+                    }}>
+                      <CardContent>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                          <Chip 
+                            label={recommendation.priority?.toUpperCase() || 'MEDIUM'} 
+                            size="small" 
+                            color={
+                              recommendation.priority === 'critical' ? 'error' :
+                              recommendation.priority === 'high' ? 'warning' : 'info'
+                            }
+                          />
+                          <Typography variant="h6" sx={{ ml: 2 }}>
+                            {recommendation.issue || 'System Issue'}
+                          </Typography>
+                        </Box>
+                        <Typography variant="body1" sx={{ mb: 2 }}>
+                          {recommendation.recommendation}
+                        </Typography>
+                        {recommendation.actions && recommendation.actions.length > 0 && (
+                          <>
+                            <Typography variant="subtitle2" gutterBottom>
+                              Recommended Actions:
+                            </Typography>
+                            <List dense>
+                              {recommendation.actions.map((action, actionIndex) => (
+                                <ListItem key={actionIndex}>
+                                  <ListItemIcon>
+                                    <CheckCircleIcon fontSize="small" />
+                                  </ListItemIcon>
+                                  <ListItemText primary={action} />
+                                </ListItem>
+                              ))}
+                            </List>
+                          </>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </Paper>
+              )}
+
+              {/* System Status Overview */}
+              {comprehensiveStats && (
+                <Paper sx={{ p: 2, mb: 2 }}>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                    <AssessmentIcon sx={{ mr: 1, color: 'primary.main' }} />
+                    Comprehensive Statistics
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Log Entries by Level
+                      </Typography>
+                      {comprehensiveStats.entries_by_level && Object.entries(comprehensiveStats.entries_by_level).map(([level, count]) => (
+                        <Box key={level} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2">{level.toUpperCase()}:</Typography>
+                          <Typography variant="body2" fontWeight="bold">{count}</Typography>
+                        </Box>
+                      ))}
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Entries by Event Type
+                      </Typography>
+                      {comprehensiveStats.entries_by_type && Object.entries(comprehensiveStats.entries_by_type).map(([type, count]) => (
+                        <Box key={type} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2">{type}:</Typography>
+                          <Typography variant="body2" fontWeight="bold">{count}</Typography>
+                        </Box>
+                      ))}
+                    </Grid>
+                  </Grid>
+                </Paper>
+              )}
+
+              {/* No Data Message */}
+              {(!diagnosticRecommendations || diagnosticRecommendations.length === 0) && 
+               (!comprehensiveStats) && (
+                <Paper sx={{ p: 4, textAlign: 'center' }}>
+                  <InfoIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary">
+                    Keine Diagnose-Informationen verfügbar
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Starten Sie den Scraper oder warten Sie auf Log-Daten für detaillierte Diagnose-Empfehlungen.
+                  </Typography>
+                </Paper>
+              )}
             </>
           )}
         </Box>

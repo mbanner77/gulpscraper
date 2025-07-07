@@ -155,6 +155,21 @@ export const getSessionLogs = async (sessionId) => {
   }
 };
 
+// Get comprehensive error analysis with diagnostic recommendations
+export const getErrorAnalysis = async (hoursBack = 24, sessionId = null) => {
+  try {
+    const params = { hours_back: hoursBack };
+    if (sessionId) {
+      params.session_id = sessionId;
+    }
+    const response = await api.get('/api/scraper-logs/error-analysis', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching error analysis:', error);
+    throw error;
+  }
+};
+
 // Mark projects as seen
 export const markProjectsAsSeen = async (projectIds) => {
   try {
@@ -299,6 +314,7 @@ export default {
   getScraperLogs,
   getLogStatus,
   getSessionLogs,
+  getErrorAnalysis,
   markProjectsAsSeen,
   getEmailConfig,
   setEmailConfig,
