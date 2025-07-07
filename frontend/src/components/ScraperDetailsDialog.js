@@ -266,9 +266,9 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
       
       // Fetch logs, status, and error analysis in parallel
       const [logsData, statusData, errorAnalysisData] = await Promise.all([
-        getScraperLogs(),
-        getLogStatus(),
-        getErrorAnalysis(24) // Last 24 hours
+        getScraperLogs().catch(err => ({ logs: [], count: 0, total_count: 0, stats: {} })),
+        getLogStatus().catch(err => ({ health_indicators: {}, system_metrics: {}, comprehensive_stats: {} })),
+        getErrorAnalysis(24).catch(err => ({ error_analysis: {}, diagnostic_recommendations: [], performance_issues: [], error_timeline: [] }))
       ]);
       
       const logsArray = Array.isArray(logsData) ? logsData : logsData.logs || [];
@@ -276,56 +276,56 @@ const ScraperDetailsDialog = ({ open, onClose }) => {
       setLogStatus(statusData);
       
       // Set current session if active
-      if (statusData.current_session && statusData.current_session.active) {
+      if (statusData?.current_session?.active) {
         setCurrentSession(statusData.current_session.session_id);
       }
       
-      // Extract unique session IDs for filter dropdown
+      // Extract unique session IDs for filter dropdown with null safety
       const uniqueSessions = [...new Set(
-        logsArray
-          .map(log => log.session_id)
-          .filter(id => id)
+        (logsArray || [])
+          .map(log => log?.session_id)
+          .filter(id => id && id !== null && id !== undefined)
       )];
       setAvailableSessions(uniqueSessions);
       
-      // Extract unique correlation IDs for filter dropdown
+      // Extract unique correlation IDs for filter dropdown with null safety
       const uniqueCorrelationIds = [...new Set(
-        logsArray
-          .map(log => log.correlation_id)
-          .filter(id => id)
+        (logsArray || [])
+          .map(log => log?.correlation_id)
+          .filter(id => id && id !== null && id !== undefined)
       )];
       setCorrelationIds(uniqueCorrelationIds);
       
-      // Calculate statistics
-      setStatistics(calculateStatistics(logsArray));
+      // Calculate statistics with null safety
+      setStatistics(calculateStatistics(logsArray || []));
       
-      // Process enhanced status data
-      if (statusData.comprehensive_statistics) {
+      // Process enhanced status data with null safety
+      if (statusData?.comprehensive_statistics) {
         setComprehensiveStats(statusData.comprehensive_statistics);
       }
       
-      if (statusData.health_indicators) {
+      if (statusData?.health_indicators) {
         setHealthIndicators(statusData.health_indicators);
       }
       
-      if (statusData.system_metrics) {
+      if (statusData?.system_metrics) {
         setSystemMetrics(statusData.system_metrics);
       }
       
-      // Process error analysis data
-      if (errorAnalysisData && errorAnalysisData.status === 'success') {
-        const analysis = errorAnalysisData.analysis;
-        setErrorAnalysis(analysis);
+      // Process error analysis data with null safety
+      if (errorAnalysisData && (errorAnalysisData.status === 'success' || errorAnalysisData.analysis)) {
+        const analysis = errorAnalysisData.analysis || errorAnalysisData;
+        setErrorAnalysis(analysis || {});
         
-        if (analysis.diagnostic_recommendations) {
+        if (analysis?.diagnostic_recommendations && Array.isArray(analysis.diagnostic_recommendations)) {
           setDiagnosticRecommendations(analysis.diagnostic_recommendations);
         }
         
-        if (analysis.performance_issues) {
+        if (analysis?.performance_issues && Array.isArray(analysis.performance_issues)) {
           setPerformanceIssues(analysis.performance_issues);
         }
         
-        if (analysis.error_timeline) {
+        if (analysis?.error_timeline && Array.isArray(analysis.error_timeline)) {
           setErrorTimeline(analysis.error_timeline);
         }
       }

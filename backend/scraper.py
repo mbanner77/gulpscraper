@@ -2307,6 +2307,10 @@ async def get_scraper_logs(
     }
     
     for log in filtered_logs:
+        # Skip None entries
+        if not log:
+            continue
+            
         # Event Type Statistiken
         event_type = log.get("event_type", "unknown")
         stats["entries_by_type"][event_type] = stats["entries_by_type"].get(event_type, 0) + 1
@@ -2316,7 +2320,7 @@ async def get_scraper_logs(
         stats["entries_by_level"][log_level] = stats["entries_by_level"].get(log_level, 0) + 1
         
         # Error Category Analyse
-        if log.get("data", {}).get("error_category"):
+        if log.get("data", {}) and log.get("data", {}).get("error_category"):
             category = log["data"]["error_category"]
             stats["error_categories"][category] = stats["error_categories"].get(category, 0) + 1
         
