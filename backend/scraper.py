@@ -580,7 +580,8 @@ USER_AGENT = (
     "Chrome/137.0.0.0 Safari/537.36"
 )
 
-API_RE = re.compile(r"/rest/internal/projects/search", re.I)
+# Match API calls for project data (updated for new GULP API structure)
+API_RE = re.compile(r'/rest/internal/projects/(search|jobs/search|detail|\d+)')
 PROJ_KEY_CANDIDATES = {"title", "jobTitle"}
 
 # Globale Variablen für den Scraper-Status
@@ -1163,27 +1164,52 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                                 
                                 # Diese Funktion wird später direkt aufgerufen
                                 async def process_api_response(resp):
-                                    if resp and hasattr(resp, 'url') and hasattr(resp, 'headers'):
-                                        if API_RE.search(resp.url) and "application/json" in resp.headers.get("content-type", ""):
-                                            try:
-                                                json_data = await resp.json()
-                                                captured.append((resp.url, json_data))
-                                                log_scraper_event(
-                                                    "info", 
-                                                    "Captured API response", 
-                                                    {"url": resp.url},
-                                                    correlation_id=correlation_id,
-                                                    tags=["api", "response_captured"]
-                                                )
-                                            except Exception as e:
-                                                log_scraper_event(
-                                                    "warning", 
-                                                    "Error capturing API response", 
+            # Log all network responses for debugging
+            if resp and hasattr(resp, 'url'):
+                log_scraper_event(
+                    "debug", 
+                    "Network response received", 
+                    {
+                        "url": resp.url,
+                        "status": getattr(resp, 'status', 'unknown'),
+                        "content_type": resp.headers.get("content-type", "unknown") if hasattr(resp, 'headers') else "unknown",
+                        "matches_api_pattern": bool(API_RE.search(resp.url)) if hasattr(resp, 'url') else False
+                    },
+                    correlation_id=correlation_id,
+                    tags=["network", "all_responses"]
+                )
+                
+                if hasattr(resp, 'headers') and API_RE.search(resp.url) and "application/json" in resp.headers.get("content-type", ""):
+                    try:
+                        json_data = await resp.json()
+                        captured.append((resp.url, json_data))
+                        log_scraper_event(
+                            "info", 
+                            "Captured API response", 
+                            {
+                                "url": resp.url,
+                                "data_keys": list(json_data.keys()) if isinstance(json_data, dict) else "not_dict"
+                            },
+                            correlation_id=correlation_id,
+                            tags=["api", "response_captured"]
+                        )
+                    except Exception as e:
+                        log_scraper_event(
+                            "warning", 
+                            "Error capturing API response", 
+                            {
+                                "url": resp.url,
+                                "error": str(e)
+                            },
+                            correlation_id=correlation_id,
+                            tags=["api", "response_capture_error", "warning"]
+                        )                            "Error capturing API response", 
                                                     {
                                                         "url": resp.url,
                                                         "error": str(e)
                                                     },
                                                     correlation_id=correlation_id,
+{{ ... }}
                                                     tags=["api", "response_capture_error", "warning"]
                                                 )
                                 
@@ -1320,18 +1346,42 @@ async def scrape_gulp(pages: range = PAGE_RANGE):
                                 
                                 # Scroll through the page to trigger lazy loading
                                 try:
-                                    # Scroll through the page to trigger lazy loading
+                                    # Log page loading attempt
                                     log_scraper_event(
                                         "info", 
-                                        f"Scrolling page {page_idx} to trigger lazy loading", 
+                                        f"Loading page {page_idx}", 
                                         {
-                                            "scroll_steps": SCROLL_STEPS,
-                                            "scroll_pause": SCROLL_PAUSE,
-                                            "collect_seconds": COLLECT_SECS
+                                            "page_number": page_idx,
+                                            "url": current_url,
+                                            "timeout_ms": 60000
                                         },
                                         correlation_id=correlation_id,
-                                        tags=["browser", "page_scrolling"]
+                                        tags=["scraper", "page_loading"]
                                     )
+                                    
+                                    # Test if page is reachable first
+                                    try:
+                                        import requests
+                                        test_response = requests.get(current_url, timeout=10)
+                                        log_scraper_event(
+                                            "info", 
+                                            "Page accessibility test", 
+                                            {
+                                                "status_code": test_response.status_code,
+                                                "content_length": len(test_response.content),
+                                                "headers": dict(test_response.headers)
+                                            },
+                                            correlation_id=correlation_id,
+                                            tags=["scraper", "connectivity_test"]
+                                        )
+                                    except Exception as connectivity_error:
+                                        log_scraper_event(
+                                            "warning", 
+                                            "Page connectivity test failed", 
+                                            {"error": str(connectivity_error)},
+                                            correlation_id=correlation_id,
+                                            tags=["scraper", "connectivity_error"]
+                                        )
                                 except Exception as scroll_log_error:
                                     log_scraper_event(
                                         "error", 

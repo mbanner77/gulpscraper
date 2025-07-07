@@ -1,124 +1,6 @@
 [
   {
     "event_type": "info",
-    "message": "Processing scraped projects",
-    "timestamp": "2025-06-24T10:00:49.244499",
-    "data": {
-      "total_projects_found": 60
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Browser resources released",
-    "timestamp": "2025-06-24T10:00:49.242379",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Browser closed successfully",
-    "timestamp": "2025-06-24T10:00:49.240549",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Browser context closed successfully",
-    "timestamp": "2025-06-24T10:00:49.186907",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Page closed successfully",
-    "timestamp": "2025-06-24T10:00:49.166391",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Projects extracted from page 3",
-    "timestamp": "2025-06-24T10:00:49.146782",
-    "data": {
-      "count": 20,
-      "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Captured API data from page 3",
-    "timestamp": "2025-06-24T10:00:49.145096",
-    "data": {
-      "feed_url": "https://www.gulp.de/gulp2/rest/internal/projects/search",
-      "debug_file": "data/debug/api_page3.json",
-      "response_size": 27510
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Scrolling page 3 to trigger lazy loading",
-    "timestamp": "2025-06-24T10:00:36.038234",
-    "data": {
-      "scroll_steps": 6,
-      "scroll_pause": 0.8,
-      "collect_seconds": 8
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Successfully navigated to page 3",
-    "timestamp": "2025-06-24T10:00:36.036762",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Navigating to page 3",
-    "timestamp": "2025-06-24T10:00:35.788355",
-    "data": {
-      "url": "https://www.gulp.de/gulp2/g/projekte?page=3"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Projects extracted from page 2",
-    "timestamp": "2025-06-24T10:00:35.785551",
-    "data": {
-      "count": 20,
-      "source": "https://www.gulp.de/gulp2/rest/internal/projects/search"
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Captured API data from page 2",
-    "timestamp": "2025-06-24T10:00:35.782495",
-    "data": {
-      "feed_url": "https://www.gulp.de/gulp2/rest/internal/projects/search",
-      "debug_file": "data/debug/api_page2.json",
-      "response_size": 26825
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Scrolling page 2 to trigger lazy loading",
-    "timestamp": "2025-06-24T10:00:22.611740",
-    "data": {
-      "scroll_steps": 6,
-      "scroll_pause": 0.8,
-      "collect_seconds": 8
-    }
-  },
-  {
-    "event_type": "info",
-    "message": "Successfully navigated to page 2",
-    "timestamp": "2025-06-24T10:00:22.609839",
-    "data": null
-  },
-  {
-    "event_type": "info",
-    "message": "Navigating to page 2",
-    "timestamp": "2025-06-24T10:00:22.303271",
-    "data": {
-      "url": "https://www.gulp.de/gulp2/g/projekte?page=2"
-    }
-  },
-  {
-    "event_type": "info",
     "message": "Projects extracted from page 1",
     "timestamp": "2025-06-24T10:00:22.301386",
     "data": {
@@ -2471,6 +2353,744 @@
         1.2021484375,
         2.92578125,
         3.6142578125
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-07T12:00:00Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Starting GULP scraper",
+    "data": {
+      "timestamp": "2025-07-07T12:00:00.005731+02:00",
+      "use_real_scraper": true,
+      "is_cloud_env": false,
+      "pages": [
+        1,
+        2,
+        3
+      ],
+      "correlation_id": "scrape-1751882400-a04a512b",
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 66.84,
+        "memory_vms_mb": 33347.48,
+        "memory_percent": 0.16318321228027344,
+        "num_threads": 1,
+        "create_time": 1751877950.096718
+      }
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 21240,
+    "correlation_id": "scrape-1751882400-a04a512b",
+    "session_id": null,
+    "tags": [
+      "scraper_start",
+      "gulp"
+    ],
+    "performance": {
+      "cpu_percent": 0.0,
+      "memory_usage": {
+        "rss_mb": 66.84,
+        "vms_mb": 33347.48
+      },
+      "system_load": [
+        4.58642578125,
+        3.75439453125,
+        3.5341796875
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-07T12:00:00Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Initializing browser configuration",
+    "data": {
+      "headless": true,
+      "timeout_ms": 45000,
+      "is_cloud_env": false,
+      "correlation_id": "scrape-1751882400-a04a512b",
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 66.84,
+        "memory_vms_mb": 33347.48,
+        "memory_percent": 0.16318321228027344,
+        "num_threads": 1,
+        "create_time": 1751877950.096718
+      }
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 21240,
+    "correlation_id": "scrape-1751882400-a04a512b",
+    "session_id": null,
+    "tags": [
+      "browser",
+      "configuration"
+    ],
+    "performance": {
+      "cpu_percent": 0.0,
+      "memory_usage": {
+        "rss_mb": 66.84,
+        "vms_mb": 33347.48
+      },
+      "system_load": [
+        4.58642578125,
+        3.75439453125,
+        3.5341796875
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-07T12:00:00Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Initialisiere Playwright",
+    "data": {
+      "headless": true,
+      "timeout": 45000,
+      "is_cloud_env": false,
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 66.84,
+        "memory_vms_mb": 33347.48,
+        "memory_percent": 0.16318321228027344,
+        "num_threads": 1,
+        "create_time": 1751877950.096718
+      }
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 21240,
+    "correlation_id": "scrape-1751882400-a04a512b",
+    "session_id": null,
+    "tags": [
+      "playwright",
+      "initialization"
+    ],
+    "performance": {
+      "cpu_percent": 0.1,
+      "memory_usage": {
+        "rss_mb": 66.84,
+        "vms_mb": 33347.48
+      },
+      "system_load": [
+        4.58642578125,
+        3.75439453125,
+        3.5341796875
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-07T12:00:00Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Scraper process completed, resetting flags",
+    "data": {
+      "correlation_id": "scrape-1751882400-a04a512b",
+      "is_scraping_reset": true,
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 66.84,
+        "memory_vms_mb": 33347.48,
+        "memory_percent": 0.16318321228027344,
+        "num_threads": 1,
+        "create_time": 1751877950.096718
+      }
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 21240,
+    "correlation_id": "scrape-1751882400-a04a512b",
+    "session_id": null,
+    "tags": [
+      "scraper_cleanup",
+      "process_completed"
+    ],
+    "performance": {
+      "cpu_percent": 0.0,
+      "memory_usage": {
+        "rss_mb": 66.84,
+        "vms_mb": 33347.48
+      },
+      "system_load": [
+        4.58642578125,
+        3.75439453125,
+        3.5341796875
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-07T12:00:00Z",
+    "event_type": "error",
+    "log_level": "ERROR",
+    "message": "Scraping completed but no results returned",
+    "data": {
+      "correlation_id": "scrape-1751882400-a04a512b",
+      "pages_attempted": [
+        1,
+        2,
+        3
+      ],
+      "use_real_scraper": true,
+      "is_cloud_env": false,
+      "reason": "No projects found or scraping process failed",
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 66.84,
+        "memory_vms_mb": 33347.48,
+        "memory_percent": 0.16318321228027344,
+        "num_threads": 1,
+        "create_time": 1751877950.096718
+      },
+      "system_info": {
+        "total_memory_gb": 40.0,
+        "available_memory_gb": 18.96,
+        "memory_usage_percent": 52.6,
+        "disk_usage_percent": 0.6,
+        "cpu_count": 4,
+        "load_average": [
+          4.58642578125,
+          3.75439453125,
+          3.5341796875
+        ]
+      },
+      "traceback": "No traceback available"
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 21240,
+    "correlation_id": "scrape-1751882400-a04a512b",
+    "session_id": null,
+    "tags": [
+      "scraper_error",
+      "empty_result",
+      "no_data"
+    ],
+    "performance": {
+      "cpu_percent": 0.0,
+      "memory_usage": {
+        "rss_mb": 66.84,
+        "vms_mb": 33347.48
+      },
+      "system_load": [
+        4.58642578125,
+        3.75439453125,
+        3.5341796875
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-07T14:00:00Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Starting GULP scraper",
+    "data": {
+      "timestamp": "2025-07-07T14:00:00.001055+02:00",
+      "use_real_scraper": true,
+      "is_cloud_env": false,
+      "pages": [
+        1,
+        2,
+        3
+      ],
+      "correlation_id": "scrape-1751889600-b55bd744",
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 25.93,
+        "memory_vms_mb": 33347.73,
+        "memory_percent": 0.06337165832519531,
+        "num_threads": 1,
+        "create_time": 1751877950.096718
+      }
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 21240,
+    "correlation_id": "scrape-1751889600-b55bd744",
+    "session_id": null,
+    "tags": [
+      "scraper_start",
+      "gulp"
+    ],
+    "performance": {
+      "cpu_percent": 0.0,
+      "memory_usage": {
+        "rss_mb": 25.96,
+        "vms_mb": 33347.73
+      },
+      "system_load": [
+        5.646484375,
+        5.841796875,
+        5.13916015625
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-07T14:00:00Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Initializing browser configuration",
+    "data": {
+      "headless": true,
+      "timeout_ms": 45000,
+      "is_cloud_env": false,
+      "correlation_id": "scrape-1751889600-b55bd744",
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 26.21,
+        "memory_vms_mb": 33347.73,
+        "memory_percent": 0.06398200988769531,
+        "num_threads": 1,
+        "create_time": 1751877950.096718
+      }
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 21240,
+    "correlation_id": "scrape-1751889600-b55bd744",
+    "session_id": null,
+    "tags": [
+      "browser",
+      "configuration"
+    ],
+    "performance": {
+      "cpu_percent": 0.1,
+      "memory_usage": {
+        "rss_mb": 26.21,
+        "vms_mb": 33347.73
+      },
+      "system_load": [
+        5.646484375,
+        5.841796875,
+        5.13916015625
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-07T14:00:00Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Initialisiere Playwright",
+    "data": {
+      "headless": true,
+      "timeout": 45000,
+      "is_cloud_env": false,
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 26.22,
+        "memory_vms_mb": 33347.73,
+        "memory_percent": 0.0640106201171875,
+        "num_threads": 1,
+        "create_time": 1751877950.096718
+      }
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 21240,
+    "correlation_id": "scrape-1751889600-b55bd744",
+    "session_id": null,
+    "tags": [
+      "playwright",
+      "initialization"
+    ],
+    "performance": {
+      "cpu_percent": 0.0,
+      "memory_usage": {
+        "rss_mb": 26.22,
+        "vms_mb": 33347.73
+      },
+      "system_load": [
+        5.646484375,
+        5.841796875,
+        5.13916015625
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-07T14:00:00Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Scraper process completed, resetting flags",
+    "data": {
+      "correlation_id": "scrape-1751889600-b55bd744",
+      "is_scraping_reset": true,
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 26.22,
+        "memory_vms_mb": 33347.73,
+        "memory_percent": 0.06402015686035156,
+        "num_threads": 1,
+        "create_time": 1751877950.096718
+      }
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 21240,
+    "correlation_id": "scrape-1751889600-b55bd744",
+    "session_id": null,
+    "tags": [
+      "scraper_cleanup",
+      "process_completed"
+    ],
+    "performance": {
+      "cpu_percent": 0.0,
+      "memory_usage": {
+        "rss_mb": 26.22,
+        "vms_mb": 33347.73
+      },
+      "system_load": [
+        5.646484375,
+        5.841796875,
+        5.13916015625
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-07T14:00:00Z",
+    "event_type": "error",
+    "log_level": "ERROR",
+    "message": "Scraping completed but no results returned",
+    "data": {
+      "correlation_id": "scrape-1751889600-b55bd744",
+      "pages_attempted": [
+        1,
+        2,
+        3
+      ],
+      "use_real_scraper": true,
+      "is_cloud_env": false,
+      "reason": "No projects found or scraping process failed",
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 26.22,
+        "memory_vms_mb": 33347.73,
+        "memory_percent": 0.06402015686035156,
+        "num_threads": 1,
+        "create_time": 1751877950.096718
+      },
+      "system_info": {
+        "total_memory_gb": 40.0,
+        "available_memory_gb": 17.12,
+        "memory_usage_percent": 57.2,
+        "disk_usage_percent": 0.6,
+        "cpu_count": 4,
+        "load_average": [
+          5.646484375,
+          5.841796875,
+          5.13916015625
+        ]
+      },
+      "traceback": "No traceback available"
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 21240,
+    "correlation_id": "scrape-1751889600-b55bd744",
+    "session_id": null,
+    "tags": [
+      "scraper_error",
+      "empty_result",
+      "no_data"
+    ],
+    "performance": {
+      "cpu_percent": 0.1,
+      "memory_usage": {
+        "rss_mb": 26.5,
+        "vms_mb": 33347.73
+      },
+      "system_load": [
+        5.646484375,
+        5.841796875,
+        5.13916015625
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-07T15:00:00Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Starting GULP scraper",
+    "data": {
+      "timestamp": "2025-07-07T15:00:00.003417+02:00",
+      "use_real_scraper": true,
+      "is_cloud_env": false,
+      "pages": [
+        1,
+        2,
+        3
+      ],
+      "correlation_id": "scrape-1751893200-f1948bd8",
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 26.93,
+        "memory_vms_mb": 33347.73,
+        "memory_percent": 0.06574630737304688,
+        "num_threads": 1,
+        "create_time": 1751877950.096718
+      }
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 21240,
+    "correlation_id": "scrape-1751893200-f1948bd8",
+    "session_id": null,
+    "tags": [
+      "scraper_start",
+      "gulp"
+    ],
+    "performance": {
+      "cpu_percent": 0.1,
+      "memory_usage": {
+        "rss_mb": 26.93,
+        "vms_mb": 33347.73
+      },
+      "system_load": [
+        3.04248046875,
+        2.74853515625,
+        2.478515625
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-07T15:00:00Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Initializing browser configuration",
+    "data": {
+      "headless": true,
+      "timeout_ms": 45000,
+      "is_cloud_env": false,
+      "correlation_id": "scrape-1751893200-f1948bd8",
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 26.93,
+        "memory_vms_mb": 33347.73,
+        "memory_percent": 0.06575584411621094,
+        "num_threads": 1,
+        "create_time": 1751877950.096718
+      }
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 21240,
+    "correlation_id": "scrape-1751893200-f1948bd8",
+    "session_id": null,
+    "tags": [
+      "browser",
+      "configuration"
+    ],
+    "performance": {
+      "cpu_percent": 0.1,
+      "memory_usage": {
+        "rss_mb": 26.93,
+        "vms_mb": 33347.73
+      },
+      "system_load": [
+        3.04248046875,
+        2.74853515625,
+        2.478515625
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-07T15:00:00Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Initialisiere Playwright",
+    "data": {
+      "headless": true,
+      "timeout": 45000,
+      "is_cloud_env": false,
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 26.93,
+        "memory_vms_mb": 33347.73,
+        "memory_percent": 0.06575584411621094,
+        "num_threads": 1,
+        "create_time": 1751877950.096718
+      }
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 21240,
+    "correlation_id": "scrape-1751893200-f1948bd8",
+    "session_id": null,
+    "tags": [
+      "playwright",
+      "initialization"
+    ],
+    "performance": {
+      "cpu_percent": 0.1,
+      "memory_usage": {
+        "rss_mb": 26.93,
+        "vms_mb": 33347.73
+      },
+      "system_load": [
+        3.04248046875,
+        2.74853515625,
+        2.478515625
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-07T15:00:00Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Scraper process completed, resetting flags",
+    "data": {
+      "correlation_id": "scrape-1751893200-f1948bd8",
+      "is_scraping_reset": true,
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 26.93,
+        "memory_vms_mb": 33347.73,
+        "memory_percent": 0.06575584411621094,
+        "num_threads": 1,
+        "create_time": 1751877950.096718
+      }
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 21240,
+    "correlation_id": "scrape-1751893200-f1948bd8",
+    "session_id": null,
+    "tags": [
+      "scraper_cleanup",
+      "process_completed"
+    ],
+    "performance": {
+      "cpu_percent": 0.1,
+      "memory_usage": {
+        "rss_mb": 26.93,
+        "vms_mb": 33347.73
+      },
+      "system_load": [
+        3.04248046875,
+        2.74853515625,
+        2.478515625
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-07T15:00:00Z",
+    "event_type": "error",
+    "log_level": "ERROR",
+    "message": "Scraping completed but no results returned",
+    "data": {
+      "correlation_id": "scrape-1751893200-f1948bd8",
+      "pages_attempted": [
+        1,
+        2,
+        3
+      ],
+      "use_real_scraper": true,
+      "is_cloud_env": false,
+      "reason": "No projects found or scraping process failed",
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 26.93,
+        "memory_vms_mb": 33347.73,
+        "memory_percent": 0.06575584411621094,
+        "num_threads": 1,
+        "create_time": 1751877950.096718
+      },
+      "system_info": {
+        "total_memory_gb": 40.0,
+        "available_memory_gb": 17.11,
+        "memory_usage_percent": 57.2,
+        "disk_usage_percent": 0.6,
+        "cpu_count": 4,
+        "load_average": [
+          3.04248046875,
+          2.74853515625,
+          2.478515625
+        ]
+      },
+      "traceback": "No traceback available"
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 21240,
+    "correlation_id": "scrape-1751893200-f1948bd8",
+    "session_id": null,
+    "tags": [
+      "scraper_error",
+      "empty_result",
+      "no_data"
+    ],
+    "performance": {
+      "cpu_percent": 0.1,
+      "memory_usage": {
+        "rss_mb": 26.93,
+        "vms_mb": 33347.73
+      },
+      "system_load": [
+        3.04248046875,
+        2.74853515625,
+        2.478515625
       ]
     }
   }
