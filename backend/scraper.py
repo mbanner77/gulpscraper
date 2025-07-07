@@ -230,6 +230,9 @@ def aggregate_log_statistics():
     """Erstellt aggregierte Statistiken aus den Log-Einträgen."""
     global scraper_logs
     
+    # Filter out None entries first
+    scraper_logs = [log for log in scraper_logs if log is not None and isinstance(log, dict)]
+    
     if not scraper_logs:
         return {}
     
@@ -253,6 +256,10 @@ def aggregate_log_statistics():
     cpu_values = []
     
     for log_entry in scraper_logs:
+        # Skip None entries
+        if not log_entry:
+            continue
+            
         # Event Type Statistiken
         event_type = log_entry.get("event_type", "unknown")
         stats["entries_by_type"][event_type] = stats["entries_by_type"].get(event_type, 0) + 1
@@ -2350,31 +2357,57 @@ async def get_scraper_logs(
 async def get_log_status():
     """Get detailed logging status for monitoring and debugging."""
     try:
+        # Clean up None entries from scraper_logs
+        global scraper_logs
+        scraper_logs = [log for log in scraper_logs if log is not None and isinstance(log, dict)]
+        
         log_file_exists = SCRAPER_LOGS_FILE.exists() if SCRAPER_LOGS_FILE else False
         log_file_size = SCRAPER_LOGS_FILE.stat().st_size if log_file_exists else 0
         
-        # Calculate recent activity
+        # Calculate recent activity with robust error handling
         now = datetime.datetime.now()
         recent_logs = []
-        if scraper_logs:
-            for log in scraper_logs[-10:]:  # Last 10 logs
-                try:
-                    log_time = datetime.datetime.fromisoformat(log.get("timestamp", "").replace('Z', '+00:00'))
-                    time_diff = (now - log_time).total_seconds()
-                    if time_diff < 300:  # Last 5 minutes
-                        recent_logs.append({
-                            "timestamp": log.get("timestamp"),
-                            "event_type": log.get("event_type"),
-                            "message": log.get("message")
-                        })
-                except Exception:
-                    pass  # Skip logs with invalid timestamps
+        try:
+            if scraper_logs:
+                for log in scraper_logs[-10:]:  # Last 10 logs
+                    # Skip None entries
+                    if not log or not isinstance(log, dict):
+                        continue
+                    try:
+                        timestamp = log.get("timestamp", "")
+                        if timestamp:
+                            log_time = datetime.datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                            time_diff = (now - log_time).total_seconds()
+                            if time_diff < 300:  # Last 5 minutes
+                                recent_logs.append({
+                                    "timestamp": timestamp,
+                                    "event_type": log.get("event_type", "unknown"),
+                                    "message": log.get("message", "")
+                                })
+                    except Exception as e:
+                        # Skip logs with invalid timestamps
+                        print(f"[ERROR] Error processing log entry: {e}")
+                        continue
+        except Exception as e:
+            print(f"[ERROR] Error processing recent logs: {e}")
+            recent_logs = []
         
-        # Generiere umfassende Statistiken
-        comprehensive_stats = aggregate_log_statistics()
+        # Generiere umfassende Statistiken mit Error-Handling
+        try:
+            comprehensive_stats = aggregate_log_statistics()
+        except Exception as e:
+            print(f"[ERROR] Error generating comprehensive stats: {e}")
+            comprehensive_stats = {}
         
-        # Unique Sessions für bessere Übersicht
-        unique_sessions = list(set(log.get("session_id") for log in scraper_logs if log.get("session_id")))
+        # Unique Sessions für bessere Übersicht mit robuster Behandlung
+        try:
+            unique_sessions = list(set(
+                log.get("session_id") for log in scraper_logs 
+                if log and isinstance(log, dict) and log.get("session_id")
+            ))
+        except Exception as e:
+            print(f"[ERROR] Error processing unique sessions: {e}")
+            unique_sessions = []
         
         # Health Check
         health_indicators = {
@@ -2405,6 +2438,27 @@ async def get_log_status():
         if comprehensive_stats.get("performance_summary", {}).get("avg_cpu_percent", 0) > 80:
             health_indicators["performance_health"] = "warning"
         
+        # Safe response generation with fallback values
+        try:
+            last_log_timestamp = None
+            if scraper_logs:
+                for log in reversed(scraper_logs):  # Start from the end
+                    if log and isinstance(log, dict) and log.get("timestamp"):
+                        last_log_timestamp = log.get("timestamp")
+                        break
+        except Exception:
+            last_log_timestamp = None
+        
+        try:
+            session_logs_count = 0
+            if current_scrape_session:
+                session_logs_count = len([
+                    log for log in scraper_logs 
+                    if log and isinstance(log, dict) and log.get("session_id") == current_scrape_session
+                ])
+        except Exception:
+            session_logs_count = 0
+            
         return {
             "status": "ok",
             "timestamp": datetime.datetime.now().isoformat(),
@@ -2412,15 +2466,15 @@ async def get_log_status():
                 "exists": log_file_exists,
                 "size_bytes": log_file_size,
                 "path": str(SCRAPER_LOGS_FILE) if SCRAPER_LOGS_FILE else None,
-                "total_logs": len(scraper_logs),
-                "memory_logs_count": len(scraper_logs),
+                "total_logs": len(scraper_logs) if scraper_logs else 0,
+                "memory_logs_count": len(scraper_logs) if scraper_logs else 0,
             },
-            "recent_activity": recent_logs,
+            "recent_activity": recent_logs or [],
             "environment": {
                 "is_cloud": IS_CLOUD_ENV,
                 "use_real_scraper": USE_REAL_SCRAPER,
                 "headless": HEADLESS,
-                "last_log_timestamp": scraper_logs[-1].get("timestamp") if scraper_logs else None,
+                "last_log_timestamp": last_log_timestamp,
             },
             "project_manager": {
                 "initialized": project_manager is not None,
@@ -2433,20 +2487,20 @@ async def get_log_status():
             "current_session": {
                 "active": current_scrape_session is not None,
                 "session_id": current_scrape_session,
-                "session_logs_count": len([log for log in scraper_logs if log.get("session_id") == current_scrape_session]) if current_scrape_session else 0
+                "session_logs_count": session_logs_count
             },
-            "comprehensive_statistics": comprehensive_stats,
+            "comprehensive_statistics": comprehensive_stats or {},
             "session_overview": {
-                "total_sessions": len(unique_sessions),
+                "total_sessions": len(unique_sessions) if unique_sessions else 0,
                 "active_session": current_scrape_session,
-                "recent_sessions": unique_sessions[-5:] if len(unique_sessions) > 5 else unique_sessions
+                "recent_sessions": unique_sessions[-5:] if unique_sessions and len(unique_sessions) > 5 else (unique_sessions or [])
             },
-            "health_indicators": health_indicators,
+            "health_indicators": health_indicators or {},
             "system_metrics": {
-                "error_rate_percent": round(error_rate, 2),
-                "total_critical_errors": comprehensive_stats.get("entries_by_type", {}).get("critical", 0),
-                "unique_error_categories": len(comprehensive_stats.get("error_categories", {})),
-                "diagnostic_insights": comprehensive_stats.get("diagnostic_insights", [])
+                "error_rate_percent": round(error_rate, 2) if 'error_rate' in locals() else 0,
+                "total_critical_errors": comprehensive_stats.get("entries_by_type", {}).get("critical", 0) if comprehensive_stats else 0,
+                "unique_error_categories": len(comprehensive_stats.get("error_categories", {})) if comprehensive_stats else 0,
+                "diagnostic_insights": comprehensive_stats.get("diagnostic_insights", []) if comprehensive_stats else []
             }
         }
     except Exception as e:
