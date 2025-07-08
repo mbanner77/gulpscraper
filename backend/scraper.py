@@ -763,12 +763,35 @@ def scrape_gulp(pages=[1], correlation_id=None):
             )
             
             # Run the async scraper function
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            # Prüfe, ob bereits ein Event Loop läuft (z.B. in FastAPI)
             try:
-                all_projects = loop.run_until_complete(scrape_gulp_real(correlation_id))
-            finally:
-                loop.close()
+                # Versuche, den aktuellen Loop zu bekommen
+                current_loop = asyncio.get_running_loop()
+                # Wenn ein Loop läuft, verwende asyncio.create_task in einem neuen Thread
+                import concurrent.futures
+                import threading
+                
+                def run_scraper_in_new_loop():
+                    new_loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(new_loop)
+                    try:
+                        return new_loop.run_until_complete(scrape_gulp_real(correlation_id))
+                    finally:
+                        new_loop.close()
+                
+                # Führe Scraper in separatem Thread aus
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(run_scraper_in_new_loop)
+                    all_projects = future.result(timeout=300)  # 5 Minuten Timeout
+                    
+            except RuntimeError:
+                # Kein Event Loop läuft, wir können einen neuen erstellen
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    all_projects = loop.run_until_complete(scrape_gulp_real(correlation_id))
+                finally:
+                    loop.close()
             
             if all_projects:
                 log_scraper_event(
@@ -2326,9 +2349,10 @@ async def trigger_scrape(
     sys.stdout.flush()
         
     # Convert the pages list to a range if provided
-    pages = PAGE_RANGE
     if request.pages:
-        pages = range(min(request.pages), max(request.pages) + 1)
+        pages = list(range(min(request.pages), max(request.pages) + 1))
+    else:
+        pages = list(PAGE_RANGE)
     
     # Aktiviere E-Mail-Benachrichtigung für diesen Scrape-Vorgang, wenn angefordert
     if request.send_email:
@@ -2372,13 +2396,15 @@ async def trigger_scrape(
         }, session_id=current_scrape_session)
         
         try:
-            projects = await scrape_gulp(pages)
+            # scrape_gulp ist NICHT async, also nicht mit await aufrufen
+            projects = scrape_gulp(pages)
             print(f"[MANUAL SCRAPE] Scraper abgeschlossen, {len(projects)} Projekte gefunden")
             log_scraper_event("success", "Echter Scraper abgeschlossen", {
                 "projects_count": len(projects),
                 "session_id": current_scrape_session
             }, session_id=current_scrape_session)
         except Exception as e:
+            import traceback  # Import hier hinzufügen
             error_msg = f"Fehler beim Ausführen des Scrapers: {str(e)}"
             print(f"[MANUAL SCRAPE ERROR] {error_msg}")
             print(f"[MANUAL SCRAPE ERROR] Full traceback: {traceback.format_exc()}")
@@ -2479,6 +2505,15 @@ async def trigger_scrape(
                 "success": False
             }
         )
+
+# Alias for /trigger-scrape endpoint for backward compatibility
+@app.post("/trigger-scrape")
+async def trigger_scrape_alias(
+    background_tasks: BackgroundTasks,
+    request: ScrapeRequest = ScrapeRequest()
+):
+    """Alias for the main scrape endpoint for backward compatibility."""
+    return await trigger_scrape(background_tasks, request)
 
 # Main Entry Point
 # ---------------------------------------------------------------------------
