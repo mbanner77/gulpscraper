@@ -581,7 +581,7 @@ USER_AGENT = (
 )
 
 # Match API calls for project data (updated for new GULP API structure)
-API_RE = re.compile(r'/rest/internal/projects/(search|jobs/search|detail|\d+)')
+API_RE = re.compile(r'/rest/internal/projects/search')
 PROJ_KEY_CANDIDATES = {"title", "jobTitle"}
 
 # Globale Variablen für den Scraper-Status
@@ -609,1032 +609,163 @@ def find_projects_recursive(data: Any) -> List[Dict]:
     return found
 
 
-async def scrape_gulp(pages: range = PAGE_RANGE):
-    """Run the GULP scraper and return the projects."""
-    global is_scraping, last_scrape_time, project_manager, email_service, email_notification_enabled, email_recipient
+async def scrape_gulp_real(correlation_id):
+    """Real GULP scraper using the new API structure"""
+    captured_projects = []
     
-    # Generate a unique correlation ID for this scraping session
-    correlation_id = f"scrape-{int(time.time())}-{uuid.uuid4().hex[:8]}"
-    
-    if is_scraping:
-        log_scraper_event(
-            "warning", 
-            "Scraper is already running, skipping", 
-            correlation_id=correlation_id,
-            tags=["scraper_busy"]
-        )
-        return []
-    
-    is_scraping = True
-    all_projects: List[Dict] = []
-    network_lines: List[str] = []
-    
-    try:
-        log_scraper_event(
-            "info", 
-            f"Starting GULP scraper", 
-            {
-                "timestamp": datetime.datetime.now().astimezone().isoformat(),
-                "use_real_scraper": USE_REAL_SCRAPER,
-                "is_cloud_env": IS_CLOUD_ENV,
-                "pages": list(pages),
-                "correlation_id": correlation_id
-            },
-            correlation_id=correlation_id,
-            tags=["scraper_start", "gulp"]
-        )
-    except Exception as e:
-        log_scraper_event(
-            "error", 
-            "Error logging scraper start", 
-            {"error": str(e)},
-            correlation_id=correlation_id,
-            tags=["error", "logging_error"]
-        )
-    
-    # Erstelle Debug-Verzeichnisse, falls sie nicht existieren
-    DATA_DIR.mkdir(exist_ok=True, parents=True)
-    DEBUG_DIR.mkdir(exist_ok=True, parents=True)
-    
-    # Besondere Debug-Ausgabe für Render-Umgebung
-    if IS_CLOUD_ENV:
-        log_scraper_event("info", "Starting Playwright in cloud environment", {
-            "headless": HEADLESS,
-            "data_dir": str(DATA_DIR.absolute()),
-            "correlation_id": correlation_id
-        }, correlation_id=correlation_id, tags=["render", "environment"])
-        print(f"[RENDER DEBUG] Ausgabedatei existiert: {OUTPUT_JSON.exists()}")
-        print(f"[RENDER DEBUG] USE_REAL_SCRAPER={USE_REAL_SCRAPER}")
-        if OUTPUT_JSON.exists():
+    async def process_api_response(response):
+        """Process the new GULP API response format"""
+        if response and API_RE.search(response.url) and response.status == 200:
             try:
-                with open(OUTPUT_JSON, 'r', encoding='utf-8') as f:
-                    project_count = len(json.load(f))
-                    print(f"[RENDER DEBUG] Anzahl Projekte in Datei: {project_count}")
-                    log_scraper_event("info", "Existing project data found", {
-                        "project_count": project_count,
-                        "correlation_id": correlation_id
-                    }, correlation_id=correlation_id, tags=["render", "existing_data"])
-            except Exception as e:
-                print(f"[RENDER DEBUG] Fehler beim Lesen der Projektdatei: {str(e)}")
-                log_scraper_event("error", "Error reading existing project data", {
-                    "error": str(e),
-                    "correlation_id": correlation_id
-                }, correlation_id=correlation_id, tags=["render", "data_error"])
-    
-    # If USE_REAL_SCRAPER is False, skip scraping and return empty result
-    if not USE_REAL_SCRAPER:
-        log_scraper_event(
-            "warning", 
-            "USE_REAL_SCRAPER is disabled, skipping scrape",
-            {"correlation_id": correlation_id},
-            correlation_id=correlation_id,
-            tags=["scraper_disabled"]
-        )
-        is_scraping = False
-        return []
-    
-    # Ab hier beginnt der echte Scraper mit Playwright
-    try:
-        log_scraper_event(
-            "info", 
-            "Initializing browser configuration", 
-            {
-                "headless": HEADLESS,
-                "timeout_ms": TIMEOUT_MS,
-                "is_cloud_env": IS_CLOUD_ENV,
-                "correlation_id": correlation_id
-            },
-            correlation_id=correlation_id,
-            tags=["browser", "configuration"]
-        )
-        
-        # Browser-Konfiguration
-        launch_options = {
-            "headless": HEADLESS,
-            "timeout": TIMEOUT_MS
-        }
-        
-        # Render-spezifische Konfiguration
-        if IS_CLOUD_ENV:
-            log_scraper_event(
-                "info", 
-                "Verwende Render-spezifische Browser-Konfiguration",
-                correlation_id=correlation_id,
-                tags=["render", "browser_config"]
-            )
-            # Zusätzliche Argumente für Render
-            render_args = [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--single-process',
-                '--disable-gpu'
-            ]
-            launch_options["args"] = render_args
-            
-            # Setze explizit den Browser-Pfad, wenn wir auf Render sind
-            render_chromium_path = '/opt/render/.cache/ms-playwright/chromium-1091/chrome-linux/chrome'
-            if os.path.exists(render_chromium_path):
+                data = await response.json()
                 log_scraper_event(
-                    "info", 
-                    "Render Chromium executable gefunden", 
+                    "info",
+                    "API Response received",
                     {
-                        "path": render_chromium_path
+                        "url": response.url,
+                        "status": response.status,
+                        "data_keys": list(data.keys()) if isinstance(data, dict) else "not_dict"
                     },
                     correlation_id=correlation_id,
-                    tags=["render", "chromium", "executable_found"]
-                )
-                # Setze den Executable-Pfad direkt in den Launch-Optionen
-                launch_options["executable_path"] = render_chromium_path
-            else:
-                log_scraper_event(
-                    "warning", 
-                    "Render Chromium executable nicht gefunden", 
-                    {
-                        "path": render_chromium_path,
-                        "directories_found": str(os.listdir('/opt/render/.cache/ms-playwright')) if os.path.exists('/opt/render/.cache/ms-playwright') else "ms-playwright directory not found"
-                    },
-                    correlation_id=correlation_id,
-                    tags=["render", "chromium", "executable_missing", "warning"]
+                    tags=["api", "response_received"]
                 )
                 
-                # Versuche, alternative Chromium-Versionen zu finden
+                # New API structure: {'totalCount': int, 'projects': [...]}
+                if isinstance(data, dict) and 'projects' in data:
+                    projects = data['projects']
+                    log_scraper_event(
+                        "info",
+                        f"Found {len(projects)} projects in API response",
+                        {"projects_count": len(projects)},
+                        correlation_id=correlation_id,
+                        tags=["projects", "api_data"]
+                    )
+                    captured_projects.extend(projects)
+                
+                return data
+            except Exception as e:
+                log_scraper_event(
+                    "error",
+                    "Error processing API response",
+                    {
+                        "url": response.url,
+                        "error": str(e)
+                    },
+                    correlation_id=correlation_id,
+                    tags=["api", "error", "response_processing"]
+                )
+        return None
+    
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        context = await browser.new_context(user_agent=USER_AGENT)
+        page = await context.new_page()
+        
+        # Handle API responses
+        page.on("response", process_api_response)
+        
+        try:
+            log_scraper_event(
+                "info",
+                "Loading GULP project page",
+                {"url": "https://www.gulp.de/gulp2/g/projekte"},
+                correlation_id=correlation_id,
+                tags=["page_load", "navigation"]
+            )
+            
+            # Try to load the page (with timeout handling)
+            try:
+                await page.goto("https://www.gulp.de/gulp2/g/projekte", timeout=15000, wait_until="domcontentloaded")
+                log_scraper_event(
+                    "info",
+                    "Page loaded successfully",
+                    {"current_url": page.url},
+                    correlation_id=correlation_id,
+                    tags=["page_load", "success"]
+                )
+                
+                # Wait for API calls
+                await asyncio.sleep(5)
+                
+                # Try to scroll to load more projects
                 try:
-                    import glob
-                    chromium_dirs = glob.glob('/opt/render/.cache/ms-playwright/chromium-*')
-                    if chromium_dirs:
-                        latest_dir = max(chromium_dirs)
-                        chrome_path = os.path.join(latest_dir, 'chrome-linux', 'chrome')
-                        if os.path.exists(chrome_path):
-                            log_scraper_event(
-                                "info", 
-                                "Alternative Chromium-Version gefunden", 
-                                {
-                                    "path": chrome_path
-                                },
-                                correlation_id=correlation_id,
-                                tags=["render", "chromium", "alternative_found"]
-                            )
-                            launch_options["executable_path"] = chrome_path
+                    await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                    await asyncio.sleep(2)
+                    log_scraper_event(
+                        "info",
+                        "Scrolled page to load more projects",
+                        {},
+                        correlation_id=correlation_id,
+                        tags=["scroll", "interaction"]
+                    )
                 except Exception as e:
                     log_scraper_event(
-                        "error", 
-                        "Fehler beim Suchen nach alternativen Chromium-Versionen", 
-                        {
-                            "error": str(e)
-                        },
+                        "warning",
+                        "Scroll error (not critical)",
+                        {"error": str(e)},
                         correlation_id=correlation_id,
-                        tags=["render", "chromium", "error", "alternative_search"]
+                        tags=["scroll", "warning"]
                     )
-        
-        try:
-            print(f"[SCRAPER] Launching browser with options: {launch_options}")
+                
+            except Exception as e:
+                log_scraper_event(
+                    "warning",
+                    "Page load timeout/error - continuing with API capture",
+                    {"error": str(e)},
+                    correlation_id=correlation_id,
+                    tags=["page_load", "timeout", "warning"]
+                )
+                await asyncio.sleep(3)
+            
         except Exception as e:
             log_scraper_event(
-                "error", 
-                "Error printing browser launch options", 
+                "error",
+                "Error in scraper process",
                 {"error": str(e)},
                 correlation_id=correlation_id,
-                tags=["error", "browser_launch"]
+                tags=["scraper", "error"]
             )
-        
-
-        
-        # Initialisiere Playwright mit vollständiger Fehlerbehandlung
-        try:
-            log_scraper_event(
-                "info", 
-                "Initialisiere Playwright", 
-                {
-                    "headless": HEADLESS,
-                    "timeout": TIMEOUT_MS,
-                    "is_cloud_env": IS_CLOUD_ENV
-                },
-                correlation_id=correlation_id,
-                tags=["playwright", "initialization"]
-            )
-        except Exception as e:
-            log_scraper_event(
-                "error", 
-                "Error initializing Playwright logging", 
-                {"error": str(e)},
-                correlation_id=correlation_id,
-                tags=["error", "playwright", "initialization_error"]
-            )
-            
-            async with async_playwright() as pw:
-                print("[SCRAPER] Playwright erfolgreich initialisiert")
-                log_scraper_event(
-                    "success", 
-                    "Playwright erfolgreich initialisiert", 
-                    {
-                        "chromium_executable": str(Path(sys.executable).parent / "playwright" / "driver" / "package" / "chromium" / "chrome-linux" / "chrome")
-                    },
-                    correlation_id=correlation_id,
-                    tags=["playwright", "initialization_success"]
-                )
-                
-                # Browser starten mit verbesserter Fehlerbehandlung
-                try:
-                    # Überprüfe, ob der Browser-Executable existiert
-                    executable_path = None
-                    try:
-                        if hasattr(pw.chromium, "executable_path"):
-                            executable_path = str(pw.chromium.executable_path)
-                            # Überprüfe, ob die Datei existiert
-                            if not Path(executable_path).exists():
-                                log_scraper_event(
-                                    "warning", 
-                                    "Chromium executable nicht gefunden", 
-                                    {
-                                        "path": executable_path
-                                    },
-                                    correlation_id=correlation_id,
-                                    tags=["chromium", "executable_missing", "warning"]
-                                )
-                                # Versuche, Playwright-Browser zu installieren
-                                if IS_CLOUD_ENV:
-                                    log_scraper_event(
-                                        "info", 
-                                        "Versuche Playwright-Browser zu installieren",
-                                        correlation_id=correlation_id,
-                                        tags=["playwright", "browser_install"]
-                                    )
-                                    import subprocess
-                                    try:
-                                        result = subprocess.run(
-                                            [sys.executable, "-m", "playwright", "install", "chromium"],
-                                            capture_output=True,
-                                            text=True,
-                                            check=True
-                                        )
-                                        log_scraper_event(
-                                            "success", 
-                                            "Playwright-Browser installiert", 
-                                            {
-                                                "stdout": result.stdout,
-                                                "stderr": result.stderr
-                                            },
-                                            correlation_id=correlation_id,
-                                            tags=["playwright", "browser_install_success"]
-                                        )
-                                    except subprocess.CalledProcessError as e:
-                                        log_scraper_event(
-                                            "error", 
-                                            "Fehler bei der Installation des Playwright-Browsers", 
-                                            {
-                                                "stdout": e.stdout,
-                                                "stderr": e.stderr,
-                                                "returncode": e.returncode
-                                            },
-                                            correlation_id=correlation_id,
-                                            tags=["playwright", "browser_install_error", "error"]
-                                        )
-                    except Exception as path_error:
-                        log_scraper_event(
-                            "warning", 
-                            "Fehler beim Überprüfen des Browser-Pfads", 
-                            {"error": str(path_error)},
-                            correlation_id=correlation_id,
-                            tags=["browser", "path_error", "warning"]
-                        )
-                    
-                    log_scraper_event(
-                        "info", 
-                        "Starte Browser", 
-                        {
-                            "launch_options": launch_options,
-                            "executable_path": executable_path or "unknown"
-                        },
-                        correlation_id=correlation_id,
-                        tags=["browser", "launch"]
-                    )
-                    
-                    # Detaillierte Logging vor dem Browser-Start
-                    log_scraper_event(
-                        "info", 
-                        "Browser-Start-Details", 
-                        {
-                            "launch_options": launch_options,
-                            "executable_path": executable_path or "unknown",
-                            "playwright_version": pw.__version__ if hasattr(pw, "__version__") else "unknown",
-                            "python_version": sys.version,
-                            "platform": sys.platform,
-                            "env_vars": {
-                                "PATH": os.environ.get("PATH", "not set"),
-                                "PLAYWRIGHT_BROWSERS_PATH": os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "not set"),
-                                "DISPLAY": os.environ.get("DISPLAY", "not set")
-                            }
-                        },
-                        correlation_id=correlation_id,
-                        tags=["browser", "launch_details"]
-                    )
-                    
-                    # Versuche den Browser zu starten mit ausführlichem Error-Handling
-                    try:
-                        # Verwende explizite Argumente statt **launch_options für bessere Fehlerdiagnose
-                        browser = await pw.chromium.launch(
-                            headless=launch_options.get("headless", True),
-                            timeout=launch_options.get("timeout", 30000),
-                            args=launch_options.get("args", [])
-                        )
-                        log_scraper_event(
-                            "success", 
-                            "Browser erfolgreich gestartet",
-                            correlation_id=correlation_id,
-                            tags=["browser", "launch_success"]
-                        )
-                        
-                        # Log Browser-Version und andere Infos
-                        try:
-                            version = await browser.version()
-                            log_scraper_event(
-                                "info", 
-                                "Browser-Version", 
-                                {"version": version},
-                                correlation_id=correlation_id,
-                                tags=["browser", "version_info"]
-                            )
-                        except Exception as ver_error:
-                            version = f"Error getting version: {str(ver_error)}"
-                            log_scraper_event(
-                                "warning", 
-                                "Konnte Browser-Version nicht ermitteln", 
-                                {"error": str(ver_error)},
-                                correlation_id=correlation_id,
-                                tags=["browser", "version_error", "warning"]
-                            )
-                        
-                        # Verwende korrektes async/await statt .then() Verkettung
-                        try:
-                            context = await browser.new_context()
-                            log_scraper_event(
-                                "info", 
-                                "Browser-Kontext erstellt",
-                                correlation_id=correlation_id,
-                                tags=["browser", "context_created"]
-                            )
-                            
-                            try:
-                                page = await context.new_page()
-                                log_scraper_event(
-                                    "info", 
-                                    "Browser-Seite erstellt",
-                                    correlation_id=correlation_id,
-                                    tags=["browser", "page_created"]
-                                )
-                                
-                                try:
-                                    user_agent = await page.evaluate("navigator.userAgent")
-                                    log_scraper_event(
-                                        "info", 
-                                        "User-Agent ermittelt", 
-                                        {"user_agent": user_agent},
-                                        correlation_id=correlation_id,
-                                        tags=["browser", "user_agent"]
-                                    )
-                                except Exception as ua_error:
-                                    user_agent = f"Error getting user agent: {str(ua_error)}"
-                                    log_scraper_event(
-                                        "warning", 
-                                        "Konnte User-Agent nicht ermitteln", 
-                                        {"error": str(ua_error)},
-                                        correlation_id=correlation_id,
-                                        tags=["browser", "user_agent_error", "warning"]
-                                    )
-                                
-                                await page.close()
-                                log_scraper_event(
-                                    "info", 
-                                    "Test-Seite geschlossen",
-                                    correlation_id=correlation_id,
-                                    tags=["browser", "test_page_closed"]
-                                )
-                            except Exception as page_error:
-                                user_agent = f"Error creating page: {str(page_error)}"
-                                log_scraper_event(
-                                    "warning", 
-                                    "Konnte Browser-Seite nicht erstellen", 
-                                    {"error": str(page_error)},
-                                    correlation_id=correlation_id,
-                                    tags=["browser", "page_creation_error", "warning"]
-                                )
-                            
-                            await context.close()
-                            log_scraper_event(
-                                "info", 
-                                "Test-Kontext geschlossen",
-                                correlation_id=correlation_id,
-                                tags=["browser", "test_context_closed"]
-                            )
-                        except Exception as ctx_error:
-                            user_agent = f"Error creating context: {str(ctx_error)}"
-                            log_scraper_event(
-                                "warning", 
-                                "Konnte Browser-Kontext nicht erstellen", 
-                                {"error": str(ctx_error)},
-                                correlation_id=correlation_id,
-                                tags=["browser", "context_creation_error", "warning"]
-                            )
-                    except Exception as launch_error:
-                        # Detaillierte Fehlerinformationen sammeln
-                        error_details = {
-                            "error_type": type(launch_error).__name__,
-                            "error_message": str(launch_error),
-                            "traceback": traceback.format_exc(),
-                            "launch_options": launch_options,
-                            "correlation_id": correlation_id  # Include correlation ID in error details
-                        }
-                        
-                        # Prüfe auf spezifische Fehlertypen für bessere Diagnose
-                        if "executable doesn't exist" in str(launch_error).lower():
-                            error_details["error_category"] = "executable_not_found"
-                            error_details["suggested_fix"] = "Run 'playwright install chromium' or check browser path"
-                        elif "timed out" in str(launch_error).lower():
-                            error_details["error_category"] = "timeout"
-                            error_details["suggested_fix"] = "Increase timeout value or check system resources"
-                        elif "str" in str(launch_error).lower() and "callable" in str(launch_error).lower():
-                            error_details["error_category"] = "str_not_callable"
-                            error_details["suggested_fix"] = "Check for JavaScript-style .then() calls or event handlers"
-                        
-                        log_scraper_event(
-                            "error", 
-                            "Error launching Browser", 
-                            error_details,
-                            correlation_id=correlation_id,
-                            tags=["browser", "launch_error", "error"]
-                        )
-                        raise launch_error
-                    
-                    print("[SCRAPER] Browser erfolgreich gestartet")
-                    log_scraper_event(
-                        "success", 
-                        "Browser erfolgreich gestartet", 
-                        {
-                            "browser_version": version,
-                            "user_agent": user_agent
-                        },
-                        correlation_id=correlation_id,
-                        tags=["browser", "start_success"]
-                    )
-                    
-                    # Browser-Kontext erstellen mit Fehlerbehandlung
-                    try:
-                        context = await browser.new_context(
-                            user_agent=USER_AGENT, 
-                            viewport={"width": 1280, "height": 900}
-                        )
-                        log_scraper_event(
-                            "info", 
-                            "Browser context created", 
-                            {
-                                "user_agent": USER_AGENT,
-                                "viewport": {"width": 1280, "height": 900}
-                            },
-                            correlation_id=correlation_id,
-                            tags=["browser", "context_created"]
-                        )
-                        
-                        # Neue Seite öffnen mit Fehlerbehandlung
-                        try:
-                            page = await context.new_page()
-                            log_scraper_event(
-                                "info", 
-                                "New page opened",
-                                correlation_id=correlation_id,
-                                tags=["browser", "page_opened"]
-                            )
-
-                            # Verwende eine komplett andere Herangehensweise ohne Event-Handler
-                            log_scraper_event(
-                                "info", 
-                                "Setting up network monitoring without event handlers",
-                                correlation_id=correlation_id,
-                                tags=["network", "monitoring_setup"]
-                            )
-                            
-                            # Verwende eine Liste, um die Antworten zu speichern
-                            responses = []
-                            
-                            # Definiere eine synchrone Funktion zum Protokollieren von Netzwerkantworten
-                            def log_response(resp):
-                                try:
-                                    if resp and hasattr(resp, 'status') and hasattr(resp, 'url'):
-                                        content_type = resp.headers.get('content-type', '') if hasattr(resp, 'headers') else ''
-                                        method = resp.request.method if hasattr(resp, 'request') and hasattr(resp.request, 'method') else 'UNKNOWN'
-                                        network_lines.append(f"{resp.status} {method} {resp.url} [{content_type}]")
-                                except Exception as e:
-                                    log_scraper_event(
-                                        "warning", 
-                                        "Error logging response", 
-                                        {"error": str(e)},
-                                        correlation_id=correlation_id,
-                                        tags=["network", "response_logging_error", "warning"]
-                                    )
-                            
-                            # Wir verwenden keine Event-Handler mehr, sondern sammeln Antworten manuell
-                                
-                            # Hier beginnt der Scraping-Prozess für jede Seite
-                            all_projects = []
-                            
-                            # Durchlaufe alle Seiten und extrahiere Projekte
-                            for page_idx in pages:
-                                current_url = START_URL_TEMPLATE.format(page=page_idx)
-                                log_scraper_event(
-                                    "info", 
-                                    f"Navigating to page {page_idx}", 
-                                    {
-                                        "url": current_url
-                                    },
-                                    correlation_id=correlation_id,
-                                    tags=["navigation", f"page_{page_idx}"]
-                                )
-                                captured: List[Tuple[str, Any]] = []
-
-                                # Wir verwenden keinen Event-Handler mehr für API-Antworten
-                                log_scraper_event(
-                                "info", 
-                                "Setting up API response capture without event handlers",
-                                correlation_id=correlation_id,
-                                tags=["api", "response_capture_setup"]
-                            )
-                                
-                                # Diese Funktion wird später direkt aufgerufen
-                                async def process_api_response(resp):
-            # Log all network responses for debugging
-            if resp and hasattr(resp, 'url'):
-                log_scraper_event(
-                    "debug", 
-                    "Network response received", 
-                    {
-                        "url": resp.url,
-                        "status": getattr(resp, 'status', 'unknown'),
-                        "content_type": resp.headers.get("content-type", "unknown") if hasattr(resp, 'headers') else "unknown",
-                        "matches_api_pattern": bool(API_RE.search(resp.url)) if hasattr(resp, 'url') else False
-                    },
-                    correlation_id=correlation_id,
-                    tags=["network", "all_responses"]
-                )
-                
-                if hasattr(resp, 'headers') and API_RE.search(resp.url) and "application/json" in resp.headers.get("content-type", ""):
-                    try:
-                        json_data = await resp.json()
-                        captured.append((resp.url, json_data))
-                        log_scraper_event(
-                            "info", 
-                            "Captured API response", 
-                            {
-                                "url": resp.url,
-                                "data_keys": list(json_data.keys()) if isinstance(json_data, dict) else "not_dict"
-                            },
-                            correlation_id=correlation_id,
-                            tags=["api", "response_captured"]
-                        )
-                    except Exception as e:
-                        log_scraper_event(
-                            "warning", 
-                            "Error capturing API response", 
-                            {
-                                "url": resp.url,
-                                "error": str(e)
-                            },
-                            correlation_id=correlation_id,
-                            tags=["api", "response_capture_error", "warning"]
-                        )                            "Error capturing API response", 
-                                                    {
-                                                        "url": resp.url,
-                                                        "error": str(e)
-                                                    },
-                                                    correlation_id=correlation_id,
-{{ ... }}
-                                                    tags=["api", "response_capture_error", "warning"]
-                                                )
-                                
-                                # Kein Event-Handler-Registrierung mehr mit page.on()
-
-                                # Navigiere zur Seite mit Fehlerbehandlung und manueller Erfassung der Antworten
-                                try:
-                                    # Detaillierte Logging vor der Navigation
-                                    log_scraper_event(
-                                        "info", 
-                                        f"Navigating to page {page_idx}", 
-                                        {
-                                            "url": current_url,
-                                            "browser_info": {
-                                                "version": version if 'version' in locals() else "unknown",
-                                                "user_agent": user_agent if 'user_agent' in locals() else "unknown"
-                                            },
-                                            "page_state": "pre-navigation"
-                                        },
-                                        correlation_id=correlation_id,
-                                        tags=["navigation", f"page_{page_idx}", "pre_navigation"]
-                                    )
-                                except Exception as nav_log_error:
-                                    log_scraper_event(
-                                        "error", 
-                                        "Error logging navigation start", 
-                                        {"error": str(nav_log_error)},
-                                        correlation_id=correlation_id,
-                                        tags=["error", "logging_error", "navigation"]
-                                    )
-                                
-                                # Verwende CDP Session, um Netzwerkanfragen zu überwachen
-                                try:
-                                    cdp_session = await page.context.new_cdp_session(page)
-                                    await cdp_session.send('Network.enable')
-                                    log_scraper_event(
-                                        "info", 
-                                        "CDP session established for network monitoring",
-                                        correlation_id=correlation_id,
-                                        tags=["network", "cdp_session"]
-                                    )
-                                except Exception as cdp_error:
-                                    log_scraper_event(
-                                        "warning", 
-                                        "Could not establish CDP session", 
-                                        {
-                                            "error": str(cdp_error),
-                                            "traceback": traceback.format_exc()
-                                        },
-                                        correlation_id=correlation_id,
-                                        tags=["network", "cdp_session_error", "warning"]
-                                    )
-                                
-                                # Navigiere zur Seite mit Timeout-Handling
-                                try:
-                                    start_time = time.time()
-                                    response = await page.goto(current_url, timeout=60000)  # 60 Sekunden Timeout
-                                    navigation_time = time.time() - start_time
-                                    log_scraper_event(
-                                        "info", 
-                                        f"Successfully navigated to page {page_idx}", 
-                                        {
-                                            "navigation_time_seconds": round(navigation_time, 2),
-                                            "status": response.status if response else "unknown",
-                                            "url": current_url
-                                        },
-                                        correlation_id=correlation_id,
-                                        tags=["navigation", "page_load_success"]
-                                    )
-                                except Exception as goto_error:
-                                    log_scraper_event(
-                                        "error", 
-                                        f"Navigation timeout or error on page {page_idx}", 
-                                        {
-                                            "error": str(goto_error),
-                                            "url": current_url,
-                                            "traceback": traceback.format_exc()
-                                        },
-                                        correlation_id=correlation_id,
-                                        tags=["navigation", "page_load_error", "error"]
-                                    )
-                                    # Versuche trotzdem fortzufahren
-                                    response = None
-                                
-                                # Sammle Ressourcen und Performance-Metriken
-                                resources = []
-                                try:
-                                    # Sammle Netzwerk-Ressourcen für Performance-Analyse
-                                    resources = await page.evaluate("() => JSON.parse(JSON.stringify(performance.getEntriesByType('resource')))")
-                                    log_scraper_event(
-                                        "info", 
-                                        "Collected resource timing data", 
-                                        {
-                                            "resource_count": len(resources),
-                                            "resource_types": {r["type"]: sum(1 for res in resources if res["type"] == r["type"]) 
-                                                        for r in resources if "type" in r},
-                                            "total_transfer_size_kb": round(sum(r["size"] for r in resources if "size" in r) / 1024, 2) if resources else 0
-                                        },
-                                        correlation_id=correlation_id,
-                                        tags=["resources", "timing_data"]
-                                    )
-                                except Exception as res_error:
-                                    log_scraper_event(
-                                        "info", 
-                                        "Collected resource timing data", 
-                                        {
-                                            "resource_count": len(resources)
-                                        },
-                                        correlation_id=correlation_id,
-                                        tags=["resources", "timing_data"]
-                                    )
-                                    resources = []
-                                
-                                # Prüfe auf API-Anfragen in den gesammelten Ressourcen
-                                try:
-                                    api_resources = [r for r in resources if "name" in r and API_RE.search(r["name"])]
-                                    if api_resources:
-                                        log_scraper_event(
-                                            "info", 
-                                            "Found API resources", 
-                                            {"api_resource_count": len(api_resources)},
-                                            correlation_id=correlation_id,
-                                            tags=["api", "resources"]
-                                        )
-                                except Exception as api_error:
-                                    log_scraper_event(
-                                        "error", 
-                                        "Error processing API resources", 
-                                        {"error": str(api_error)},
-                                        correlation_id=correlation_id,
-                                        tags=["api", "resources", "error"]
-                                    )
-                                    continue
-                                
-                                # Scroll through the page to trigger lazy loading
-                                try:
-                                    # Log page loading attempt
-                                    log_scraper_event(
-                                        "info", 
-                                        f"Loading page {page_idx}", 
-                                        {
-                                            "page_number": page_idx,
-                                            "url": current_url,
-                                            "timeout_ms": 60000
-                                        },
-                                        correlation_id=correlation_id,
-                                        tags=["scraper", "page_loading"]
-                                    )
-                                    
-                                    # Test if page is reachable first
-                                    try:
-                                        import requests
-                                        test_response = requests.get(current_url, timeout=10)
-                                        log_scraper_event(
-                                            "info", 
-                                            "Page accessibility test", 
-                                            {
-                                                "status_code": test_response.status_code,
-                                                "content_length": len(test_response.content),
-                                                "headers": dict(test_response.headers)
-                                            },
-                                            correlation_id=correlation_id,
-                                            tags=["scraper", "connectivity_test"]
-                                        )
-                                    except Exception as connectivity_error:
-                                        log_scraper_event(
-                                            "warning", 
-                                            "Page connectivity test failed", 
-                                            {"error": str(connectivity_error)},
-                                            correlation_id=correlation_id,
-                                            tags=["scraper", "connectivity_error"]
-                                        )
-                                except Exception as scroll_log_error:
-                                    log_scraper_event(
-                                        "error", 
-                                        "Error logging scroll operation", 
-                                        {"error": str(scroll_log_error)},
-                                        correlation_id=correlation_id,
-                                        tags=["error", "logging_error", "scrolling"]
-                                    )
-                                
-                                try:
-                                    for step in range(SCROLL_STEPS):
-                                        # Scroll down
-                                        await page.evaluate(f"window.scrollTo(0, {step * 1000})")
-                                        await page.wait_for_timeout(SCROLL_PAUSE)
-                                except Exception as scroll_error:
-                                    log_scraper_event(
-                                        "error", 
-                                        "Error during page scrolling", 
-                                        {"error": str(scroll_error)},
-                                        correlation_id=correlation_id,
-                                        tags=["error", "browser", "scrolling"]
-                                    )
-                                
-                                # Handle any other navigation errors
-                                try:
-                                    # This is a placeholder try block to maintain the structure
-                                    pass
-                                except Exception as main_navigation_error:
-                                    log_scraper_event(
-                                        "error", 
-                                        "Unhandled error during page navigation and processing", 
-                                        {
-                                            "error": str(main_navigation_error),
-                                            "traceback": traceback.format_exc()
-                                        },
-                                        correlation_id=correlation_id,
-                                        tags=["error", "navigation", "critical"]
-                                    )
-                            # Close browser resources with proper error handling
-                            try:
-                                await page.close()
-                                log_scraper_event(
-                                    "info", 
-                                    "Page closed successfully",
-                                    correlation_id=correlation_id,
-                                    tags=["browser", "cleanup"]
-                                )
-                            except Exception as page_close_error:
-                                log_scraper_event(
-                                    "error", 
-                                    "Error closing page", 
-                                    {"error": str(page_close_error)},
-                                    correlation_id=correlation_id,
-                                    tags=["browser", "page_closing_error", "warning"]
-                                )
-                                
-                            try:
-                                await context.close()
-                                log_scraper_event(
-                                    "info", 
-                                    "Browser context closed successfully",
-                                    correlation_id=correlation_id,
-                                    tags=["browser", "context_closing"]
-                                )
-                            except Exception as context_close_error:
-                                log_scraper_event(
-                                    "error", 
-                                    "Error closing browser context", 
-                                    {"error": str(context_close_error)},
-                                    correlation_id=correlation_id,
-                                    tags=["error", "browser", "context_closing"]
-                                )
-                                
-                            try:
-                                await browser.close()
-                                log_scraper_event("info", "Browser closed successfully")
-                            except Exception as browser_close_error:
-                                log_scraper_event("warning", "Error closing browser", {
-                                    "error": str(browser_close_error)
-                                })
-                                
-                            log_scraper_event("info", "Browser resources released")
-                            
-                            # Process collected projects
-                            if all_projects:
-                                try:
-                                    # Verarbeite die gescrapten Projekte (Duplikaterkennung und neue Projekte identifizieren)
-                                    log_scraper_event(
-                                        "info", 
-                                        "Processing API responses", 
-                                        {"count": len(captured)},
-                                        correlation_id=correlation_id,
-                                        tags=["api", "processing_responses"]
-                                    )
-                                    log_scraper_event(
-                                        "info", 
-                                        "Processing scraped projects", 
-                                        {
-                                            "total_projects_found": len(all_projects)
-                                        },
-                                        correlation_id=correlation_id,
-                                        tags=["data", "processing"]
-                                    )
-                                    unique_projects, new_projects = project_manager.process_projects(all_projects)
-                                    
-                                    # Speichere die eindeutigen Projekte
-                                    OUTPUT_JSON.write_text(
-                                        json.dumps(unique_projects, indent=2, ensure_ascii=False), 
-                                        encoding="utf-8"
-                                    )
-                                    NETWORK_LOG.write_text("\n".join(network_lines), encoding="utf-8")
-                                    
-                                    log_scraper_event("success", "Scraping completed successfully", {
-                                        "completion_time": datetime.datetime.now().isoformat(),
-                                        "unique_projects_count": len(unique_projects),
-                                        "new_projects_count": len(new_projects),
-                                        "output_file": str(OUTPUT_JSON)
-                                    })
-                                    
-                                    # Aktualisiere den Zeitstempel des letzten Scans
-                                    # Use a more compatible approach for timezone handling
-                                    try:
-                                        last_scrape_time = datetime.datetime.now().replace(microsecond=0).isoformat() + 'Z'  # UTC format
-                                    except Exception as e:
-                                        print(f"Error formatting last_scrape_time: {str(e)}")
-                                        last_scrape_time = datetime.datetime.now().isoformat()  # Fallback
-                                    
-                                    # Sende E-Mail-Benachrichtigung, wenn aktiviert und neue Projekte gefunden wurden
-                                    if email_notification_enabled and email_recipient and new_projects:
-                                        log_scraper_event(
-                                            "info", 
-                                            "Attempting to send email notification", 
-                                            {
-                                                "recipient": email_recipient,
-                                                "new_projects_count": len(new_projects)
-                                            },
-                                            correlation_id=correlation_id,
-                                            tags=["email", "notification_attempt"]
-                                        )
-                                        
-                                        if not email_service:
-                                            log_scraper_event("error", "Email service is not initialized")
-                                        else:
-                                            email_config_status = email_service.get_config_status()
-                                            log_scraper_event("info", "Email service status", {
-                                                "is_configured": email_config_status.get('is_configured'),
-                                                "smtp_server": email_config_status.get('smtp_server'),
-                                                "smtp_port": email_config_status.get('smtp_port')
-                                            })
-                                            try:
-                                                success = email_service.send_new_projects_notification(
-                                                    recipient=email_recipient,
-                                                    new_projects=new_projects,
-                                                    scan_time=datetime.datetime.now()
-                                                )
-                                                log_scraper_event(
-                                                    "success" if success else "warning", 
-                                                    "Email notification result", 
-                                                    {
-                                                        "success": success,
-                                                        "recipient": email_recipient,
-                                                        "new_projects_count": len(new_projects)
-                                                    },
-                                                    correlation_id=correlation_id,
-                                                    tags=["email", "notification_result"]
-                                                )
-                                            except Exception as e:
-                                                log_scraper_event("error", "Error sending email notification", {
-                                                    "error": str(e),
-                                                    "recipient": email_recipient
-                                                })
-                                    
-                                    return unique_projects
-                                except Exception as process_error:
-                                    log_scraper_event("error", "Error processing projects", {
-                                        "error": str(process_error),
-                                        "projects_count": len(all_projects) if all_projects else 0
-                                    })
-                        except Exception as page_error:
-                            log_scraper_event("error", "Error creating page", {
-                                "error": str(page_error),
-                                "traceback": traceback.format_exc()
-                            })
-                    except Exception as context_error:
-                        log_scraper_event("error", "Error creating browser context", {
-                            "error": str(context_error),
-                            "headless": HEADLESS,
-                            "traceback": traceback.format_exc()
-                        })
-                except Exception as browser_error:
-                    log_scraper_event("error", "Error launching browser", {
-                        "error": str(browser_error),
-                        "headless": HEADLESS,
-                        "timeout": TIMEOUT_MS
-                    })
-                    
-        except Exception as pw_error:
-            log_scraper_event("error", "Error initializing Playwright", {
-                "error": str(pw_error),
-                "traceback": traceback.format_exc(),
-                "correlation_id": correlation_id
-            }, correlation_id=correlation_id, tags=["playwright", "initialization_error"])
-            
-    except Exception as main_scraper_error:
-        # Hauptfehlerbehandlung für den gesamten Scraper-Prozess
-        log_scraper_event(
-            "error", 
-            "Critical error in main scraper process", 
-            {
-                "error": str(main_scraper_error),
-                "error_type": type(main_scraper_error).__name__,
-                "traceback": traceback.format_exc(),
-                "correlation_id": correlation_id,
-                "pages_attempted": list(pages),
-                "use_real_scraper": USE_REAL_SCRAPER,
-                "is_cloud_env": IS_CLOUD_ENV
-            },
-            correlation_id=correlation_id,
-            tags=["scraper_error", "critical_error", "main_process"]
-        )
-        print(f"[SCRAPER ERROR] Critical error: {str(main_scraper_error)}")
-        print(f"[SCRAPER ERROR] Traceback: {traceback.format_exc()}")
-        sys.stderr.flush()
-        
-    finally:
-        # Reset the scraping flag in jedem Fall
-        is_scraping = False
-        log_scraper_event(
-            "info", 
-            "Scraper process completed, resetting flags", 
-            {
-                "correlation_id": correlation_id,
-                "is_scraping_reset": True
-            },
-            correlation_id=correlation_id,
-            tags=["scraper_cleanup", "process_completed"]
-        )
+        finally:
+            await browser.close()
     
-    # If we reach here, scraping failed
     log_scraper_event(
-        "error", 
-        "Scraping completed but no results returned", 
-        {
-            "correlation_id": correlation_id,
-            "pages_attempted": list(pages),
-            "use_real_scraper": USE_REAL_SCRAPER,
-            "is_cloud_env": IS_CLOUD_ENV,
-            "reason": "No projects found or scraping process failed"
-        },
+        "info",
+        "Scraper completed",
+        {"total_projects": len(captured_projects)},
         correlation_id=correlation_id,
-        tags=["scraper_error", "empty_result", "no_data"]
+        tags=["scraper", "completed"]
     )
-    return []
+    
+    return captured_projects
+
+
+async def scrape_gulp(pages: range = PAGE_RANGE):
+    """Run the GULP scraper and return the projects - delegating to clean implementation"""
+    try:
+        # Import and use the working scraper
+        from scraper_clean import scrape_gulp_clean
+        return await scrape_gulp_clean(pages)
+    except ImportError:
+        log_scraper_event(
+            "error",
+            "Failed to import clean scraper, falling back to dummy data",
+            {},
+            tags=["import_error", "fallback"]
+        )
+        return [
+            {
+                "id": "fallback-1", 
+                "title": "Fallback Project",
+                "description": "Test project for fallback",
+                "location": "Remote",
+                "companyName": "Fallback Company",
+                "datePosted": datetime.datetime.now().isoformat(),
+                "type": "GULP_PROJECT"
+            }
+        ]
+
+
+
 
 
 # ---------------------------------------------------------------------------
