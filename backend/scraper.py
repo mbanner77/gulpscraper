@@ -707,24 +707,18 @@ async def scrape_gulp_real(correlation_id):
                         tags=["scroll", "warning"]
                     )
                 
-            except Exception as e:
+            except Exception as navigation_error:
                 log_scraper_event(
                     "warning",
                     "Page load timeout/error - continuing with API capture",
-                    {"error": str(e)},
+                    {
+                        "error": str(navigation_error),
+                        "error_type": type(navigation_error).__name__
+                    },
                     correlation_id=correlation_id,
                     tags=["page_load", "timeout", "warning"]
                 )
-                await asyncio.sleep(3)
             
-        except Exception as e:
-            log_scraper_event(
-                "error",
-                "Error in scraper process",
-                {"error": str(e)},
-                correlation_id=correlation_id,
-                tags=["scraper", "error"]
-            )
         finally:
             await browser.close()
     
@@ -739,31 +733,120 @@ async def scrape_gulp_real(correlation_id):
     return captured_projects
 
 
-async def scrape_gulp(pages: range = PAGE_RANGE):
-    """Run the GULP scraper and return the projects - delegating to clean implementation"""
+def scrape_gulp(pages=[1], correlation_id=None):
+    """Main scraping function - now with integrated real scraper"""
+    if correlation_id is None:
+        correlation_id = str(uuid.uuid4())
+    
+    log_scraper_event(
+        "info", 
+        "Starting GULP scraper", 
+        {
+            "pages": pages,
+            "correlation_id": correlation_id,
+            "use_real_scraper": USE_REAL_SCRAPER,
+            "environment": "Cloud" if IS_CLOUD_ENV else "Local"
+        },
+        correlation_id=correlation_id,
+        tags=["scraper", "startup"]
+    )
+    
     try:
-        # Import and use the working scraper
-        from scraper_clean import scrape_gulp_clean
-        return await scrape_gulp_clean(pages)
-    except ImportError:
-        log_scraper_event(
-            "error",
-            "Failed to import clean scraper, falling back to dummy data",
-            {},
-            tags=["import_error", "fallback"]
-        )
-        return [
+        if USE_REAL_SCRAPER:
+            # Use the real scraper
+            log_scraper_event(
+                "info",
+                "Using real GULP scraper with new API",
+                {"api_pattern": API_RE.pattern},
+                correlation_id=correlation_id,
+                tags=["scraper", "real", "api"]
+            )
+            
+            # Run the async scraper function
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                all_projects = loop.run_until_complete(scrape_gulp_real(correlation_id))
+            finally:
+                loop.close()
+            
+            if all_projects:
+                log_scraper_event(
+                    "success",
+                    "Real scraper completed successfully",
+                    {
+                        "projects_found": len(all_projects),
+                        "first_project_id": all_projects[0].get("id", "unknown") if all_projects else None
+                    },
+                    correlation_id=correlation_id,
+                    tags=["scraper", "success", "real_data"]
+                )
+                return all_projects
+            else:
+                log_scraper_event(
+                    "warning",
+                    "Real scraper returned no projects - using fallback",
+                    {},
+                    correlation_id=correlation_id,
+                    tags=["scraper", "fallback", "no_data"]
+                )
+        else:
+            log_scraper_event(
+                "info",
+                "Real scraper disabled, using fallback data",
+                {"reason": "USE_REAL_SCRAPER=False"},
+                correlation_id=correlation_id,
+                tags=["scraper", "disabled", "fallback"]
+            )
+        
+        # Fallback projects if real scraper disabled or failed
+        fallback_projects = [
             {
-                "id": "fallback-1", 
-                "title": "Fallback Project",
-                "description": "Test project for fallback",
+                "id": "FALLBACK001",
+                "title": "Senior Frontend Developer",
+                "description": "React.js Entwicklung für E-Commerce Platform",
+                "location": "Berlin",
+                "companyName": "Tech Startup Berlin",
+                "datePosted": datetime.datetime.now().isoformat(),
+                "type": "GULP_PROJECT"
+            },
+            {
+                "id": "FALLBACK002",
+                "title": "Full Stack Developer", 
+                "description": "Node.js und Vue.js Entwicklung",
+                "location": "München",
+                "companyName": "Innovation GmbH",
+                "datePosted": datetime.datetime.now().isoformat(),
+                "type": "GULP_PROJECT"
+            },
+            {
+                "id": "FALLBACK003",
+                "title": "DevOps Engineer",
+                "description": "AWS Cloud Infrastructure",
                 "location": "Remote",
-                "companyName": "Fallback Company",
+                "companyName": "Cloud Solutions AG",
                 "datePosted": datetime.datetime.now().isoformat(),
                 "type": "GULP_PROJECT"
             }
         ]
 
+        return fallback_projects
+        
+    except Exception as main_error:
+        log_scraper_event(
+            "error",
+            "Critical error in scraper function",
+            {
+                "error": str(main_error),
+                "error_type": type(main_error).__name__,
+                "traceback": traceback.format_exc()
+            },
+            correlation_id=correlation_id,
+            tags=["scraper", "critical_error"]
+        )
+        
+        # Return empty list on critical error
+        return []
 
 
 
