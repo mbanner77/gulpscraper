@@ -610,11 +610,84 @@ def find_projects_recursive(data: Any) -> List[Dict]:
 
 
 async def scrape_gulp_real(correlation_id):
-    """Real GULP scraper using the new API structure"""
+    """Real scraper using the new GULP API with Playwright"""
     captured_projects = []
     
+    # Check if we're in a cloud environment where Playwright might not work
+    if IS_CLOUD_ENV:
+        log_scraper_event(
+            "warning",
+            "Cloud environment detected - Playwright may not be available",
+            {"environment": "cloud", "render_detected": True},
+            correlation_id=correlation_id
+        )
+        
+        # Try to use a lightweight fallback approach for cloud environments
+        try:
+            import requests
+            import json
+            
+            log_scraper_event(
+                "info",
+                "Using fallback HTTP scraper for cloud environment",
+                {},
+                correlation_id=correlation_id
+            )
+            
+            # Fallback: Direct API call (if possible)
+            headers = {
+                'User-Agent': USER_AGENT,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+            
+            # Try direct API access (this might not work due to CORS/auth)
+            try:
+                response = requests.post(
+                    'https://www.gulp.de/gulp2/rest/internal/projects/search',
+                    headers=headers,
+                    json={},
+                    timeout=30
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    if 'projects' in data:
+                        captured_projects = data['projects']
+                        log_scraper_event(
+                            "success",
+                            "Fallback API call successful",
+                            {"projects_found": len(captured_projects)},
+                            correlation_id=correlation_id
+                        )
+                        return captured_projects
+            except Exception as api_error:
+                log_scraper_event(
+                    "warning",
+                    "Direct API fallback failed",
+                    {"error": str(api_error)},
+                    correlation_id=correlation_id
+                )
+            
+            # If direct API fails, return empty list with warning
+            log_scraper_event(
+                "warning",
+                "Cloud environment scraping not available - returning empty results",
+                {"reason": "playwright_unavailable_in_cloud"},
+                correlation_id=correlation_id
+            )
+            return []
+            
+        except ImportError:
+            log_scraper_event(
+                "error",
+                "Fallback dependencies not available",
+                {},
+                correlation_id=correlation_id
+            )
+            return []
+    
+    # Original Playwright implementation for local/compatible environments
     async def process_api_response(response):
-        """Process the new GULP API response format"""
         if response and API_RE.search(response.url) and response.status == 200:
             try:
                 data = await response.json()
@@ -626,108 +699,94 @@ async def scrape_gulp_real(correlation_id):
                         "status": response.status,
                         "data_keys": list(data.keys()) if isinstance(data, dict) else "not_dict"
                     },
-                    correlation_id=correlation_id,
-                    tags=["api", "response_received"]
+                    correlation_id=correlation_id
                 )
                 
-                # New API structure: {'totalCount': int, 'projects': [...]}
-                if isinstance(data, dict) and 'projects' in data:
+                # Check for projects in response
+                if 'projects' in data:
                     projects = data['projects']
-                    log_scraper_event(
-                        "info",
-                        f"Found {len(projects)} projects in API response",
-                        {"projects_count": len(projects)},
-                        correlation_id=correlation_id,
-                        tags=["projects", "api_data"]
-                    )
                     captured_projects.extend(projects)
-                
+                    log_scraper_event(
+                        "success",
+                        f"Captured {len(projects)} projects from API",
+                        {"total_captured": len(captured_projects)},
+                        correlation_id=correlation_id
+                    )
                 return data
             except Exception as e:
                 log_scraper_event(
                     "error",
                     "Error processing API response",
-                    {
-                        "url": response.url,
-                        "error": str(e)
-                    },
-                    correlation_id=correlation_id,
-                    tags=["api", "error", "response_processing"]
+                    {"error": str(e), "url": response.url},
+                    correlation_id=correlation_id
                 )
         return None
     
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(user_agent=USER_AGENT)
-        page = await context.new_page()
-        
-        # Handle API responses
-        page.on("response", process_api_response)
-        
-        try:
-            log_scraper_event(
-                "info",
-                "Loading GULP project page",
-                {"url": "https://www.gulp.de/gulp2/g/projekte"},
-                correlation_id=correlation_id,
-                tags=["page_load", "navigation"]
-            )
+    try:
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            context = await browser.new_context(user_agent=USER_AGENT)
+            page = await context.new_page()
             
-            # Try to load the page (with timeout handling)
+            # Set up API response handler
+            page.on("response", process_api_response)
+            
             try:
-                await page.goto("https://www.gulp.de/gulp2/g/projekte", timeout=15000, wait_until="domcontentloaded")
+                # Navigate to the projects page
                 log_scraper_event(
                     "info",
-                    "Page loaded successfully",
-                    {"current_url": page.url},
-                    correlation_id=correlation_id,
-                    tags=["page_load", "success"]
+                    "Starting page navigation",
+                    {"url": "https://www.gulp.de/gulp2/g/projekte"},
+                    correlation_id=correlation_id
                 )
                 
-                # Wait for API calls
+                await page.goto(
+                    "https://www.gulp.de/gulp2/g/projekte",
+                    timeout=15000,
+                    wait_until="domcontentloaded"
+                )
+                
+                # Wait for initial load
                 await asyncio.sleep(5)
                 
-                # Try to scroll to load more projects
-                try:
-                    await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                    await asyncio.sleep(2)
-                    log_scraper_event(
-                        "info",
-                        "Scrolled page to load more projects",
-                        {},
-                        correlation_id=correlation_id,
-                        tags=["scroll", "interaction"]
-                    )
-                except Exception as e:
-                    log_scraper_event(
-                        "warning",
-                        "Scroll error (not critical)",
-                        {"error": str(e)},
-                        correlation_id=correlation_id,
-                        tags=["scroll", "warning"]
-                    )
+                # Scroll to trigger API calls
+                await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                await asyncio.sleep(2)
                 
-            except Exception as navigation_error:
+                log_scraper_event(
+                    "info",
+                    "Page interaction completed",
+                    {"captured_projects": len(captured_projects)},
+                    correlation_id=correlation_id
+                )
+                
+            except Exception as e:
                 log_scraper_event(
                     "warning",
                     "Page load timeout/error - continuing with API capture",
-                    {
-                        "error": str(navigation_error),
-                        "error_type": type(navigation_error).__name__
-                    },
-                    correlation_id=correlation_id,
-                    tags=["page_load", "timeout", "warning"]
+                    {"error": str(e), "captured_projects": len(captured_projects)},
+                    correlation_id=correlation_id
                 )
-            
-        finally:
-            await browser.close()
+                
+            finally:
+                await browser.close()
+                
+    except Exception as playwright_error:
+        log_scraper_event(
+            "error",
+            "Playwright initialization failed",
+            {"error": str(playwright_error)},
+            correlation_id=correlation_id
+        )
+        
+        # If Playwright fails completely, return empty list
+        return []
     
     log_scraper_event(
         "info",
         "Scraper completed",
         {"total_projects": len(captured_projects)},
-        correlation_id=correlation_id,
-        tags=["scraper", "completed"]
+        correlation_id=correlation_id
     )
     
     return captured_projects
