@@ -85,8 +85,14 @@ app.add_middleware(
 # Importiere die E-Mail-Test-Route
 from email_test_route import router as email_router
 
+# Importiere die Document-Routen
+from document_routes import router as document_router
+
 # Registriere die E-Mail-Test-Route
 app.include_router(email_router, prefix="/api/email", tags=["email"])
+
+# Registriere die Document-Routen
+app.include_router(document_router, prefix="/documents", tags=["documents"])
 
 # Globale Variablen für Dienste
 email_service = None
