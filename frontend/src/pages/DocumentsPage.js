@@ -75,28 +75,60 @@ const DocumentsPage = () => {
   
   // Check document service health first
   const checkDocumentHealth = async () => {
+    setLoading(true);
+    setError(null);
+    
     try {
+      console.log('[DOCUMENTS] Attempting health check at /documents/health');
+      
       const response = await fetch('/documents/health');
+      console.log('[DOCUMENTS] Health check response status:', response.status);
+      
+      if (!response.ok) {
+        console.error('[DOCUMENTS] Health check failed with status:', response.status);
+        
+        if (response.status === 404) {
+          setError('Document routes not found. The document functionality is not available in this deployment.');
+        } else if (response.status === 500) {
+          setError('Document service internal error. Please check server logs.');
+        } else {
+          setError(`Document service returned error ${response.status}. Please try again later.`);
+        }
+        return;
+      }
+      
       const healthData = await response.json();
+      console.log('[DOCUMENTS] Health check data:', healthData);
       
-      console.log('[DOCUMENTS] Health check:', healthData);
-      
-      if (!response.ok || healthData.status === 'error') {
-        setError(`Document service unavailable: ${healthData.error || 'Service not responding'}`);
+      if (healthData.status === 'error') {
+        setError(`Document service error: ${healthData.error || 'Unknown error'}`);
         return;
       }
       
       if (!healthData.document_analyzer_initialized) {
-        setError('Document analyzer not initialized on server');
+        setError('Document analyzer not initialized on server. The document processing backend may not be ready.');
         return;
       }
       
+      if (!healthData.docx_available) {
+        setError('Document processing dependencies not available. Word document support is disabled.');
+        return;
+      }
+      
+      console.log('[DOCUMENTS] Health check passed, fetching documents');
       // If health check passes, fetch documents
-      fetchDocuments();
+      await fetchDocuments();
       
     } catch (err) {
-      console.error('Error checking document health:', err);
-      setError('Failed to connect to document service. The document functionality may not be available on this deployment.');
+      console.error('[DOCUMENTS] Error during health check:', err);
+      
+      if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
+        setError('Cannot connect to document service. This could mean: 1) Backend server is not running, 2) Network connection issue, or 3) Document functionality is not available in this deployment.');
+      } else {
+        setError(`Document service connection failed: ${err.message}. The document functionality may not be available.`);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
