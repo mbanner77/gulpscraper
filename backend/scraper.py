@@ -102,6 +102,74 @@ except ImportError as e:
 email_service = None
 project_manager = None
 
+# Global Health Check Endpoint
+@app.get("/health")
+async def health_check():
+    """Global health check endpoint for the entire application."""
+    import sys
+    from datetime import datetime
+    from fastapi.responses import JSONResponse
+    
+    try:
+        print("[HEALTH] Global health check called")
+        sys.stdout.flush()
+        
+        # Check document routes availability
+        document_routes_available = False
+        document_analyzer_initialized = False
+        
+        try:
+            import document_routes
+            document_routes_available = True
+            document_analyzer_initialized = document_routes.document_analyzer is not None
+        except ImportError:
+            pass
+        
+        # Check email service
+        email_service_configured = False
+        if email_service:
+            email_service_configured = email_service.is_configured
+        
+        # Environment info
+        is_render = os.environ.get('RENDER', False) or os.environ.get('RENDER_SERVICE_NAME', False)
+        
+        status = {
+            "status": "ok",
+            "timestamp": datetime.now().isoformat(),
+            "services": {
+                "project_manager": project_manager is not None,
+                "email_service": email_service_configured,
+                "document_routes": document_routes_available,
+                "document_analyzer": document_analyzer_initialized
+            },
+            "environment": {
+                "render": is_render,
+                "render_service": os.environ.get('RENDER_SERVICE_NAME', 'unknown'),
+                "data_dir_exists": DATA_DIR.exists(),
+                "cloud_env": IS_CLOUD_ENV
+            }
+        }
+        
+        print(f"[HEALTH] Status: {status}")
+        sys.stdout.flush()
+        
+        return JSONResponse(content=status, status_code=200)
+        
+    except Exception as e:
+        import traceback
+        error_msg = f"Health check failed: {str(e)}"
+        print(f"[HEALTH] ERROR: {error_msg}")
+        print(f"[HEALTH] Traceback: {traceback.format_exc()}")
+        sys.stderr.flush()
+        
+        error_status = {
+            "status": "error",
+            "timestamp": datetime.now().isoformat(),
+            "error": error_msg
+        }
+        
+        return JSONResponse(content=error_status, status_code=500)
+
 # Globale Variable für Scraper-Logs
 scraper_logs = []
 MAX_LOG_ENTRIES = 100  # Maximale Anzahl der Log-Einträge

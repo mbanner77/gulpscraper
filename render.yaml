@@ -2,7 +2,7 @@ services:
   # Frontend service
   - type: web
     name: gulp-job-viewer-frontend
-    env: static
+    runtime: static
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: ./frontend/build
     envVars:
@@ -19,7 +19,7 @@ services:
   # Backend service
   - type: web
     name: gulp-job-viewer-backend
-    env: python
+    runtime: python
     buildCommand: cd backend && ./render-build.sh
     startCommand: cd backend && gunicorn -w 4 -k uvicorn.workers.UvicornWorker scraper:app
     envVars:

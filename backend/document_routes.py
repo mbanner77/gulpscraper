@@ -16,6 +16,31 @@ router = APIRouter()
 # Reference to the document analyzer
 document_analyzer = None
 
+def initialize(project_manager):
+    """Initialize the document analyzer with the project manager."""
+    global document_analyzer
+    import sys
+    
+    try:
+        print("[DOCUMENT_ROUTES] Initializing document analyzer...")
+        sys.stdout.flush()
+        
+        document_analyzer = DocumentAnalyzer(project_manager)
+        
+        print(f"[DOCUMENT_ROUTES] Document analyzer initialized successfully: {document_analyzer is not None}")
+        sys.stdout.flush()
+        
+        return True
+        
+    except Exception as e:
+        import traceback
+        error_msg = f"Failed to initialize document analyzer: {str(e)}"
+        print(f"[DOCUMENT_ROUTES] ERROR: {error_msg}")
+        print(f"[DOCUMENT_ROUTES] Traceback: {traceback.format_exc()}")
+        sys.stderr.flush()
+        document_analyzer = None
+        return False
+
 @router.get("/health")
 async def health_check():
     """Health check endpoint for document routes."""
