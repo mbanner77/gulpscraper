@@ -1,301 +1,5 @@
 [
   {
-    "timestamp": "2025-07-08T10:00:00Z",
-    "event_type": "info",
-    "log_level": "INFO",
-    "message": "Starting GULP scraper",
-    "data": {
-      "timestamp": "2025-07-08T10:00:00.045834+02:00",
-      "use_real_scraper": true,
-      "is_cloud_env": false,
-      "pages": [
-        1,
-        2,
-        3
-      ],
-      "correlation_id": "scrape-1751961600-777ceada",
-      "performance_info": {
-        "cpu_percent": 0.0,
-        "memory_rss_mb": 27.11,
-        "memory_vms_mb": 33347.73,
-        "memory_percent": 0.06619453430175781,
-        "num_threads": 1,
-        "create_time": 1751877950.096718
-      }
-    },
-    "environment": {
-      "is_cloud": false,
-      "use_real_scraper": true,
-      "headless": true,
-      "session_id": null
-    },
-    "process_id": 21240,
-    "correlation_id": "scrape-1751961600-777ceada",
-    "session_id": null,
-    "tags": [
-      "scraper_start",
-      "gulp"
-    ],
-    "performance": {
-      "cpu_percent": 0.1,
-      "memory_usage": {
-        "rss_mb": 27.11,
-        "vms_mb": 33347.73
-      },
-      "system_load": [
-        1.39794921875,
-        1.5361328125,
-        1.80859375
-      ]
-    }
-  },
-  {
-    "timestamp": "2025-07-08T10:00:00Z",
-    "event_type": "info",
-    "log_level": "INFO",
-    "message": "Initializing browser configuration",
-    "data": {
-      "headless": true,
-      "timeout_ms": 45000,
-      "is_cloud_env": false,
-      "correlation_id": "scrape-1751961600-777ceada",
-      "performance_info": {
-        "cpu_percent": 0.0,
-        "memory_rss_mb": 27.11,
-        "memory_vms_mb": 33347.73,
-        "memory_percent": 0.06619453430175781,
-        "num_threads": 1,
-        "create_time": 1751877950.096718
-      }
-    },
-    "environment": {
-      "is_cloud": false,
-      "use_real_scraper": true,
-      "headless": true,
-      "session_id": null
-    },
-    "process_id": 21240,
-    "correlation_id": "scrape-1751961600-777ceada",
-    "session_id": null,
-    "tags": [
-      "browser",
-      "configuration"
-    ],
-    "performance": {
-      "cpu_percent": 0.1,
-      "memory_usage": {
-        "rss_mb": 27.11,
-        "vms_mb": 33347.73
-      },
-      "system_load": [
-        1.39794921875,
-        1.5361328125,
-        1.80859375
-      ]
-    }
-  },
-  {
-    "timestamp": "2025-07-08T10:00:00Z",
-    "event_type": "info",
-    "log_level": "INFO",
-    "message": "Initialisiere Playwright",
-    "data": {
-      "headless": true,
-      "timeout": 45000,
-      "is_cloud_env": false,
-      "performance_info": {
-        "cpu_percent": 0.0,
-        "memory_rss_mb": 27.11,
-        "memory_vms_mb": 33347.73,
-        "memory_percent": 0.06619453430175781,
-        "num_threads": 1,
-        "create_time": 1751877950.096718
-      }
-    },
-    "environment": {
-      "is_cloud": false,
-      "use_real_scraper": true,
-      "headless": true,
-      "session_id": null
-    },
-    "process_id": 21240,
-    "correlation_id": "scrape-1751961600-777ceada",
-    "session_id": null,
-    "tags": [
-      "playwright",
-      "initialization"
-    ],
-    "performance": {
-      "cpu_percent": 0.1,
-      "memory_usage": {
-        "rss_mb": 27.11,
-        "vms_mb": 33347.73
-      },
-      "system_load": [
-        1.39794921875,
-        1.5361328125,
-        1.80859375
-      ]
-    }
-  },
-  {
-    "timestamp": "2025-07-08T10:00:00Z",
-    "event_type": "info",
-    "log_level": "INFO",
-    "message": "Scraper process completed, resetting flags",
-    "data": {
-      "correlation_id": "scrape-1751961600-777ceada",
-      "is_scraping_reset": true,
-      "performance_info": {
-        "cpu_percent": 0.0,
-        "memory_rss_mb": 27.11,
-        "memory_vms_mb": 33347.73,
-        "memory_percent": 0.06619453430175781,
-        "num_threads": 1,
-        "create_time": 1751877950.096718
-      }
-    },
-    "environment": {
-      "is_cloud": false,
-      "use_real_scraper": true,
-      "headless": true,
-      "session_id": null
-    },
-    "process_id": 21240,
-    "correlation_id": "scrape-1751961600-777ceada",
-    "session_id": null,
-    "tags": [
-      "scraper_cleanup",
-      "process_completed"
-    ],
-    "performance": {
-      "cpu_percent": 0.1,
-      "memory_usage": {
-        "rss_mb": 27.11,
-        "vms_mb": 33347.73
-      },
-      "system_load": [
-        1.39794921875,
-        1.5361328125,
-        1.80859375
-      ]
-    }
-  },
-  {
-    "timestamp": "2025-07-08T10:00:00Z",
-    "event_type": "error",
-    "log_level": "ERROR",
-    "message": "Scraping completed but no results returned",
-    "data": {
-      "correlation_id": "scrape-1751961600-777ceada",
-      "pages_attempted": [
-        1,
-        2,
-        3
-      ],
-      "use_real_scraper": true,
-      "is_cloud_env": false,
-      "reason": "No projects found or scraping process failed",
-      "performance_info": {
-        "cpu_percent": 0.0,
-        "memory_rss_mb": 27.11,
-        "memory_vms_mb": 33347.73,
-        "memory_percent": 0.06619453430175781,
-        "num_threads": 1,
-        "create_time": 1751877950.096718
-      },
-      "system_info": {
-        "total_memory_gb": 40.0,
-        "available_memory_gb": 17.83,
-        "memory_usage_percent": 55.4,
-        "disk_usage_percent": 0.6,
-        "cpu_count": 4,
-        "load_average": [
-          1.39794921875,
-          1.5361328125,
-          1.80859375
-        ]
-      },
-      "traceback": "No traceback available"
-    },
-    "environment": {
-      "is_cloud": false,
-      "use_real_scraper": true,
-      "headless": true,
-      "session_id": null
-    },
-    "process_id": 21240,
-    "correlation_id": "scrape-1751961600-777ceada",
-    "session_id": null,
-    "tags": [
-      "scraper_error",
-      "empty_result",
-      "no_data"
-    ],
-    "performance": {
-      "cpu_percent": 0.1,
-      "memory_usage": {
-        "rss_mb": 27.11,
-        "vms_mb": 33347.73
-      },
-      "system_load": [
-        1.39794921875,
-        1.5361328125,
-        1.80859375
-      ]
-    }
-  },
-  {
-    "timestamp": "2025-07-08T11:00:00Z",
-    "event_type": "info",
-    "log_level": "INFO",
-    "message": "Starting GULP scraper",
-    "data": {
-      "timestamp": "2025-07-08T11:00:00.000964+02:00",
-      "use_real_scraper": true,
-      "is_cloud_env": false,
-      "pages": [
-        1,
-        2,
-        3
-      ],
-      "correlation_id": "scrape-1751965200-cdf468e3",
-      "performance_info": {
-        "cpu_percent": 0.0,
-        "memory_rss_mb": 27.18,
-        "memory_vms_mb": 33347.73,
-        "memory_percent": 0.06634712219238281,
-        "num_threads": 1,
-        "create_time": 1751877950.096718
-      }
-    },
-    "environment": {
-      "is_cloud": false,
-      "use_real_scraper": true,
-      "headless": true,
-      "session_id": null
-    },
-    "process_id": 21240,
-    "correlation_id": "scrape-1751965200-cdf468e3",
-    "session_id": null,
-    "tags": [
-      "scraper_start",
-      "gulp"
-    ],
-    "performance": {
-      "cpu_percent": 0.1,
-      "memory_usage": {
-        "rss_mb": 27.18,
-        "vms_mb": 33347.73
-      },
-      "system_load": [
-        1.1748046875,
-        1.35888671875,
-        1.7021484375
-      ]
-    }
-  },
-  {
     "timestamp": "2025-07-08T11:00:00Z",
     "event_type": "info",
     "log_level": "INFO",
@@ -5020,6 +4724,343 @@
         4.1142578125,
         5.34130859375,
         5.61328125
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-09T16:23:16Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "API Startup initiated",
+    "data": {
+      "is_cloud_env": false,
+      "use_real_scraper": true,
+      "data_dir": "/Users/mbanner/CascadeProjects/gulp-job-app/backend/data",
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 283.2,
+        "memory_vms_mb": 33757.64,
+        "memory_percent": 0.6913948059082031,
+        "num_threads": 4,
+        "create_time": 1752070978.640174
+      }
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 60331,
+    "correlation_id": "scrape-1752070996-60331-8e30bee0",
+    "session_id": null,
+    "tags": [],
+    "performance": {
+      "cpu_percent": 0.0,
+      "memory_usage": {
+        "rss_mb": 283.2,
+        "vms_mb": 33757.64
+      },
+      "system_load": [
+        3.33935546875,
+        2.771484375,
+        2.705078125
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-09T16:23:16Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "ProjectManager initialized",
+    "data": {
+      "data_dir": "data",
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 283.21,
+        "memory_vms_mb": 33757.64,
+        "memory_percent": 0.6914329528808594,
+        "num_threads": 4,
+        "create_time": 1752070978.640174
+      }
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 60331,
+    "correlation_id": "scrape-1752070996-60331-6521d962",
+    "session_id": null,
+    "tags": [],
+    "performance": {
+      "cpu_percent": 0.1,
+      "memory_usage": {
+        "rss_mb": 283.21,
+        "vms_mb": 33757.64
+      },
+      "system_load": [
+        3.33935546875,
+        2.771484375,
+        2.705078125
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-09T16:23:16Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Document routes initialized",
+    "data": {
+      "project_manager": "initialized",
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 283.21,
+        "memory_vms_mb": 33757.64,
+        "memory_percent": 0.6914329528808594,
+        "num_threads": 4,
+        "create_time": 1752070978.640174
+      }
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 60331,
+    "correlation_id": "scrape-1752070996-60331-3c5823be",
+    "session_id": null,
+    "tags": [],
+    "performance": {
+      "cpu_percent": 0.0,
+      "memory_usage": {
+        "rss_mb": 283.21,
+        "vms_mb": 33757.64
+      },
+      "system_load": [
+        3.33935546875,
+        2.771484375,
+        2.705078125
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-09T16:23:17Z",
+    "event_type": "info",
+    "log_level": "INFO",
+    "message": "Scheduler configuration completed",
+    "data": {
+      "enabled": true,
+      "interval_days": 1,
+      "daily_runs": [
+        {
+          "hour": 0,
+          "minute": 0
+        },
+        {
+          "hour": 1,
+          "minute": 0
+        },
+        {
+          "hour": 2,
+          "minute": 0
+        },
+        {
+          "hour": 3,
+          "minute": 0
+        },
+        {
+          "hour": 4,
+          "minute": 0
+        },
+        {
+          "hour": 5,
+          "minute": 0
+        },
+        {
+          "hour": 6,
+          "minute": 0
+        },
+        {
+          "hour": 7,
+          "minute": 0
+        },
+        {
+          "hour": 8,
+          "minute": 0
+        },
+        {
+          "hour": 9,
+          "minute": 0
+        },
+        {
+          "hour": 10,
+          "minute": 0
+        },
+        {
+          "hour": 11,
+          "minute": 0
+        },
+        {
+          "hour": 12,
+          "minute": 0
+        },
+        {
+          "hour": 13,
+          "minute": 0
+        },
+        {
+          "hour": 14,
+          "minute": 0
+        },
+        {
+          "hour": 15,
+          "minute": 0
+        },
+        {
+          "hour": 16,
+          "minute": 0
+        },
+        {
+          "hour": 17,
+          "minute": 0
+        },
+        {
+          "hour": 18,
+          "minute": 0
+        },
+        {
+          "hour": 19,
+          "minute": 0
+        },
+        {
+          "hour": 20,
+          "minute": 0
+        },
+        {
+          "hour": 21,
+          "minute": 0
+        },
+        {
+          "hour": 22,
+          "minute": 0
+        },
+        {
+          "hour": 23,
+          "minute": 0
+        }
+      ],
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 283.21,
+        "memory_vms_mb": 33757.64,
+        "memory_percent": 0.6914424896240234,
+        "num_threads": 4,
+        "create_time": 1752070978.640174
+      }
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 60331,
+    "correlation_id": "scrape-1752070997-60331-5cd34d48",
+    "session_id": null,
+    "tags": [],
+    "performance": {
+      "cpu_percent": 0.1,
+      "memory_usage": {
+        "rss_mb": 283.21,
+        "vms_mb": 33757.64
+      },
+      "system_load": [
+        3.33935546875,
+        2.771484375,
+        2.705078125
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-09T16:23:17Z",
+    "event_type": "success",
+    "log_level": "INFO",
+    "message": "Scheduler started successfully",
+    "data": {
+      "running": true,
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 283.26,
+        "memory_vms_mb": 33757.89,
+        "memory_percent": 0.6915569305419922,
+        "num_threads": 4,
+        "create_time": 1752070978.640174
+      }
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 60331,
+    "correlation_id": "scrape-1752070997-60331-8c579229",
+    "session_id": null,
+    "tags": [],
+    "performance": {
+      "cpu_percent": 0.1,
+      "memory_usage": {
+        "rss_mb": 283.26,
+        "vms_mb": 33757.89
+      },
+      "system_load": [
+        3.33935546875,
+        2.771484375,
+        2.705078125
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-07-09T16:23:17Z",
+    "event_type": "success",
+    "log_level": "INFO",
+    "message": "API Startup completed successfully",
+    "data": {
+      "scheduler_running": true,
+      "email_configured": true,
+      "project_manager_ready": true,
+      "performance_info": {
+        "cpu_percent": 0.0,
+        "memory_rss_mb": 283.3,
+        "memory_vms_mb": 33757.89,
+        "memory_percent": 0.6916427612304688,
+        "num_threads": 4,
+        "create_time": 1752070978.640174
+      }
+    },
+    "environment": {
+      "is_cloud": false,
+      "use_real_scraper": true,
+      "headless": true,
+      "session_id": null
+    },
+    "process_id": 60331,
+    "correlation_id": "scrape-1752070997-60331-0c7396ad",
+    "session_id": null,
+    "tags": [],
+    "performance": {
+      "cpu_percent": 0.0,
+      "memory_usage": {
+        "rss_mb": 283.3,
+        "vms_mb": 33757.89
+      },
+      "system_load": [
+        3.33935546875,
+        2.771484375,
+        2.705078125
       ]
     }
   }

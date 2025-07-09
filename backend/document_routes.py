@@ -15,6 +15,48 @@ router = APIRouter()
 # Reference to the document analyzer
 document_analyzer = None
 
+@router.get("/health")
+async def health_check():
+    """Health check endpoint for document routes."""
+    import sys
+    import os
+    
+    print("[DOCUMENT_ROUTES] Health check called")
+    sys.stdout.flush()
+    
+    try:
+        # Check dependencies
+        from document_analyzer import DOCX_AVAILABLE, SPACY_AVAILABLE
+        
+        status = {
+            "status": "ok",
+            "document_analyzer_initialized": document_analyzer is not None,
+            "docx_available": DOCX_AVAILABLE,
+            "spacy_available": SPACY_AVAILABLE,
+            "environment": {
+                "render": os.environ.get('RENDER', False),
+                "cloud_env": os.environ.get('CLOUD_ENV', False)
+            }
+        }
+        
+        print(f"[DOCUMENT_ROUTES] Health check status: {status}")
+        sys.stdout.flush()
+        
+        return status
+        
+    except Exception as e:
+        import traceback
+        error_msg = f"Health check failed: {str(e)}"
+        print(f"[DOCUMENT_ROUTES] ERROR: {error_msg}")
+        print(f"[DOCUMENT_ROUTES] Traceback: {traceback.format_exc()}")
+        sys.stderr.flush()
+        
+        return {
+            "status": "error",
+            "error": error_msg,
+            "document_analyzer_initialized": document_analyzer is not None
+        }
+
 def initialize(project_mgr):
     """Initialize the document routes with project manager reference."""
     global document_analyzer
@@ -48,10 +90,32 @@ async def upload_document(
 @router.get("/list")
 async def list_documents():
     """List all uploaded documents."""
-    if not document_analyzer:
-        raise HTTPException(status_code=500, detail="Document analyzer not initialized")
+    import sys
+    import traceback
     
-    return {"documents": document_analyzer.get_documents()}
+    print("[DOCUMENT_ROUTES] /list endpoint called")
+    sys.stdout.flush()
+    
+    try:
+        if not document_analyzer:
+            print("[DOCUMENT_ROUTES] ERROR: Document analyzer not initialized")
+            sys.stderr.flush()
+            raise HTTPException(status_code=500, detail="Document analyzer not initialized")
+        
+        documents = document_analyzer.get_documents()
+        print(f"[DOCUMENT_ROUTES] Successfully retrieved {len(documents)} documents")
+        sys.stdout.flush()
+        
+        return {"documents": documents}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = f"Error listing documents: {str(e)}"
+        print(f"[DOCUMENT_ROUTES] ERROR: {error_msg}")
+        print(f"[DOCUMENT_ROUTES] Traceback: {traceback.format_exc()}")
+        sys.stderr.flush()
+        raise HTTPException(status_code=500, detail=error_msg)
 
 
 @router.get("/{document_id}")

@@ -2220,6 +2220,18 @@ async def startup_event():
     project_manager = ProjectManager(DATA_DIR)
     log_scraper_event("info", "ProjectManager initialized", {"data_dir": str(DATA_DIR)})
     
+    # Initialize document routes if available
+    try:
+        import document_routes
+        document_routes.initialize(project_manager)
+        print("[STARTUP] Document analyzer initialized with project manager")
+        log_scraper_event("info", "Document routes initialized", {"project_manager": "initialized"})
+    except ImportError:
+        print("[STARTUP] Document routes not available - skipping initialization")
+    except Exception as e:
+        print(f"[STARTUP] Error initializing document routes: {str(e)}")
+        log_scraper_event("warning", f"Document routes initialization failed: {str(e)}")
+    
     # Initialisiere den E-Mail-Service mit Standard-SMTP-Einstellungen
     print("\n[STARTUP] Initialisiere E-Mail-Service...")
     print(f"[STARTUP] SMTP-Konfiguration: Host={DEFAULT_SMTP_HOST}, Port={DEFAULT_SMTP_PORT}, User={DEFAULT_SMTP_USER}")

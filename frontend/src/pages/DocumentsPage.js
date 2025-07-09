@@ -70,8 +70,35 @@ const DocumentsPage = () => {
 
   // Load documents on component mount
   useEffect(() => {
-    fetchDocuments();
+    checkDocumentHealth();
   }, []);
+  
+  // Check document service health first
+  const checkDocumentHealth = async () => {
+    try {
+      const response = await fetch('/documents/health');
+      const healthData = await response.json();
+      
+      console.log('[DOCUMENTS] Health check:', healthData);
+      
+      if (!response.ok || healthData.status === 'error') {
+        setError(`Document service unavailable: ${healthData.error || 'Service not responding'}`);
+        return;
+      }
+      
+      if (!healthData.document_analyzer_initialized) {
+        setError('Document analyzer not initialized on server');
+        return;
+      }
+      
+      // If health check passes, fetch documents
+      fetchDocuments();
+      
+    } catch (err) {
+      console.error('Error checking document health:', err);
+      setError('Failed to connect to document service. The document functionality may not be available on this deployment.');
+    }
+  };
 
   // Fetch documents from the API
   const fetchDocuments = async () => {
@@ -291,14 +318,19 @@ const DocumentsPage = () => {
                     </Box>
                   ) : error ? (
                     <Alert severity="error" sx={{ mb: 2 }}>
-                      {error}
-                      <Button 
-                        startIcon={<RefreshIcon />}
-                        onClick={fetchDocuments}
-                        sx={{ ml: 2 }}
-                      >
-                        Neu laden
-                      </Button>
+                      <Typography variant="body1" gutterBottom>
+                        {error}
+                      </Typography>
+                      <Box sx={{ mt: 1 }}>
+                        <Button 
+                          variant="outlined"
+                          size="small"
+                          startIcon={<RefreshIcon />}
+                          onClick={checkDocumentHealth}
+                        >
+                          Verbindung erneut testen
+                        </Button>
+                      </Box>
                     </Alert>
                   ) : documents.length > 0 ? (
                     <Grid container spacing={2}>
