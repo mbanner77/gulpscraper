@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from typing import List, Optional
 from pydantic import BaseModel
 from document_analyzer import DocumentAnalyzer
+from datetime import datetime
 
 router = APIRouter()
 
@@ -20,21 +21,43 @@ async def health_check():
     """Health check endpoint for document routes."""
     import sys
     import os
+    from fastapi.responses import JSONResponse
     
     print("[DOCUMENT_ROUTES] Health check called")
     sys.stdout.flush()
     
     try:
+        # Enhanced environment detection
+        is_render = os.environ.get('RENDER', False) or os.environ.get('RENDER_SERVICE_NAME', False)
+        render_external_hostname = os.environ.get('RENDER_EXTERNAL_HOSTNAME', 'unknown')
+        render_service_name = os.environ.get('RENDER_SERVICE_NAME', 'unknown')
+        
+        print(f"[DOCUMENT_ROUTES] Environment details:")
+        print(f"  Render: {is_render}")
+        print(f"  Render Service: {render_service_name}")
+        print(f"  Render Hostname: {render_external_hostname}")
+        print(f"  Document Analyzer Initialized: {document_analyzer is not None}")
+        sys.stdout.flush()
+        
         # Check dependencies
-        from document_analyzer import DOCX_AVAILABLE, SPACY_AVAILABLE
+        try:
+            from document_analyzer import DOCX_AVAILABLE, SPACY_AVAILABLE
+            print(f"[DOCUMENT_ROUTES] Dependencies: DOCX={DOCX_AVAILABLE}, SPACY={SPACY_AVAILABLE}")
+        except ImportError as e:
+            print(f"[DOCUMENT_ROUTES] WARNING: Could not import document_analyzer: {e}")
+            DOCX_AVAILABLE = False
+            SPACY_AVAILABLE = False
         
         status = {
             "status": "ok",
+            "timestamp": datetime.now().isoformat(),
             "document_analyzer_initialized": document_analyzer is not None,
             "docx_available": DOCX_AVAILABLE,
             "spacy_available": SPACY_AVAILABLE,
             "environment": {
-                "render": os.environ.get('RENDER', False),
+                "render": is_render,
+                "render_service": render_service_name,
+                "render_hostname": render_external_hostname,
                 "cloud_env": os.environ.get('CLOUD_ENV', False)
             }
         }
@@ -42,7 +65,8 @@ async def health_check():
         print(f"[DOCUMENT_ROUTES] Health check status: {status}")
         sys.stdout.flush()
         
-        return status
+        # Explicitly return JSONResponse to ensure proper content-type
+        return JSONResponse(content=status, status_code=200)
         
     except Exception as e:
         import traceback

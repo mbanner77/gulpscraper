@@ -83,9 +83,19 @@ const DocumentsPage = () => {
       
       const response = await fetch('/documents/health');
       console.log('[DOCUMENTS] Health check response status:', response.status);
+      console.log('[DOCUMENTS] Health check response headers:', Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
         console.error('[DOCUMENTS] Health check failed with status:', response.status);
+        
+        // Try to get response text for debugging
+        let responseText = '';
+        try {
+          responseText = await response.text();
+          console.log('[DOCUMENTS] Error response body:', responseText.substring(0, 500));
+        } catch (e) {
+          console.log('[DOCUMENTS] Could not read error response body');
+        }
         
         if (response.status === 404) {
           setError('Document routes not found. The document functionality is not available in this deployment.');
@@ -97,7 +107,24 @@ const DocumentsPage = () => {
         return;
       }
       
-      const healthData = await response.json();
+      // Try to parse response as JSON with better error handling
+      let healthData;
+      try {
+        const responseText = await response.text();
+        console.log('[DOCUMENTS] Raw response:', responseText.substring(0, 500));
+        
+        if (!responseText.trim()) {
+          setError('Document service returned empty response. Service may not be properly initialized.');
+          return;
+        }
+        
+        healthData = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('[DOCUMENTS] JSON parsing error:', parseError);
+        const responsePreview = await response.text().catch(() => 'Could not read response');
+        setError(`Document service returned invalid response format. This usually means the document routes are not properly configured on the server. Response preview: ${responsePreview.substring(0, 100)}...`);
+        return;
+      }
       console.log('[DOCUMENTS] Health check data:', healthData);
       
       if (healthData.status === 'error') {

@@ -32,12 +32,40 @@ class EmailService:
         frontend_url: str = None
     ):
         """Initialisiert den E-Mail-Service mit SMTP-Konfiguration."""
+        import sys
+        
+        # Enhanced environment detection for Render
+        is_render = os.environ.get('RENDER', False) or os.environ.get('RENDER_SERVICE_NAME', False)
+        is_cloud = is_render or os.environ.get('CLOUD_ENV', False)
+        
+        print(f"[EMAIL_SERVICE] Environment: Render={is_render}, Cloud={is_cloud}")
+        sys.stdout.flush()
+        
         self.smtp_host = smtp_host or os.environ.get("SMTP_HOST")
         self.smtp_port = smtp_port or int(os.environ.get("SMTP_PORT", 587))
         self.smtp_user = smtp_user or os.environ.get("SMTP_USER")
         self.smtp_password = smtp_password or os.environ.get("SMTP_PASSWORD")
         self.sender = sender or os.environ.get("EMAIL_SENDER", DEFAULT_SENDER)
-        self.frontend_url = frontend_url or os.environ.get("FRONTEND_URL", "http://localhost")
+        
+        # Enhanced frontend URL detection for Render
+        if frontend_url:
+            self.frontend_url = frontend_url
+        elif os.environ.get("FRONTEND_URL"):
+            self.frontend_url = os.environ.get("FRONTEND_URL")
+        elif is_render and os.environ.get("RENDER_EXTERNAL_URL"):
+            # For Render, try to use the external URL
+            self.frontend_url = os.environ.get("RENDER_EXTERNAL_URL")
+        else:
+            self.frontend_url = "http://localhost"
+        
+        print(f"[EMAIL_SERVICE] Configuration loaded:")
+        print(f"  SMTP Host: {'✓' if self.smtp_host else '✗'} {self.smtp_host or 'Not set'}")
+        print(f"  SMTP Port: {self.smtp_port}")
+        print(f"  SMTP User: {'✓' if self.smtp_user else '✗'} {self.smtp_user or 'Not set'}")
+        print(f"  SMTP Password: {'✓' if self.smtp_password else '✗'} {'[HIDDEN]' if self.smtp_password else 'Not set'}")
+        print(f"  Sender: {self.sender}")
+        print(f"  Frontend URL: {self.frontend_url}")
+        sys.stdout.flush()
         
         # Prüfen, ob die SMTP-Konfiguration vollständig ist
         self.is_configured = all([
@@ -46,6 +74,21 @@ class EmailService:
             self.smtp_user,
             self.smtp_password
         ])
+        
+        if not self.is_configured:
+            print(f"[EMAIL_SERVICE] WARNING: Email service not fully configured!")
+            missing = []
+            if not self.smtp_host: missing.append("SMTP_HOST")
+            if not self.smtp_port: missing.append("SMTP_PORT")
+            if not self.smtp_user: missing.append("SMTP_USER")
+            if not self.smtp_password: missing.append("SMTP_PASSWORD")
+            print(f"[EMAIL_SERVICE] Missing environment variables: {', '.join(missing)}")
+            if is_render:
+                print(f"[EMAIL_SERVICE] For Render deployment, set these in your service environment variables.")
+            sys.stderr.flush()
+        else:
+            print(f"[EMAIL_SERVICE] Email service fully configured and ready!")
+            sys.stdout.flush()
         
         # E-Mail-Template laden
         self.new_projects_template_path = EMAIL_TEMPLATE_DIR / "new_projects.html"
