@@ -10,44 +10,62 @@ import time
 import re
 from pathlib import Path
 from typing import List, Dict, Any, Optional
-import docx2txt
 from fastapi import UploadFile, HTTPException
-import spacy
 from collections import Counter
 
-# Load German language model for NLP processing
+# Try to import optional dependencies
 try:
-    nlp = spacy.load("de_core_news_sm")
-except Exception as e:
-    print(f"Warning: Could not load spaCy model: {str(e)}")
-    print("Document keyword extraction will be limited.")
-    # Create a minimal nlp replacement
-    class MinimalNLP:
-        class Defaults:
-            stop_words = set(['der', 'die', 'das', 'den', 'dem', 'des', 'ein', 'eine', 'einer', 'eines', 'einem', 'einen',
-                    'und', 'oder', 'aber', 'wenn', 'als', 'an', 'in', 'mit', 'für', 'von', 'zu', 'bei', 'nach',
-                    'über', 'unter', 'vor', 'ich', 'du', 'er', 'sie', 'es', 'wir', 'ihr', 'sie'])
-        
-        def __call__(self, text):
-            class Doc:
-                def __init__(self, text):
-                    self.text = text
-                    self.tokens = text.split()
-                
-                def __iter__(self):
-                    for token in self.tokens:
-                        yield Token(token)
+    import docx2txt
+    DOCX_AVAILABLE = True
+except ImportError:
+    DOCX_AVAILABLE = False
+    print("Warning: docx2txt not available - document processing will be limited")
+
+try:
+    import spacy
+    SPACY_AVAILABLE = True
+except ImportError:
+    SPACY_AVAILABLE = False
+    print("Warning: spacy not available - document analysis will be limited")
+
+# Create a minimal nlp replacement for when spacy is not available
+class MinimalNLP:
+    class Defaults:
+        stop_words = set(['der', 'die', 'das', 'den', 'dem', 'des', 'ein', 'eine', 'einer', 'eines', 'einem', 'einen',
+                'und', 'oder', 'aber', 'wenn', 'als', 'an', 'in', 'mit', 'für', 'von', 'zu', 'bei', 'nach',
+                'über', 'unter', 'vor', 'ich', 'du', 'er', 'sie', 'es', 'wir', 'ihr', 'sie'])
+    
+    def __call__(self, text):
+        class Doc:
+            def __init__(self, text):
+                self.text = text
+                self.tokens = text.split()
             
-            return Doc(text)
-    
-    class Token:
-        def __init__(self, text):
-            self.text = text
-            self.pos_ = ""
-            self.ent_type_ = ""
-            self.is_stop = False
-            self.lower_ = text.lower()
-    
+            def __iter__(self):
+                for token in self.tokens:
+                    yield Token(token)
+        
+        return Doc(text)
+
+class Token:
+    def __init__(self, text):
+        self.text = text
+        self.pos_ = ""
+        self.ent_type_ = ""
+        self.is_stop = False
+        self.lower_ = text.lower()
+
+# Load German language model for NLP processing
+nlp = None
+if SPACY_AVAILABLE:
+    try:
+        nlp = spacy.load("de_core_news_sm")
+    except Exception as e:
+        print(f"Warning: Could not load spaCy model: {str(e)}")
+        print("Document keyword extraction will be limited.")
+        nlp = MinimalNLP()
+else:
+    print("Using minimal NLP replacement")
     nlp = MinimalNLP()
 
 # Set up upload directory
