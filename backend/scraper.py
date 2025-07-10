@@ -89,14 +89,55 @@ from email_test_route import router as email_router
 app.include_router(email_router, prefix="/api/email", tags=["email"])
 
 # Versuche die Document-Routen zu importieren (optional für Cloud-Deployment)
+document_routes_available = False
 try:
     from document_routes import router as document_router
     # Registriere die Document-Routen nur wenn verfügbar
     app.include_router(document_router, prefix="/documents", tags=["documents"])
+    document_routes_available = True
     print("[STARTUP] Document routes successfully registered")
 except ImportError as e:
     print(f"[STARTUP] Document routes not available: {str(e)}")
     print("[STARTUP] Running without document functionality")
+    print("[STARTUP] Adding fallback document health endpoint")
+    
+    # Add fallback document health endpoint when document_routes is not available
+    @app.get("/documents/health")
+    async def fallback_document_health():
+        """Fallback health check for when document routes are not available."""
+        from fastapi.responses import JSONResponse
+        from datetime import datetime
+        import sys
+        
+        print("[DOCUMENT_FALLBACK] Fallback health check called")
+        sys.stdout.flush()
+        
+        # Detailed environment detection
+        is_render = os.environ.get('RENDER', False) or os.environ.get('RENDER_SERVICE_NAME', False)
+        render_external_hostname = os.environ.get('RENDER_EXTERNAL_HOSTNAME', 'unknown')
+        render_service_name = os.environ.get('RENDER_SERVICE_NAME', 'unknown')
+        
+        status = {
+            "status": "unhealthy",
+            "timestamp": datetime.now().isoformat(),
+            "document_analyzer_initialized": False,
+            "docx_available": False,
+            "spacy_available": False,
+            "environment": {
+                "render": is_render,
+                "render_service": render_service_name,
+                "render_hostname": render_external_hostname,
+                "cloud_env": os.environ.get('CLOUD_ENV', False)
+            },
+            "message": "Document service dependencies not available in this deployment",
+            "error": "document_routes module could not be imported",
+            "import_error": str(e)
+        }
+        
+        print(f"[DOCUMENT_FALLBACK] Returning status: {status}")
+        sys.stdout.flush()
+        
+        return JSONResponse(content=status, status_code=200)
 
 # Globale Variablen für Dienste
 email_service = None

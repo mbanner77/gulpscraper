@@ -158,14 +158,30 @@ const DocumentsPage = () => {
       
       // Check if the service is actually healthy
       if (healthData.status !== 'healthy') {
-        setError({
+        // Handle different types of unhealthy status
+        let errorConfig = {
           type: 'service_unhealthy',
-          title: 'Service nicht bereit',
-          message: healthData.message || 'Der Dokument-Service ist nicht betriebsbereit.',
-          action: 'retry',
-          actionText: 'Erneut versuchen',
+          title: 'Dokument-Service nicht verfügbar',
+          action: 'scraper',
+          actionText: 'Zum Scraper',
           details: JSON.stringify(healthData, null, 2)
-        });
+        };
+        
+        // Check if this is a known dependency issue
+        if (healthData.error && healthData.error.includes('document_routes module could not be imported')) {
+          errorConfig.type = 'service_unavailable';
+          errorConfig.message = 'Die Dokument-Funktionalität ist in dieser Cloud-Bereitstellung nicht aktiviert. Dies ist normal für Render-Deployments ohne Dokument-Dependencies.';
+        } else if (healthData.message && healthData.message.includes('dependencies not available')) {
+          errorConfig.type = 'dependencies_missing';
+          errorConfig.message = 'Die erforderlichen Dokument-Verarbeitungs-Dependencies sind nicht verfügbar. Die Dokument-Funktionalität ist deaktiviert.';
+        } else {
+          errorConfig.message = healthData.message || 'Der Dokument-Service ist nicht betriebsbereit.';
+          errorConfig.action = 'retry';
+          errorConfig.actionText = 'Erneut versuchen';
+        }
+        
+        console.log('[DOCUMENTS] Service unhealthy:', healthData);
+        setError(errorConfig);
         return;
       }
       
