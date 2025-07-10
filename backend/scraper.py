@@ -700,66 +700,42 @@ async def scrape_gulp_real(correlation_id):
             correlation_id=correlation_id
         )
         
-        # Try to use a lightweight fallback approach for cloud environments
+        # Use dedicated cloud scraper for cloud environments
         try:
-            import requests
-            import json
+            from cloud_scraper import scrape_gulp_cloud
             
             log_scraper_event(
                 "info",
-                "Using fallback HTTP scraper for cloud environment",
-                {},
+                "Using cloud-compatible scraper",
+                {"scraper_type": "cloud_scraper"},
                 correlation_id=correlation_id
             )
             
-            # Fallback: Direct API call (if possible)
-            headers = {
-                'User-Agent': USER_AGENT,
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
+            # Use the cloud scraper
+            captured_projects = await scrape_gulp_cloud(max_pages=3)
             
-            # Try direct API access (this might not work due to CORS/auth)
-            try:
-                response = requests.post(
-                    'https://www.gulp.de/gulp2/rest/internal/projects/search',
-                    headers=headers,
-                    json={},
-                    timeout=30
-                )
-                if response.status_code == 200:
-                    data = response.json()
-                    if 'projects' in data:
-                        captured_projects = data['projects']
-                        log_scraper_event(
-                            "success",
-                            "Fallback API call successful",
-                            {"projects_found": len(captured_projects)},
-                            correlation_id=correlation_id
-                        )
-                        return captured_projects
-            except Exception as api_error:
-                log_scraper_event(
-                    "warning",
-                    "Direct API fallback failed",
-                    {"error": str(api_error)},
-                    correlation_id=correlation_id
-                )
-            
-            # If direct API fails, return empty list with warning
             log_scraper_event(
-                "warning",
-                "Cloud environment scraping not available - returning empty results",
-                {"reason": "playwright_unavailable_in_cloud"},
+                "success",
+                "Cloud scraper completed",
+                {"projects_found": len(captured_projects)},
+                correlation_id=correlation_id
+            )
+            
+            return captured_projects
+            
+        except ImportError as import_error:
+            log_scraper_event(
+                "error",
+                "Cloud scraper not available",
+                {"error": str(import_error)},
                 correlation_id=correlation_id
             )
             return []
-            
-        except ImportError:
+        except Exception as cloud_error:
             log_scraper_event(
                 "error",
-                "Fallback dependencies not available",
-                {},
+                "Cloud scraper failed",
+                {"error": str(cloud_error)},
                 correlation_id=correlation_id
             )
             return []

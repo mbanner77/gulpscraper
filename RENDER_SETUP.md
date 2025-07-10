@@ -76,7 +76,7 @@ REACT_APP_API_URL=https://ihr-backend-service.onrender.com
    - **Mailgun:** Kostenloses Kontingent verfügbar
    - **Amazon SES:** Pay-per-use
 
-### 3. Deployment-Probleme
+### Deployment-Probleme
 
 **Build-Fehler:**
 - Überprüfen Sie die Build-Logs in Render
@@ -115,3 +115,37 @@ Ihre Anwendung besteht aus zwei Services:
 3. **Build-Fehler:** Dependencies nicht installiert
 4. **CORS-Fehler:** Frontend und Backend auf verschiedenen Domains
 5. **E-Mail-Konfiguration:** SMTP-Credentials falsch oder fehlend
+
+---
+
+## ✅ Recent Improvements (Latest Version)
+
+### 1. **Fixed Build Issues**
+- **Pydantic**: Updated to version 2.6.4 with pre-compiled wheels (no more Rust compilation errors)
+- **Dependencies**: All updated to versions compatible with Render's Python environment
+- **Build Script**: Simplified `render-build.sh` to avoid Playwright installation issues
+- **Requirements**: Split into `requirements.txt` (production) and `requirements_dev.txt` (local development)
+
+### 2. **Cloud-Compatible Scraping**
+- **Cloud Scraper**: New `cloud_scraper.py` module using `requests` instead of Playwright
+- **Automatic Detection**: Backend automatically uses cloud scraper in Render environment
+- **API Integration**: Direct integration with GULP's REST API for reliable cloud scraping
+- **Lightweight**: No browser dependencies, faster deployment and startup
+
+### 3. **Enhanced Error Handling**
+- **Document Service**: Improved initialization and health checks
+- **Email Service**: Better SMTP configuration validation
+- **Archive Support**: Projects can now be loaded from archive data
+- **Comprehensive Logging**: Better debugging with correlation IDs
+
+### 4. **Deployment Stability**
+- **No Rust Compilation**: All dependencies use pre-compiled wheels
+- **Faster Builds**: Simplified build process without browser installation
+- **Better Error Messages**: Clear indication of what's wrong and how to fix it
+- **Health Monitoring**: Multiple endpoints for service health checks
+
+### 5. **Development Experience**
+- **Local Setup**: `LOCAL_DEVELOPMENT.md` with complete setup instructions
+- **Dual Mode**: Full Playwright functionality locally, lightweight cloud scraping on Render
+- **Testing Tools**: `test_endpoints.py` for API validation
+- **Clear Documentation**: Separate guides for local development vs cloud deployment

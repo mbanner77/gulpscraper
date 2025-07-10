@@ -1,0 +1,12 @@
+# Development requirements including Playwright
+# Use this for local development: pip install -r requirements_dev.txt
+
+# Include all production requirements
+-r requirements.txt
+
+# Development-only dependencies
+playwright==1.42.0
+
+# Additional development tools (optional)
+pytest==8.0.2
+pytest-asyncio==0.23.5

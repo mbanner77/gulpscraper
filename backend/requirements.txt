@@ -1,14 +1,25 @@
-playwright==1.41.0
+# Core FastAPI and server
 fastapi==0.104.1
-uvicorn==0.24.0
-python-dotenv==1.0.0
-pydantic==2.4.2
-email-validator==2.1.0
-apscheduler==3.10.4
+uvicorn[standard]==0.24.0
 gunicorn==21.2.0
+
+# Data validation - use newer version with pre-compiled wheels  
+pydantic==2.6.4
+email-validator==2.1.1
+python-multipart==0.0.9
+
+# Utilities
+python-dotenv==1.0.1
+apscheduler==3.10.4
+psutil==5.9.8
+jinja2==3.1.4
+
+# Email support
 emails==0.6.0
-jinja2==3.1.2
-python-multipart==0.0.6
-psutil==5.9.6
+
+# Web scraping (lightweight for cloud)
+requests==2.31.0
+beautifulsoup4==4.12.3
+lxml==5.1.0
 # Document processing dependencies (optional for cloud deployment)
 docx2txt==0.8
