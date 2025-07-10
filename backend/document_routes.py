@@ -73,8 +73,15 @@ async def health_check():
             DOCX_AVAILABLE = False
             SPACY_AVAILABLE = False
         
+        # Determine if service is healthy
+        is_healthy = (
+            document_analyzer is not None and 
+            DOCX_AVAILABLE and 
+            SPACY_AVAILABLE
+        )
+        
         status = {
-            "status": "ok",
+            "status": "healthy" if is_healthy else "unhealthy",
             "timestamp": datetime.now().isoformat(),
             "document_analyzer_initialized": document_analyzer is not None,
             "docx_available": DOCX_AVAILABLE,
@@ -84,7 +91,8 @@ async def health_check():
                 "render_service": render_service_name,
                 "render_hostname": render_external_hostname,
                 "cloud_env": os.environ.get('CLOUD_ENV', False)
-            }
+            },
+            "message": "Document service is ready" if is_healthy else "Document service dependencies missing or not initialized"
         }
         
         print(f"[DOCUMENT_ROUTES] Health check status: {status}")

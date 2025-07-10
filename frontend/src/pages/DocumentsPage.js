@@ -81,28 +81,45 @@ const DocumentsPage = () => {
     try {
       console.log('[DOCUMENTS] Attempting health check at /documents/health');
       
-      const response = await fetch('/documents/health');
+      const response = await fetch('/documents/health', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000 // 10 second timeout
+      });
+      
       console.log('[DOCUMENTS] Health check response status:', response.status);
-      console.log('[DOCUMENTS] Health check response headers:', Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
         console.error('[DOCUMENTS] Health check failed with status:', response.status);
         
-        // Try to get response text for debugging
-        let responseText = '';
-        try {
-          responseText = await response.text();
-          console.log('[DOCUMENTS] Error response body:', responseText.substring(0, 500));
-        } catch (e) {
-          console.log('[DOCUMENTS] Could not read error response body');
-        }
-        
+        // Handle specific error cases for Render deployment
         if (response.status === 404) {
-          setError('Document routes not found. The document functionality is not available in this deployment.');
+          setError({
+            type: 'service_unavailable',
+            title: 'Dokument-Service nicht verfügbar',
+            message: 'Die Dokument-Funktionalität ist in dieser Bereitstellung nicht aktiviert. Dies ist normal für Cloud-Deployments ohne Dokument-Dependencies.',
+            action: 'scraper',
+            actionText: 'Zum Scraper'
+          });
         } else if (response.status === 500) {
-          setError('Document service internal error. Please check server logs.');
+          setError({
+            type: 'server_error',
+            title: 'Server-Fehler',
+            message: 'Der Dokument-Service hat einen internen Fehler. Bitte versuchen Sie es später erneut.',
+            action: 'retry',
+            actionText: 'Erneut versuchen'
+          });
         } else {
-          setError(`Document service returned error ${response.status}. Please try again later.`);
+          setError({
+            type: 'http_error',
+            title: 'Verbindungsfehler',
+            message: `Dokument-Service antwortet mit Fehlercode ${response.status}. Bitte versuchen Sie es später erneut.`,
+            action: 'retry',
+            actionText: 'Erneut versuchen'
+          });
         }
         return;
       }
@@ -111,48 +128,85 @@ const DocumentsPage = () => {
       let healthData;
       try {
         const responseText = await response.text();
-        console.log('[DOCUMENTS] Raw response:', responseText.substring(0, 500));
+        console.log('[DOCUMENTS] Raw response length:', responseText.length);
         
         if (!responseText.trim()) {
-          setError('Document service returned empty response. Service may not be properly initialized.');
+          setError({
+            type: 'empty_response',
+            title: 'Leere Antwort',
+            message: 'Der Dokument-Service hat eine leere Antwort gesendet. Der Service ist möglicherweise nicht richtig initialisiert.',
+            action: 'retry',
+            actionText: 'Erneut versuchen'
+          });
           return;
         }
         
         healthData = JSON.parse(responseText);
+        console.log('[DOCUMENTS] Parsed health data:', healthData);
       } catch (parseError) {
         console.error('[DOCUMENTS] JSON parsing error:', parseError);
-        const responsePreview = await response.text().catch(() => 'Could not read response');
-        setError(`Document service returned invalid response format. This usually means the document routes are not properly configured on the server. Response preview: ${responsePreview.substring(0, 100)}...`);
-        return;
-      }
-      console.log('[DOCUMENTS] Health check data:', healthData);
-      
-      if (healthData.status === 'error') {
-        setError(`Document service error: ${healthData.error || 'Unknown error'}`);
-        return;
-      }
-      
-      if (!healthData.document_analyzer_initialized) {
-        setError('Document analyzer not initialized on server. The document processing backend may not be ready.');
+        setError({
+          type: 'invalid_response',
+          title: 'Ungültige Antwort',
+          message: 'Der Dokument-Service hat eine ungültige Antwort gesendet. Dies deutet auf ein Konfigurationsproblem hin.',
+          action: 'scraper',
+          actionText: 'Zum Scraper',
+          details: `Parse-Fehler: ${parseError.message}`
+        });
         return;
       }
       
-      if (!healthData.docx_available) {
-        setError('Document processing dependencies not available. Word document support is disabled.');
+      // Check if the service is actually healthy
+      if (healthData.status !== 'healthy') {
+        setError({
+          type: 'service_unhealthy',
+          title: 'Service nicht bereit',
+          message: healthData.message || 'Der Dokument-Service ist nicht betriebsbereit.',
+          action: 'retry',
+          actionText: 'Erneut versuchen',
+          details: JSON.stringify(healthData, null, 2)
+        });
         return;
       }
+      
+      console.log('[DOCUMENTS] Health check successful, fetching documents...');
+      
+      // Service is healthy, now fetch documents
       
       console.log('[DOCUMENTS] Health check passed, fetching documents');
       // If health check passes, fetch documents
       await fetchDocuments();
       
-    } catch (err) {
-      console.error('[DOCUMENTS] Error during health check:', err);
+    } catch (fetchError) {
+      console.error('[DOCUMENTS] Health check network error:', fetchError);
       
-      if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
-        setError('Cannot connect to document service. This could mean: 1) Backend server is not running, 2) Network connection issue, or 3) Document functionality is not available in this deployment.');
+      // Handle network errors (common in cloud deployments)
+      if (fetchError.name === 'TypeError' && fetchError.message.includes('fetch')) {
+        setError({
+          type: 'network_error',
+          title: 'Netzwerk-Fehler',
+          message: 'Verbindung zum Dokument-Service nicht möglich. Dies kann auftreten, wenn der Service in der Cloud-Umgebung nicht verfügbar ist.',
+          action: 'scraper',
+          actionText: 'Zum Scraper',
+          details: fetchError.message
+        });
+      } else if (fetchError.name === 'AbortError') {
+        setError({
+          type: 'timeout_error',
+          title: 'Zeitüberschreitung',
+          message: 'Der Dokument-Service antwortet nicht rechtzeitig. Bitte versuchen Sie es erneut.',
+          action: 'retry',
+          actionText: 'Erneut versuchen'
+        });
       } else {
-        setError(`Document service connection failed: ${err.message}. The document functionality may not be available.`);
+        setError({
+          type: 'unknown_error',
+          title: 'Unbekannter Fehler',
+          message: 'Ein unbekannter Fehler ist beim Verbinden zum Dokument-Service aufgetreten.',
+          action: 'retry',
+          actionText: 'Erneut versuchen',
+          details: fetchError.message
+        });
       }
     } finally {
       setLoading(false);
@@ -171,11 +225,24 @@ const DocumentsPage = () => {
       if (response.ok) {
         setDocuments(data.documents || []);
       } else {
-        setError(data.detail || 'Failed to fetch documents');
+        setError({
+          type: 'api_error',
+          title: 'API-Fehler',
+          message: data.detail || 'Fehler beim Laden der Dokumente',
+          action: 'retry',
+          actionText: 'Erneut versuchen'
+        });
       }
     } catch (err) {
-      console.error('Error fetching documents:', err);
-      setError('Failed to connect to the server');
+      console.error('[DOCUMENTS] Error fetching documents:', err);
+      setError({
+        type: 'fetch_error',
+        title: 'Verbindungsfehler',
+        message: 'Dokumente können nicht geladen werden. Überprüfen Sie Ihre Verbindung.',
+        action: 'retry',
+        actionText: 'Erneut versuchen',
+        details: err.message
+      });
     } finally {
       setLoading(false);
     }
@@ -376,19 +443,68 @@ const DocumentsPage = () => {
                       <CircularProgress />
                     </Box>
                   ) : error ? (
-                    <Alert severity="error" sx={{ mb: 2 }}>
-                      <Typography variant="body1" gutterBottom>
-                        {error}
+                    <Alert 
+                      severity={error.type === 'service_unavailable' ? 'warning' : 'error'} 
+                      sx={{ mb: 2 }}
+                    >
+                      <Typography variant="h6" gutterBottom>
+                        {typeof error === 'string' ? 'Fehler' : error.title || 'Fehler'}
                       </Typography>
-                      <Box sx={{ mt: 1 }}>
-                        <Button 
-                          variant="outlined"
-                          size="small"
-                          startIcon={<RefreshIcon />}
-                          onClick={checkDocumentHealth}
-                        >
-                          Verbindung erneut testen
-                        </Button>
+                      <Typography variant="body1" gutterBottom>
+                        {typeof error === 'string' ? error : error.message}
+                      </Typography>
+                      
+                      {error.details && (
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontFamily: 'monospace' }}>
+                          Details: {error.details}
+                        </Typography>
+                      )}
+                      
+                      <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                        {error.action === 'retry' && (
+                          <Button 
+                            variant="outlined"
+                            size="small"
+                            startIcon={<RefreshIcon />}
+                            onClick={checkDocumentHealth}
+                          >
+                            {error.actionText || 'Erneut versuchen'}
+                          </Button>
+                        )}
+                        
+                        {error.action === 'scraper' && (
+                          <Button 
+                            variant="contained"
+                            size="small"
+                            onClick={() => window.location.href = '/scraper'}
+                          >
+                            {error.actionText || 'Zum Scraper'}
+                          </Button>
+                        )}
+                        
+                        {/* Always show retry option for structured errors */}
+                        {typeof error === 'object' && error.action !== 'retry' && (
+                          <Button 
+                            variant="outlined"
+                            size="small"
+                            startIcon={<RefreshIcon />}
+                            onClick={checkDocumentHealth}
+                          >
+                            Nochmal versuchen
+                          </Button>
+                        )}
+                        
+                        {/* Fallback for legacy string errors */}
+                        {typeof error === 'string' && (
+                          <Button 
+                            variant="outlined"
+                            size="small"
+                            startIcon={<RefreshIcon />}
+                            onClick={checkDocumentHealth}
+                          >
+                            Verbindung erneut testen
+                          </Button>
+                        )}
                       </Box>
                     </Alert>
                   ) : documents.length > 0 ? (
